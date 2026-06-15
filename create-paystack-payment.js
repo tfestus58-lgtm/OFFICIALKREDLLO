@@ -85,13 +85,10 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON in request body.' });
   }
 
-  const { orderId, amount, description, buyerEmail, projectTitle } = body;
+  const { orderId, amount: _clientAmount, description, buyerEmail, projectTitle, currency: clientCurrency } = body;
 
   if (!orderId || typeof orderId !== 'string' || orderId.trim() === '') {
     return respond(400, { error: 'orderId is required.' });
-  }
-  if (!amount || typeof amount !== 'number' || amount <= 0) {
-    return respond(400, { error: 'amount must be a positive number in USD.' });
   }
   if (!description || typeof description !== 'string' || description.trim() === '') {
     return respond(400, { error: 'description is required.' });
@@ -115,6 +112,19 @@ exports.handler = async (event) => {
     /* ── 4. Init Firebase and load platform settings ── */
     const db       = getDb();
     const settings = await getSettings(db);
+
+    /* ── FIX #2: Read authoritative amount from Firestore — ignore client-supplied value ── */
+    const projectSnap = await db.collection('projects').doc(orderId.trim()).get();
+    if (!projectSnap.exists) {
+      return respond(404, { error: 'Project not found.' });
+    }
+    const projectDoc = projectSnap.data();
+    const amount = Number(projectDoc.totalAmount || projectDoc.budget || projectDoc.amount || 0);
+    if (!amount || amount <= 0) {
+      return respond(400, { error: 'Project has no valid payment amount set.' });
+    }
+    // Read currency from project doc — not from the client
+    const paymentCurrency = ((projectDoc.currency || clientCurrency || 'NGN')).toUpperCase();
 
     /* ── 5. Guard: Paystack must be enabled in admin settings ── */
     if (!settings.paystackEnabled) {
@@ -153,7 +163,7 @@ exports.handler = async (event) => {
     const transactionPayload = {
       email:        buyerEmail.trim().toLowerCase(),
       amount:       Math.round(amount * 100),  // Paystack uses the smallest currency unit
-      currency:     'USD',
+      currency:     paymentCurrency,
       reference:    paymentRef,
       callback_url: `${platformUrl}/buyer-payments.html?payment=success&orderId=${encodeURIComponent(orderId.trim())}&method=paystack`,
       metadata: {
@@ -206,7 +216,7 @@ exports.handler = async (event) => {
       return respond(502, { error: 'Payment service did not return a checkout URL.' });
     }
 
-    console.log(`Paystack transaction initialised — orderId: ${orderId}, amount: $${amount} USD, ref: ${paymentRef}`);
+    console.log(`Paystack transaction initialised — orderId: ${orderId}, amount: ${amount} ${paymentCurrency}, ref: ${paymentRef}`);
 
     /* ── 11. Return success ── */
     return respond(200, { checkoutUrl, paymentRef });

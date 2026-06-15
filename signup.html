@@ -536,7 +536,7 @@
           email,
           role:            currentRole,
           plan:            'free',
-          kycStatus:       'pending',
+          kycStatus:       currentRole === 'buyer' ? 'not-required' : 'pending',
           profileComplete: false,
           emailVerified:   false,
           createdAt:       serverTimestamp(),

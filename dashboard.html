@@ -92,7 +92,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .modal-box{background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(13,33,69,0.20);width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:28px}
 
 /* Quick cards */
-.qcard{padding:14px 8px;border-radius:16px;background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);box-shadow:0 6px 24px rgba(13,33,69,0.07);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow .2s,transform .2s;text-align:center;width:calc(33.333% - 8px)}
+.qcard{padding:14px 8px;border-radius:16px;background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);box-shadow:0 6px 24px rgba(13,33,69,0.07);display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:box-shadow .2s,transform .2s;text-align:center;width:100%}
 .qcard:hover{box-shadow:0 8px 36px rgba(13,33,69,0.13);transform:translateY(-2px)}
 .qcard:active{transform:translateY(0)}
 .qcard-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center}
@@ -315,13 +315,13 @@ header > div:last-child {
 
 /* 13. QUICK CARDS — equal width, responsive */
 .qcard {
-  width: calc(33.333% - 8px) !important;
+  width: 100% !important;
   min-width: 0 !important;
   padding: 12px 6px !important;
 }
 .qcard-lbl { font-size: 10px !important; }
 @media (max-width: 360px) {
-  .qcard { width: calc(33.333% - 6px) !important; padding: 10px 4px !important; }
+  .qcard { padding: 10px 4px !important; }
   .qcard-icon { width: 34px !important; height: 34px !important; }
 }
 
@@ -635,7 +635,7 @@ header > div:last-child {
       </div>
 
       <!-- SECTION D: Mobile quick cards -->
-      <div id="quick-cards" class="fu fu-4" style="display:flex;flex-wrap:wrap;gap:11px;margin-bottom:24px;">
+      <div id="quick-cards" class="fu fu-4" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;">
         <div class="qcard" onclick="openWithdrawModal()">
           <div class="qcard-icon" style="background:#e8f5ef;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1111,6 +1111,11 @@ async function loadDashboard(uid) {
       window.location.href = 'verify.html';
       return;
     }
+    // If KYC is verified but profile is not yet complete, send to profile setup
+    if (kycStatus === 'verified' && !user.profileComplete) {
+      window.location.href = 'profile-setup.html';
+      return;
+    }
     if (kycStatus === 'under-review' || kycStatus === 'declined') {
       var banner = document.getElementById('kyc-review-banner');
       if (banner) banner.style.display = 'flex';
@@ -1353,6 +1358,15 @@ onAuthStateChanged(auth, function(user) {
     return;
   }
 
+  getDoc(doc(db, 'users', user.uid)).then(function(snap) {
+    var role = snap.exists() ? snap.data().role : null;
+    if (role === 'buyer') { window.location.href = '/buyer-dashboard.html'; return; }
+    if (role && role !== 'freelancer') { window.location.href = '/login.html'; return; }
+    _continueBoot(user);
+  }).catch(function() { window.location.href = '/login.html'; });
+});
+
+function _continueBoot(user) {
   // Rebuild nav with uid so Store link gets ?uid=...
   buildNav(user.uid);
 
@@ -1386,7 +1400,7 @@ onAuthStateChanged(auth, function(user) {
     clearTimeout(ovTimeout);
     ov.style.display = 'none';
   });
-});
+}
 </script>
 <script>
 // ── PWA Install Prompt ────────────────────────────────────────────────────────

@@ -439,12 +439,14 @@
     function redirect(userData) {
       if (userData.role === 'admin') {
         window.location.href = 'admin.html';
-      } else if (userData.kycStatus !== 'verified') {
-        window.location.href = 'verify.html';
-      } else if (userData.role === 'freelancer') {
-        window.location.href = 'dashboard.html';
-      } else {
+      } else if (userData.role === 'buyer') {
         window.location.href = 'buyer-dashboard.html';
+      } else if (userData.kycStatus === 'pending') {
+        // Not yet submitted — send to verify
+        window.location.href = 'verify.html';
+      } else {
+        // verified, under-review, declined — dashboard handles all these states
+        window.location.href = 'dashboard.html';
       }
     }
 

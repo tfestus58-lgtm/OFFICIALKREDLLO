@@ -191,11 +191,14 @@ exports.handler = async (event) => {
 
   /*
    * Paystack sends amount in the smallest currency unit (kobo for NGN,
-   * cents for USD). Divide by 100 to get the decimal USD amount.
+   * pesewas for GHS, cents for USD/GBP/EUR etc.). Divide by 100 to get
+   * the decimal amount. currency is sent as an uppercase ISO code e.g. "NGN".
    */
-  const amountUsd = typeof data?.amount === 'number'
-    ? data.amount / 100
-    : null;
+  const confirmedAmountRaw = typeof data?.amount === 'number' ? data.amount : 0;
+  const confirmedCurrency  = (data?.currency || 'NGN').toUpperCase();
+  const confirmedAmount    = confirmedAmountRaw / 100;
+  // Keep amountUsd for backward-compat in the project path below
+  const amountUsd          = confirmedCurrency === 'USD' ? confirmedAmount : null;
 
   if (!orderId) {
     console.error(
@@ -207,7 +210,7 @@ exports.handler = async (event) => {
   }
 
   console.log(
-    `Processing charge.success — orderId: ${orderId}, ref: ${reference}, amount: $${amountUsd}`
+    `Processing charge.success — orderId: ${orderId}, ref: ${reference}, amount: ${confirmedAmount} ${confirmedCurrency}`
   );
 
   /* ── 7. Init Firestore ── */
@@ -255,16 +258,33 @@ exports.handler = async (event) => {
       return respond(200, { received: true });
     }
 
-    // Mark order paid
+    // Fetch platform settings to calculate fees
+    let productOrderSettings;
+    try {
+      productOrderSettings = await getSettings(db);
+    } catch (err) {
+      console.warn('[paystack-webhook] Could not fetch settings for product order, using defaults:', err.message);
+      productOrderSettings = { platformFeePercent: 2.5 };
+    }
+
+    const productPlatformFee  = +(confirmedAmount * (productOrderSettings.platformFeePercent / 100)).toFixed(2);
+    const productSellerAmount = +(confirmedAmount - productPlatformFee).toFixed(2);
+
+    // Mark order paid and write confirmed amount + fees
     try {
       await orderRef.update({
         paymentStatus:      'paid',
         paymentMethod:      'paystack',
         paystackReference:  reference,
+        amount:             confirmedAmount,
+        currency:           confirmedCurrency,
+        amountUsd:          confirmedCurrency === 'USD' ? confirmedAmount : null,
+        platformFee:        productPlatformFee,
+        sellerAmount:       productSellerAmount,
         paymentConfirmedAt: FieldValue.serverTimestamp(),
         updatedAt:          FieldValue.serverTimestamp(),
       });
-      console.log(`Product order ${orderId} marked as paid.`);
+      console.log(`Product order ${orderId} marked as paid. Amount: ${confirmedAmount} ${confirmedCurrency}, sellerAmount: ${productSellerAmount}`);
     } catch (err) {
       console.error(`Firestore update failed for product-order ${orderId}:`, err.message);
       return respond(500, { error: 'Failed to update product order status.' });
@@ -276,12 +296,13 @@ exports.handler = async (event) => {
     // Fire Facebook pixel if product has a pixelId configured
     try {
       const productSnap = await db.collection('products').doc(order.productId).get();
-      if (productSnap.exists && productSnap.data().facebookPixelId) {
+      const fbPixelId = productSnap.exists && productSnap.data().integrations && productSnap.data().integrations.facebookPixelId;
+      if (fbPixelId) {
         await callFunction('pixel-event', {
-          pixelId:   productSnap.data().facebookPixelId,
+          pixelId:   fbPixelId,
           eventName: 'Purchase',
-          value:     order.amountUsd || amountUsd || 0,
-          currency:  'USD',
+          value:     confirmedAmount,
+          currency:  confirmedCurrency,
           email:     order.buyerEmail || customerEmail || '',
           orderId,
         });
@@ -312,7 +333,7 @@ exports.handler = async (event) => {
     settings = { platformFeePercent: 2.5, projectProtectionPercent: 1.0 };
   }
 
-  const baseAmount       = Number(amountUsd || 0);
+  const baseAmount       = Number(confirmedAmount || 0);
   const platformFeeAmt   = baseAmount * (settings.platformFeePercent / 100);
   const protectionFeeAmt = baseAmount * (settings.projectProtectionPercent / 100);
   const netAmount        = baseAmount - platformFeeAmt - protectionFeeAmt;
@@ -325,6 +346,7 @@ exports.handler = async (event) => {
       paymentMethod:       'paystack',
       paystackReference:   reference,
       paymentStatus:       'success',
+      currency:            confirmedCurrency,
       platformFee:         platformFeeAmt,
       protectionFee:       protectionFeeAmt,
       netAmount:           netAmount,
@@ -385,7 +407,7 @@ exports.handler = async (event) => {
         name:         freelancerName,
         buyerName,
         projectTitle,
-        amount:       amountUsd ? `$${amountUsd.toFixed(2)}` : 'the agreed amount',
+        amount:       confirmedAmount ? new Intl.NumberFormat('en', { style: 'currency', currency: confirmedCurrency }).format(confirmedAmount) : 'the agreed amount',
         dashboardUrl: projectUrl,
       },
     });

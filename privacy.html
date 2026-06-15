@@ -428,5 +428,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+  <script type="module">
+    // Load social links from Firestore config
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const snap = await getDoc(doc(window.db, 'config', 'platform'));
+        const s = snap.exists() ? snap.data() : {};
+        const links = { twitter: s.twitterUrl || '', linkedin: s.linkedinUrl || '', instagram: s.instagramUrl || '' };
+        ['twitter', 'linkedin', 'instagram'].forEach(name => {
+          const el = document.getElementById('social-' + name);
+          if (!el) return;
+          if (links[name]) { el.href = links[name]; el.style.display = 'flex'; }
+          else { el.style.display = 'none'; }
+        });
+      } catch (e) { /* silent fail */ }
+    })();
+  </script>
 </body>
 </html>

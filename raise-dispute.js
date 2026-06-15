@@ -1,16 +1,15 @@
 /**
- * Netlify Function: approve-delivery.js
- * Path: netlify/functions/approve-delivery.js
+ * Netlify Function: raise-dispute.js
+ * Path: netlify/functions/raise-dispute.js
  *
- * Called when a buyer approves a delivered project.
+ * Called when a buyer raises a dispute on a project.
  * - Verifies the caller is the project's buyer
- * - Updates the project: status → completed, escrowStatus → releasing
- * - Credits the net amount to the freelancer's availableBalance
- * - Sends push notification to the freelancer
- * - Triggers emails to both parties via send-email
+ * - Guards against duplicate disputes
+ * - Updates the project: status → disputed, escrowStatus → disputed
+ * - Sends notifications to both parties
  *
  * POST body:
- *   { projectId: string, buyerUid: string }
+ *   { projectId: string, raisedBy: string, raisedByRole: 'buyer', description: string }
  *
  * Environment variables required:
  *   FIREBASE_SERVICE_ACCOUNT  — full service account JSON
@@ -91,16 +90,16 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON body.' });
   }
 
-  const { projectId, buyerUid: bodyBuyerUid } = payload;
-
-  // Use verified uid; if client also sent buyerUid and it mismatches, reject
-  if (bodyBuyerUid && bodyBuyerUid !== callerUid) {
-    return respond(403, { error: 'Caller identity mismatch.' });
-  }
-  const buyerUid = callerUid;
+  const { projectId, raisedBy, raisedByRole, description } = payload;
 
   if (!projectId || typeof projectId !== 'string') {
     return respond(400, { error: 'projectId is required.' });
+  }
+  if (!raisedBy || typeof raisedBy !== 'string') {
+    return respond(400, { error: 'raisedBy is required.' });
+  }
+  if (!description || typeof description !== 'string' || !description.trim()) {
+    return respond(400, { error: 'description is required.' });
   }
 
   /* ── Init Firestore ── */
@@ -128,122 +127,102 @@ exports.handler = async (event) => {
   const project = projectSnap.data();
 
   /* ── Verify caller is the project buyer ── */
-  if (project.buyerUid !== buyerUid) {
-    return respond(403, { error: 'You are not authorised to approve this delivery.' });
+  if (project.buyerUid !== raisedBy) {
+    return respond(403, { error: 'You are not authorised to raise a dispute on this project.' });
   }
 
-  /* ── Guard against double-approval ── */
-  if (project.status === 'completed') {
-    return respond(409, { error: 'This delivery has already been approved.' });
+  /* ── Guard against duplicate disputes ── */
+  if (project.status === 'disputed') {
+    return respond(409, { error: 'A dispute has already been raised on this project.' });
   }
 
-  /* ── Guard: project must be in a deliverable state ── */
-  if (!['in_progress', 'delivered'].includes(project.status)) {
-    return respond(400, { error: `Cannot approve a project with status "${project.status}".` });
+  /* ── Guard: can only dispute active/delivered projects ── */
+  if (!['in_progress', 'delivered', 'active'].includes(project.status)) {
+    return respond(400, { error: `Cannot raise a dispute on a project with status "${project.status}".` });
   }
 
-  const netAmount      = Number(project.netAmount || 0);
-  const projectCurrency = (project.currency || 'USD').toUpperCase();
-  const freelancerUid  = project.freelancerUid || null;
-  const projectTitle   = project.projectTitle || 'Your project';
+  const projectTitle  = project.projectTitle || 'Your project';
+  const freelancerUid = project.freelancerUid || null;
+  const buyerUid      = project.buyerUid;
 
-  if (!freelancerUid) {
-    return respond(400, { error: 'Project has no freelancer assigned.' });
-  }
-  if (netAmount <= 0) {
-    return respond(400, { error: 'Project net amount is zero or not set.' });
-  }
-
-  const amountFormatted = new Intl.NumberFormat('en', { style: 'currency', currency: projectCurrency }).format(netAmount);
-
-  /* ── Update project: mark as completed ── */
+  /* ── Update project: mark as disputed ── */
   try {
     await db.collection('projects').doc(projectId).update({
-      status:       'completed',
-      escrowStatus: 'releasing',
-      completedAt:  FieldValue.serverTimestamp(),
-      updatedAt:    FieldValue.serverTimestamp(),
+      status:        'disputed',
+      escrowStatus:  'disputed',
+      disputeReason: description.trim(),
+      disputedBy:    raisedBy,
+      disputedByRole: raisedByRole || 'buyer',
+      disputedAt:    FieldValue.serverTimestamp(),
+      updatedAt:     FieldValue.serverTimestamp(),
     });
-    console.log(`Project ${projectId} marked completed.`);
+    console.log(`Dispute raised on project ${projectId} by ${raisedBy}.`);
   } catch (err) {
     console.error(`Firestore update failed for project ${projectId}:`, err.message);
     return respond(500, { error: 'Failed to update project status.' });
   }
 
-  /* ── Credit the freelancer's per-currency balance ── */
-  try {
-    await db.collection('users').doc(freelancerUid).update({
-      [`balances.${projectCurrency}`]: FieldValue.increment(netAmount),
-      totalEarned:                     FieldValue.increment(netAmount),
-      updatedAt:                       FieldValue.serverTimestamp(),
-    });
-    console.log(`Credited ${amountFormatted} to freelancer ${freelancerUid}.`);
-  } catch (err) {
-    console.error(`Failed to credit freelancer ${freelancerUid}:`, err.message);
-    // We still continue — the project is marked completed. Admin can manually credit.
-  }
-
-  /* ── Fetch user details for notifications and emails ── */
+  /* ── Fetch user details for notifications ── */
   let freelancerEmail = null;
   let freelancerName  = 'Freelancer';
   let buyerEmail      = null;
   let buyerName       = 'Client';
 
   try {
-    const [fSnap, bSnap] = await Promise.all([
-      db.collection('users').doc(freelancerUid).get(),
-      db.collection('users').doc(buyerUid).get(),
-    ]);
-    if (fSnap.exists) {
-      freelancerEmail = fSnap.data().email || null;
-      freelancerName  = fSnap.data().name  || 'Freelancer';
-    }
+    const fetches = [db.collection('users').doc(buyerUid).get()];
+    if (freelancerUid) fetches.push(db.collection('users').doc(freelancerUid).get());
+
+    const [bSnap, fSnap] = await Promise.all(fetches);
     if (bSnap.exists) {
       buyerEmail = bSnap.data().email || null;
       buyerName  = bSnap.data().name  || 'Client';
+    }
+    if (fSnap && fSnap.exists) {
+      freelancerEmail = fSnap.data().email || null;
+      freelancerName  = fSnap.data().name  || 'Freelancer';
     }
   } catch (err) {
     console.warn('Could not fetch user details for notifications:', err.message);
   }
 
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
-  const projectUrl  = `${platformUrl}/dashboard-projects.html?projectId=${encodeURIComponent(projectId)}`;
+  const projectUrl  = `${platformUrl}/buyer-projects.html?projectId=${encodeURIComponent(projectId)}`;
 
-  /* ── Notify the freelancer: payment received ── */
+  /* ── Notify the buyer: dispute received ── */
   await callFunction('send-smart-notification', {
-    userUid:    freelancerUid,
-    title:      'Work Approved',
-    body:       `"${projectTitle}" has been approved. Your payment is on its way.`,
+    userUid:    buyerUid,
+    title:      'Dispute Submitted',
+    body:       `Your dispute for "${projectTitle}" has been received. The Kreddlo team will be in touch.`,
     url:        projectUrl,
-    templateId: 'payment-received',
-    emailMode:  freelancerEmail ? 'always' : 'never',
+    templateId: 'dispute-raised',
+    emailMode:  buyerEmail ? 'always' : 'never',
     emailData: {
-      name:         freelancerName,
+      name:         buyerName,
       projectTitle,
-      amount:       amountFormatted,
-      buyerName,
+      description:  description.trim(),
     },
   });
 
-  /* ── Notify the buyer: work delivered ── */
-  await callFunction('send-smart-notification', {
-    userUid:      buyerUid,
-    title:        'Work Delivered',
-    body:         `"${projectTitle}" has been marked as delivered. Please review and approve.`,
-    url:          projectUrl,
-    templateId:   'work-delivered',
-    emailMode:    buyerEmail ? 'delayed' : 'never',
-    delayMinutes: 15,
-    emailData: {
-      name:           buyerName,
-      projectTitle,
-      freelancerName,
-    },
-  });
+  /* ── Notify the freelancer: dispute raised ── */
+  if (freelancerUid) {
+    await callFunction('send-smart-notification', {
+      userUid:    freelancerUid,
+      title:      'Dispute Raised',
+      body:       `A dispute has been raised on "${projectTitle}". Kreddlo support will review shortly.`,
+      url:        `${platformUrl}/dashboard-projects.html?projectId=${encodeURIComponent(projectId)}`,
+      templateId: 'dispute-raised-freelancer',
+      emailMode:  freelancerEmail ? 'always' : 'never',
+      emailData: {
+        name:         freelancerName,
+        projectTitle,
+        buyerName,
+      },
+    });
+  }
 
   return respond(200, {
     success: true,
-    message: `Delivery approved. ${amountFormatted} credited to ${freelancerName}.`,
+    message: 'Dispute submitted. The Kreddlo team will be in touch.',
   });
 };
 

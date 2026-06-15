@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>My Purchases — Kreddlo</title>
+<meta id="meta-description" name="description" content="View and access your purchased digital products on Kreddlo."/>
+<meta id="og-title" property="og:title" content="My Purchases — Kreddlo"/>
+<meta id="og-description" property="og:description" content="View and access your purchased digital products on Kreddlo."/>
+<meta id="og-url" property="og:url" content="https://kreddlo.com/buyer-purchases.html"/>
+<meta id="og-image" property="og:image" content="/assets/kreddlo-og-banner.png"/>
+<meta id="og-type" property="og:type" content="website"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link id="canonical" rel="canonical" href="https://kreddlo.com/buyer-purchases.html"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily:{ sans:['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+/* ── GLASS ── */
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+/* ── BUTTONS ── */
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.30);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.38)}
+.btn-green:active{transform:translateY(0)}
+.btn-green:disabled{opacity:.6;cursor:default;transform:none}
+
+.btn-navy{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0d2145;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(13,33,69,0.20);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-navy:hover{background:#162f5e;transform:translateY(-1px)}
+.btn-navy:active{transform:translateY(0)}
+.btn-navy:disabled{opacity:.5;cursor:default;transform:none}
+
+.btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:transparent;color:#0d2145;border:1.5px solid #e2e8f0;border-radius:50px;padding:9px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,border-color .15s,background .15s}
+.btn-outline:hover{border-color:#0d2145;background:rgba(13,33,69,0.04);transform:translateY(-1px)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap;flex-shrink:0}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-navy{background:rgba(13,33,69,0.08);color:#0d2145}
+.badge-amber{background:#fff3cd;color:#856404}
+.badge-blue{background:#e8f0fe;color:#1a56db}
+.badge-red{background:#fde8e8;color:#c81e1e}
+.badge-grey{background:rgba(13,33,69,0.07);color:rgba(13,33,69,0.55)}
+
+/* ── LABEL ── */
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+/* ── SKELETON ── */
+.sk{background:linear-gradient(90deg,#f0f2f6 25%,#e8eaf0 50%,#f0f2f6 75%);background-size:200% 100%;animation:sk 1.5s infinite linear;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── NAV ── */
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+/* ── MOBILE MENU ── */
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+/* ── PURCHASE CARD ── */
+.purchase-card{border-radius:20px;padding:20px;margin-bottom:14px;transition:box-shadow .2s,transform .2s}
+.purchase-card:hover{box-shadow:0 10px 40px rgba(13,33,69,0.12);transform:translateY(-1px)}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:56px 24px}
+
+/* ── BLOBS ── */
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+
+/* ── FADE UP ── */
+.fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}.fu-3{animation-delay:.19s}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#091830;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── RESPONSIVE ── */
+@media(min-width:1024px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+}
+@media(min-width:768px){
+  #page-content{padding:32px!important}
+}
+</style>
+<style id="mobile-first-patch">
+/* 1. BODY — no horizontal scroll on mobile */
+body { overflow-x: hidden !important; }
+
+/* 2. SIDEBAR — safe area on desktop */
+#sidebar {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-top: max(30px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+
+/* 3. PAGE CONTENT — proper mobile padding, no bleed */
+#page-content {
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  min-height: 100dvh !important;
+}
+
+/* 4. HAMBURGER — always visible on mobile, proper tap size */
+#hamburger {
+  display: flex !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+@media (min-width: 768px) {
+  #hamburger { display: none !important; }
+  #sidebar { display: flex !important; }
+}
+
+/* 5. LOADING OVERLAY */
+#loading-overlay {
+  min-height: 100dvh !important;
+}
+
+/* 6. NAV LINKS — prevent text overflow in sidebar */
+.nav-link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. TOAST — above safe area on mobile */
+#toast {
+  bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+}
+
+/* 8. MODALS — full width on mobile */
+@media (max-width: 600px) {
+  .modal-box {
+    max-width: 100% !important;
+    border-radius: 18px !important;
+    padding: 24px 16px !important;
+  }
+}
+
+/* 9. PURCHASE CARDS — comfortable on small screens */
+@media (max-width: 479px) {
+  .purchase-card { padding: 16px !important; }
+}
+
+/* 10. DESKTOP TABLE — hidden on mobile, shown on desktop */
+#desktop-purchases { display: none !important; }
+#mobile-purchases  { display: block !important; }
+@media (min-width: 768px) {
+  #desktop-purchases { display: block !important; }
+  #mobile-purchases  { display: none !important; }
+}
+
+/* 11. DESKTOP TABLE ROW hover */
+.tbl-row { transition: background .15s; }
+.tbl-row:hover { background: rgba(13,33,69,0.02); }
+.tbl-row + .tbl-row { border-top: 1px solid #f0f2f6; }
+</style>
+</head>
+<body>
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
+    <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
+  </div>
+</div>
+<style>@keyframes loaderSlide{0%{left:-100%}100%{left:100%}}#loader-bar{animation:loaderSlide 1.1s ease-in-out infinite}</style>
+
+<!-- ══ MOBILE BACKDROP ══ -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
+
+<!-- ══ MOBILE SLIDE-IN MENU ══ -->
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;height:100dvh;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:36px;margin-top:2px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="mb-signout" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- ══ DESKTOP SIDEBAR ══ -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;height:100dvh;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/buyer-dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- ══ MAIN WRAPPER ══ -->
+<div id="main-wrap" style="min-height:100dvh;display:flex;flex-direction:column;">
+
+  <!-- TOP BAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 id="page-title" style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">My Purchases</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="window.location.href='/notifications.html'" style="position:relative;width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">CD</div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;">
+
+      <!-- ── CONTENT PLACEHOLDER — filled in B2c/d/e ── -->
+      <div id="purchases-wrap" class="fu fu-1">
+        <!-- Purchases list will be injected here -->
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  DEMO USER
+// ══════════════════════════════════════════
+var DEMO_USER = { name: '', role: 'buyer', uid: null };
+
+// ══════════════════════════════════════════
+//  NAV LINKS (buyer) — matches all other buyer pages
+// ══════════════════════════════════════════
+var NAV = [
+  { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Projects',  href:'/buyer-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts', href:'/dashboard-contracts.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Browse',    href:'/browse.html',         icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Payments',  href:'/buyer-payments.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Purchases', href:'/buyer-purchases.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Notifications', href:'/notifications.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+  { label:'Profile', href:'/profile.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
+];
+
+function buildNav() {
+  var cur = window.location.pathname.split('/').pop() || 'buyer-purchases.html';
+  var html = NAV.map(function(n) {
+    var active = (cur === n.href.replace('/','')) ? ' active' : '';
+    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML = html;
+  document.getElementById('desktop-nav').innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+//  MOBILE MENU
+// ══════════════════════════════════════════
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+// ══════════════════════════════════════════
+//  ESCAPE KEY
+// ══════════════════════════════════════════
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeMobileMenu();
+});
+
+// ══════════════════════════════════════════
+//  BOOT — called by Firebase module once auth confirmed
+// ══════════════════════════════════════════
+window._boot = function(user, userData) {
+  DEMO_USER.uid  = user.uid;
+  DEMO_USER.name = user.displayName || (userData && userData.name) || user.email || 'User';
+
+  // Avatar initials
+  var parts = DEMO_USER.name.trim().split(' ');
+  document.getElementById('user-avatar').textContent =
+    parts.length >= 2 ? parts[0][0] + parts[parts.length-1][0] : DEMO_USER.name.slice(0,2).toUpperCase();
+
+  buildNav();
+  document.getElementById('mb-signout').onclick = window.handleLogout;
+  document.getElementById('dt-signout').onclick = window.handleLogout;
+
+  // ── B2c: Firestore query ──
+  loadPurchases(user.uid, user.email);
+};
+
+// ══════════════════════════════════════════
+//  LOAD PURCHASES
+// ══════════════════════════════════════════
+async function loadPurchases(uid, email) {
+  var wrap = document.getElementById('purchases-wrap');
+
+  // Show skeleton while loading
+  wrap.innerHTML = renderSkeleton();
+
+  if (!window.db || !window._fsQ) {
+    wrap.innerHTML = renderEmpty('Could not connect to database. Please refresh.');
+    document.getElementById('loading-overlay').style.display = 'none';
+    return;
+  }
+
+  var fsQ = window._fsQ;
+
+  try {
+    // Primary query: by buyerUid (logged-in users who purchased while signed in)
+    var q = fsQ.query(
+      fsQ.collection(window.db, 'product-orders'),
+      fsQ.where('buyerUid', '==', uid),
+      fsQ.where('paymentStatus', '==', 'paid'),
+      fsQ.orderBy('createdAt', 'desc')
+    );
+    var snap = await fsQ.getDocs(q);
+
+    // Secondary query: by buyerEmail (guest purchases or legacy orders)
+    var purchases = [];
+    var seenIds = {};
+
+    snap.docs.forEach(function(d) {
+      seenIds[d.id] = true;
+      purchases.push(buildPurchase(d.id, d.data()));
+    });
+
+    // Also try by email if available (catches guest orders linked to same email)
+    if (email) {
+      try {
+        var q2 = fsQ.query(
+          fsQ.collection(window.db, 'product-orders'),
+          fsQ.where('buyerEmail', '==', email),
+          fsQ.where('paymentStatus', '==', 'paid'),
+          fsQ.orderBy('createdAt', 'desc')
+        );
+        var snap2 = await fsQ.getDocs(q2);
+        snap2.docs.forEach(function(d) {
+          if (!seenIds[d.id]) {
+            seenIds[d.id] = true;
+            purchases.push(buildPurchase(d.id, d.data()));
+          }
+        });
+      } catch(e2) { /* non-fatal: email query may not have composite index */ }
+    }
+
+    // Sort by date descending (Firestore already sorts by uid query; merge may disrupt order)
+    purchases.sort(function(a, b) { return b._ts - a._ts; });
+
+    window._PURCHASES = purchases;
+    renderPurchases(purchases);
+
+  } catch(err) {
+    console.error('[loadPurchases]', err);
+    wrap.innerHTML = renderEmpty('Could not load purchases. Please try again.');
+  }
+
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+//  BUILD PURCHASE OBJECT FROM FIRESTORE DOC
+// ══════════════════════════════════════════
+function buildPurchase(id, data) {
+  var ts = data.createdAt;
+  var tsMs = ts ? (ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime()) : 0;
+  var dateStr = tsMs
+    ? new Date(tsMs).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    : '—';
+
+  // Resolve access content — check multiple possible field names sellers may write
+  var accessUrl = data.deliveryContent
+    || data.fileUrl
+    || data.deliveryFileUrl
+    || data.courseUrl
+    || data.coachingCalUrl
+    || data.redirectUrl
+    || null;
+
+  return {
+    id:             id,
+    _ts:            tsMs,
+    productTitle:   data.productTitle   || 'Digital Product',
+    sellerName:     data.sellerName     || 'Seller',
+    sellerUid:      data.sellerUid      || null,
+    amount:         data.amount         || 0,
+    currency:       data.currency       || 'USD',
+    paymentMethod:  data.paymentMethod  || 'Card / Crypto',
+    date:           dateStr,
+    deliveryStatus: data.deliveryStatus || (accessUrl ? 'delivered' : 'pending'),
+    deliveryType:   data.deliveryType   || null,
+    accessUrl:      accessUrl,
+    productId:      data.productId      || null
+  };
+}
+
+// ══════════════════════════════════════════
+//  SKELETON LOADER (3 cards)
+// ══════════════════════════════════════════
+function renderSkeleton() {
+  var card = '<div class="glass purchase-card" style="padding:20px;margin-bottom:14px;">'
+    + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+    + '<div class="sk" style="width:44px;height:44px;border-radius:12px;flex-shrink:0;"></div>'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div class="sk" style="height:14px;width:55%;border-radius:6px;margin-bottom:8px;"></div>'
+    + '<div class="sk" style="height:12px;width:35%;border-radius:6px;"></div>'
+    + '</div>'
+    + '<div class="sk" style="width:60px;height:22px;border-radius:50px;flex-shrink:0;"></div>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">'
+    + '<div class="sk" style="height:12px;width:30%;border-radius:6px;"></div>'
+    + '<div class="sk" style="height:36px;width:130px;border-radius:50px;"></div>'
+    + '</div>'
+    + '</div>';
+  return '<div>' + card + card + card + '</div>';
+}
+
+// ══════════════════════════════════════════
+//  EMPTY STATE
+// ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+//  FORMAT CURRENCY
+// ══════════════════════════════════════════
+function formatAmt(amount, currency) {
+  var sym = { USD:'$', GBP:'£', EUR:'€', NGN:'₦' }[currency] || (currency ? currency + ' ' : '$');
+  var n = parseFloat(amount) || 0;
+  return sym + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ══════════════════════════════════════════
+//  DELIVERY BADGE
+// ══════════════════════════════════════════
+function deliveryBadge(status) {
+  if (status === 'delivered') {
+    return '<span class="badge badge-green">Delivered</span>';
+  }
+  if (status === 'pending') {
+    return '<span class="badge badge-amber">Pending</span>';
+  }
+  return '<span class="badge badge-grey">' + escHtml(status || 'Unknown') + '</span>';
+}
+
+// ══════════════════════════════════════════
+//  PRODUCT ICON (shopping bag SVG)
+// ══════════════════════════════════════════
+var PRODUCT_ICON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+
+// ══════════════════════════════════════════
+//  RENDER PURCHASES — desktop cards (B2d)
+//  Mobile cards handled in B2e
+// ══════════════════════════════════════════
+function renderPurchases(purchases) {
+  var wrap = document.getElementById('purchases-wrap');
+  if (!purchases || purchases.length === 0) {
+    wrap.innerHTML = renderEmpty();
+    return;
+  }
+
+  // ── Section header ──
+  var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">'
+    + '<div>'
+      + '<h2 style="font-size:17px;font-weight:700;color:#0d2145;margin:0 0 2px;">My Purchases</h2>'
+      + '<p class="lbl" style="margin:0;">' + purchases.length + ' purchase' + (purchases.length !== 1 ? 's' : '') + '</p>'
+    + '</div>'
+    + '<a href="/store.html" class="btn-outline" style="text-decoration:none;">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + 'Browse Store'
+    + '</a>'
+  + '</div>';
+
+  // ── Desktop table (hidden on mobile, shown ≥768px) ──
+  var desktopTableHtml = buildDesktopTable(purchases);
+
+  // ── Mobile cards (shown on mobile, hidden ≥768px) ──
+  var mobileCardsHtml = buildMobileCards(purchases);
+
+  wrap.innerHTML = header + desktopTableHtml + mobileCardsHtml;
+}
+
+// ── DESKTOP TABLE ──────────────────────────────────────────
+function buildDesktopTable(purchases) {
+  var rows = purchases.map(function(p) {
+    var accessBtn = '';
+    if (p.deliveryStatus === 'delivered' && p.accessUrl) {
+      accessBtn = '<a href="' + escHtml(p.accessUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-green" style="padding:8px 18px;font-size:12px;white-space:nowrap;text-decoration:none;">'
+        + '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+        + 'Access Product'
+      + '</a>';
+    } else if (p.deliveryStatus === 'delivered') {
+      accessBtn = '<span style="font-size:12px;font-weight:600;color:#2d8a5e;">✓ Delivered</span>';
+    } else {
+      accessBtn = '<span style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.45);font-style:italic;">Awaiting delivery</span>';
+    }
+
+    return '<div class="tbl-row" style="grid-template-columns:2.5fr 1.3fr 100px 110px 160px;gap:14px;padding:16px 24px;display:grid;align-items:center;">'
+      // Product
+      + '<div style="min-width:0;">'
+        + '<div style="display:flex;align-items:center;gap:11px;">'
+          + '<div style="width:40px;height:40px;background:rgba(45,138,94,0.10);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#2d8a5e;">' + PRODUCT_ICON + '</div>'
+          + '<div style="min-width:0;">'
+            + '<div style="font-size:13px;font-weight:700;color:#0d2145;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + escHtml(p.productTitle) + '">' + escHtml(p.productTitle) + '</div>'
+            + '<div style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);margin-top:2px;">by ' + escHtml(p.sellerName) + '</div>'
+          + '</div>'
+        + '</div>'
+      + '</div>'
+      // Date
+      + '<span style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.55);">' + p.date + '</span>'
+      // Amount
+      + '<span style="font-size:14px;font-weight:800;color:#0d2145;">' + formatAmt(p.amount, p.currency) + '</span>'
+      // Status
+      + '<span>' + deliveryBadge(p.deliveryStatus) + '</span>'
+      // Action
+      + '<div style="display:flex;justify-content:flex-end;">' + accessBtn + '</div>'
+    + '</div>';
+  }).join('');
+
+  return '<div id="desktop-purchases" class="glass" style="overflow:hidden;margin-bottom:24px;">'
+    // Column headers
+    + '<div style="display:grid;grid-template-columns:2.5fr 1.3fr 100px 110px 160px;gap:14px;padding:12px 24px;background:rgba(13,33,69,0.02);border-bottom:1px solid #f0f2f6;">'
+      + '<span class="lbl">Product</span>'
+      + '<span class="lbl">Date</span>'
+      + '<span class="lbl">Amount</span>'
+      + '<span class="lbl">Status</span>'
+      + '<span class="lbl" style="text-align:right;">Action</span>'
+    + '</div>'
+    + '<div id="dt-purchases-body">' + rows + '</div>'
+  + '</div>';
+}
+
+// ── MOBILE CARDS ───────────────────────────────────────────
+// Mobile cards are the primary view on small screens.
+// Each purchase becomes a self-contained glass card.
+function buildMobileCards(purchases) {
+  var cards = purchases.map(function(p) {
+    var isDelivered = (p.deliveryStatus === 'delivered');
+    var hasLink     = isDelivered && !!p.accessUrl;
+
+    // Access area
+    var accessArea = '';
+    if (hasLink) {
+      accessArea = '<a href="' + escHtml(p.accessUrl) + '" target="_blank" rel="noopener noreferrer" class="btn-green" style="width:100%;text-decoration:none;justify-content:center;padding:11px 18px;font-size:13px;margin-top:14px;">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+        + 'Access Product'
+      + '</a>';
+    } else if (isDelivered) {
+      accessArea = '<div style="margin-top:12px;padding:10px 14px;background:rgba(45,138,94,0.08);border-radius:10px;font-size:12px;font-weight:600;color:#2d8a5e;display:flex;align-items:center;gap:7px;">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+        + 'Product delivered'
+      + '</div>';
+    } else {
+      accessArea = '<div style="margin-top:12px;padding:10px 14px;background:rgba(133,100,4,0.07);border-radius:10px;font-size:12px;font-weight:600;color:#856404;display:flex;align-items:center;gap:7px;">'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+        + 'Awaiting delivery from seller'
+      + '</div>';
+    }
+
+    return '<div class="glass purchase-card">'
+      // Row 1: icon + title + badge
+      + '<div style="display:flex;align-items:flex-start;gap:12px;">'
+        + '<div style="width:44px;height:44px;background:rgba(45,138,94,0.10);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#2d8a5e;">' + PRODUCT_ICON + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:14px;font-weight:700;color:#0d2145;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + escHtml(p.productTitle) + '</div>'
+          + '<div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin-top:3px;">by ' + escHtml(p.sellerName) + '</div>'
+        + '</div>'
+        + '<div style="flex-shrink:0;margin-top:1px;">' + deliveryBadge(p.deliveryStatus) + '</div>'
+      + '</div>'
+      // Row 2: amount + date
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">'
+        + '<div style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;">' + formatAmt(p.amount, p.currency) + '</div>'
+        + '<div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);">' + p.date + '</div>'
+      + '</div>'
+      // Access area
+      + accessArea
+    + '</div>';
+  }).join('');
+
+  // Mobile section wrapper: visible by default, hidden on desktop via CSS override in mobile-first-patch
+  return '<div id="mobile-purchases">' + cards + '</div>';
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderEmpty(msg) {
+  return '<div class="glass empty-state">'
+    + '<div style="width:60px;height:60px;background:rgba(45,138,94,0.10);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'
+    + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="1.8" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>'
+    + '</div>'
+    + '<div style="font-size:17px;font-weight:700;color:#0d2145;margin-bottom:8px;">No purchases yet</div>'
+    + '<div style="font-size:14px;color:rgba(13,33,69,0.55);max-width:280px;margin:0 auto 22px;line-height:1.6;">'
+    + (msg || 'Browse the store to find digital products from top freelancers.')
+    + '</div>'
+    + '<a href="/store.html" class="btn-green" style="text-decoration:none;">Browse Store</a>'
+    + '</div>';
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>(function() { var _safetyTimer = setTimeout(function() { var ov = document.getElementById("loading-overlay"); if (ov) { ov.style.display = "none"; } }, 10000); window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); }; })();</script>
+
+<script type="module">
+  import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const FIREBASE_CONFIG = {
+    apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+    authDomain:        'kreddlo.firebaseapp.com',
+    projectId:         'kreddlo',
+    storageBucket:     'kreddlo.firebasestorage.app',
+    messagingSenderId: '764500458567',
+    appId:             '1:764500458567:web:2389d5cf8c688caafd0562',
+  };
+  const app  = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  window.handleLogout = function() {
+    signOut(auth).then(function(){ window.location.href = '/login.html'; })
+      .catch(function(){ window.location.href = '/login.html'; });
+  };
+  document.getElementById('mb-signout').onclick = window.handleLogout;
+  document.getElementById('dt-signout').onclick = window.handleLogout;
+  const db   = getFirestore(app);
+  window.db  = db;
+  window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc };
+  onAuthStateChanged(auth, function(user) {
+    if (!user) { window.location.href = '/login.html'; return; }
+    getDoc(doc(db, 'users', user.uid)).then(function(snap) {
+      if (!snap.exists()) { window.location.href = '/login.html'; return; }
+      var role = snap.data().role;
+      if (role !== 'buyer') {
+        if (role === 'admin') window.location.href = '/admin.html';
+        else if (role === 'freelancer') window.location.href = '/dashboard.html';
+        else window.location.href = '/login.html';
+        return;
+      }
+      if (typeof window._boot === 'function') window._boot(user, snap.data());
+    }).catch(function() { window.location.href = '/login.html'; });
+  });
+</script>
+</body>
+</html>

@@ -110,13 +110,10 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON in request body.' });
   }
 
-  const { orderId, amount, description, buyerEmail, projectTitle } = body;
+  const { orderId, amount: _clientAmount, description, buyerEmail, projectTitle, currency: clientCurrency } = body;
 
   if (!orderId || typeof orderId !== 'string' || orderId.trim() === '') {
     return respond(400, { error: 'orderId is required.' });
-  }
-  if (!amount || typeof amount !== 'number' || amount <= 0) {
-    return respond(400, { error: 'amount must be a positive number in USD.' });
   }
   if (!description || typeof description !== 'string' || description.trim() === '') {
     return respond(400, { error: 'description is required.' });
@@ -137,6 +134,19 @@ exports.handler = async (event) => {
     /* ── 4. Init Firebase and load platform settings ── */
     const db       = getDb();
     const settings = await getSettings(db);
+
+    /* ── FIX #2: Read authoritative amount from Firestore — ignore client-supplied value ── */
+    const projectSnap = await db.collection('projects').doc(orderId.trim()).get();
+    if (!projectSnap.exists) {
+      return respond(404, { error: 'Project not found.' });
+    }
+    const projectDoc = projectSnap.data();
+    const amount = Number(projectDoc.totalAmount || projectDoc.budget || projectDoc.amount || 0);
+    if (!amount || amount <= 0) {
+      return respond(400, { error: 'Project has no valid payment amount set.' });
+    }
+    // Read currency from project doc too — not from the client
+    const paymentCurrency = ((projectDoc.currency || clientCurrency || 'USD')).toLowerCase();
 
     /* ── 5. Guard: Stripe must be enabled in admin settings ── */
     if (!settings.stripeEnabled) {
@@ -161,7 +171,7 @@ exports.handler = async (event) => {
     const sessionParams = {
       'payment_method_types[]': 'card',
       'mode':                   'payment',
-      'line_items[0][price_data][currency]':                    'usd',
+      'line_items[0][price_data][currency]':                    paymentCurrency,
       'line_items[0][price_data][product_data][name]':          projectTitle.trim(),
       'line_items[0][price_data][product_data][description]':   description.trim(),
       'line_items[0][price_data][unit_amount]':                 Math.round(amount * 100), // Stripe uses cents
@@ -220,7 +230,7 @@ exports.handler = async (event) => {
       return respond(502, { error: 'Payment service did not return a checkout URL.' });
     }
 
-    console.log(`Stripe session created — orderId: ${orderId}, amount: $${amount} USD, sessionId: ${sessionId}`);
+    console.log(`Stripe session created — orderId: ${orderId}, amount: ${amount} ${paymentCurrency.toUpperCase()}, sessionId: ${sessionId}`);
 
     /* ── 10. Return success ── */
     return respond(200, { checkoutUrl, sessionId });

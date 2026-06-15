@@ -169,6 +169,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .cp-textarea{resize:none;min-height:96px;line-height:1.55}
 .cp-err{font-size:11px;font-weight:600;color:#c81e1e;margin-top:4px;display:none}
 .cp-err.show{display:block}
+.cp-hint{font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);margin-top:6px;line-height:1.45}
+#cp-currency-note{color:#b45309;font-weight:600}
+#cp-price-cap-hint{color:#2d8a5e;font-weight:600}
 .cp-field{margin-bottom:16px}
 
 /* Price row: input + currency select side by side */
@@ -719,6 +722,9 @@ let _currentUser   = null;   // set by onAuthStateChanged
 let _currentUserPlan = 'free'; // 'free' | 'pro' — set by onAuthStateChanged
 let _cpEditId      = null;   // non-null when editing existing product
 let _cpPublishActive = true; // default active on publish
+let _stripeEnabled = false;  // fetched from config/platform on auth
+const MAX_PRICE_USD = 1800;
+let _capInSelectedCurrency = null; // cached converted cap for validation
 
 const STEP_LABELS  = ['Basics','Delivery Type','Delivery Content','Integrations','Preview'];
 
@@ -752,6 +758,12 @@ window.closeCreateModal = function() {
 // Close on backdrop click (but not on sheet click)
 document.getElementById('cp-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeCreateModal();
+});
+
+// Re-apply Stripe gating whenever the currency dropdown changes
+document.getElementById('cp-currency').addEventListener('change', function() {
+  cpApplyStripeGating();
+  cpUpdatePriceCap();
 });
 
 // Escape key
@@ -847,8 +859,42 @@ function cpValidate(step) {
 
     if (isNaN(price) || price < 0) {
       priceInp.classList.add('err'); priceErr.classList.add('show'); ok = false;
+    } else if (_capInSelectedCurrency !== null && price > _capInSelectedCurrency) {
+      priceInp.classList.add('err');
+      priceErr.textContent = 'Price exceeds the platform maximum (' +
+        new Intl.NumberFormat('en', { style: 'currency', currency: document.getElementById('cp-currency').value || 'USD', maximumFractionDigits: 0 }).format(_capInSelectedCurrency) + ').';
+      priceErr.classList.add('show'); ok = false;
     } else {
-      priceInp.classList.remove('err'); priceErr.classList.remove('show');
+      priceInp.classList.remove('err');
+      priceErr.textContent = 'Please enter a valid price.';
+      priceErr.classList.remove('show');
+    }
+
+    // Crypto price cap check (optional field — only validate if a value is entered)
+    const cryptoPriceInp = document.getElementById('cp-crypto-price');
+    const cryptoPriceErr = document.getElementById('cp-crypto-price-err');
+    if (cryptoPriceInp && cryptoPriceErr) {
+      const cryptoVal = cryptoPriceInp.value.trim();
+      if (cryptoVal !== '') {
+        const cryptoPrice = parseFloat(cryptoVal);
+        if (isNaN(cryptoPrice) || cryptoPrice < 0) {
+          cryptoPriceInp.classList.add('err');
+          cryptoPriceErr.textContent = 'Please enter a valid price.';
+          cryptoPriceErr.classList.add('show'); ok = false;
+        } else if (_capInSelectedCurrency !== null && cryptoPrice > _capInSelectedCurrency) {
+          cryptoPriceInp.classList.add('err');
+          cryptoPriceErr.textContent = 'Crypto price exceeds the platform maximum (' +
+            new Intl.NumberFormat('en', { style: 'currency', currency: document.getElementById('cp-currency').value || 'USD', maximumFractionDigits: 0 }).format(_capInSelectedCurrency) + ').';
+          cryptoPriceErr.classList.add('show'); ok = false;
+        } else {
+          cryptoPriceInp.classList.remove('err');
+          cryptoPriceErr.textContent = 'Please enter a valid price.';
+          cryptoPriceErr.classList.remove('show');
+        }
+      } else {
+        cryptoPriceInp.classList.remove('err');
+        cryptoPriceErr.classList.remove('show');
+      }
     }
   }
 
@@ -942,13 +988,89 @@ function cpHandleCoverFile(file) {
   reader.readAsDataURL(file);
 }
 
+// ── Stripe-gated currency greying ──
+// International (non-African) currencies require Stripe to be enabled.
+const AFRICAN_CURRENCIES = ['NGN','GHS','KES','ZAR','EGP','TZS','UGX','RWF','XOF'];
+
+function cpApplyStripeGating() {
+  const sel  = document.getElementById('cp-currency');
+  const note = document.getElementById('cp-currency-note');
+  if (!sel || !note) return;
+
+  Array.from(sel.options).forEach(opt => {
+    if (!AFRICAN_CURRENCIES.includes(opt.value)) {
+      if (!_stripeEnabled) {
+        opt.disabled = true;
+        opt.style.color = '#aaa';
+      } else {
+        opt.disabled = false;
+        opt.style.color = '';
+      }
+    }
+  });
+
+  if (!_stripeEnabled) {
+    // If the currently selected currency is now disabled, fall back to USD → NGN
+    const cur = sel.value;
+    if (!AFRICAN_CURRENCIES.includes(cur)) {
+      sel.value = 'NGN';
+    }
+    note.textContent = 'International currencies require Stripe to be enabled by admin.';
+    note.style.display = 'block';
+  } else {
+    note.textContent = '';
+    note.style.display = 'none';
+  }
+}
+
+
+// ── Live price cap via Frankfurter API ──
+// Called on currency change and on modal open. Updates the cap hint and caches
+// the converted max for validation (step 1.4).
+async function cpUpdatePriceCap() {
+  const sel     = document.getElementById('cp-currency');
+  const hint    = document.getElementById('cp-price-cap-hint');
+  if (!sel || !hint) return;
+
+  const currency = sel.value || 'USD';
+
+  // Format helper
+  function fmtCap(amount, cur) {
+    try {
+      return new Intl.NumberFormat('en', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(amount);
+    } catch (_) {
+      return cur + ' ' + Math.round(amount);
+    }
+  }
+
+  if (currency === 'USD') {
+    _capInSelectedCurrency = MAX_PRICE_USD;
+    hint.textContent = 'Max price: ' + fmtCap(MAX_PRICE_USD, 'USD');
+    return;
+  }
+
+  hint.textContent = 'Fetching max price…';
+  try {
+    const res  = await fetch('https://api.frankfurter.app/latest?from=USD&to=' + currency);
+    const json = await res.json();
+    const rate = json.rates?.[currency];
+    if (!rate) throw new Error('No rate');
+    const cap = Math.floor(MAX_PRICE_USD * rate);
+    _capInSelectedCurrency = cap;
+    hint.textContent = 'Max price: ' + fmtCap(cap, currency);
+  } catch (_) {
+    // Frankfurter failed — clear cache and hint so validation skips cap check
+    _capInSelectedCurrency = null;
+    hint.textContent = '';
+  }
+}
 // ── Reset form ──
 function cpResetForm() {
-  ['cp-title','cp-desc','cp-price'].forEach(id => {
+  ['cp-title','cp-desc','cp-price','cp-crypto-price'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.value = ''; el.classList.remove('err'); }
   });
-  ['cp-title-err','cp-desc-err','cp-price-err','cp-cover-err','cp-type-err'].forEach(id => {
+  ['cp-title-err','cp-desc-err','cp-price-err','cp-crypto-price-err','cp-cover-err','cp-type-err'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.remove('show');
   });
@@ -969,6 +1091,8 @@ function cpResetForm() {
   });
   // Reset currency
   document.getElementById('cp-currency').value = 'USD';
+  cpApplyStripeGating();
+  cpUpdatePriceCap();
   // Reset step 3 dynamic panel
   cpResetStep3();
   // Reset step 4 integrations
@@ -1016,10 +1140,13 @@ async function resolveSlug(baseSlug, excludeId) {
 
 // ── Collect all step data into one object ──
 function cpCollectData() {
-  const title    = (document.getElementById('cp-title')?.value || '').trim();
-  const desc     = (document.getElementById('cp-desc')?.value  || '').trim();
-  const price    = parseFloat(document.getElementById('cp-price')?.value || '0') || 0;
-  const currency = document.getElementById('cp-currency')?.value || 'USD';
+  const title      = (document.getElementById('cp-title')?.value || '').trim();
+  const desc        = (document.getElementById('cp-desc')?.value  || '').trim();
+  const cardPrice   = parseFloat(document.getElementById('cp-price')?.value || '0') || 0;
+  const cryptoRaw   = document.getElementById('cp-crypto-price')?.value.trim() || '';
+  const cryptoPrice = cryptoRaw !== '' ? (parseFloat(cryptoRaw) || 0) : null;
+  const price       = cardPrice; // backward-compat alias
+  const currency    = document.getElementById('cp-currency')?.value || 'USD';
 
   // Step 3 fields — conditional
   const type = _cpDelivery;
@@ -1048,11 +1175,11 @@ function cpCollectData() {
   const gtmId   = (document.getElementById('cp-gtm-id')?.value   || '').trim();
 
   return {
-    title, desc, price, currency,
+    title, desc, cardPrice, cryptoPrice, price, currency,
     deliveryType: type,
     ...deliveryData,
     integrations: {
-      ...(fbPixel ? { facebookPixel: fbPixel } : {}),
+      ...(fbPixel ? { facebookPixelId: fbPixel } : {}),
       ...(gaId    ? { googleAnalytics: gaId }  : {}),
       ...(gtmId   ? { googleTagManager: gtmId } : {}),
     },
@@ -1286,7 +1413,9 @@ async function cpSubmit() {
       uid:          _currentUser.uid,
       title:        data.title,
       description:  data.desc,
-      price:        data.price,
+      price:        data.cardPrice,  // backward-compat alias = cardPrice
+      cardPrice:    data.cardPrice,
+      cryptoPrice:  data.cryptoPrice !== null ? data.cryptoPrice : null,
       currency:     data.currency,
       deliveryType: data.deliveryType,
       slug,
@@ -1380,8 +1509,14 @@ window.openEditModal = async function(productId) {
     const curEl   = document.getElementById('cp-currency');
     if (titleEl) titleEl.value = d.title || '';
     if (descEl)  descEl.value  = d.description || '';
-    if (priceEl) priceEl.value = d.price != null ? d.price : '';
+    // Prefer cardPrice; fall back to price for older documents
+    if (priceEl) priceEl.value = (d.cardPrice != null ? d.cardPrice : d.price) ?? '';
     if (curEl)   curEl.value   = d.currency || 'USD';
+    // Prefill crypto price if it exists
+    const cryptoPriceEl = document.getElementById('cp-crypto-price');
+    if (cryptoPriceEl) cryptoPriceEl.value = d.cryptoPrice != null ? d.cryptoPrice : '';
+    cpApplyStripeGating(); // enforce Stripe gating after prefilling currency
+    cpUpdatePriceCap();     // update cap hint for prefilled currency
 
     // ── Pre-fill Step 2 delivery type ──
     document.querySelectorAll('.cp-type-card').forEach(c => {
@@ -1404,7 +1539,7 @@ window.openEditModal = async function(productId) {
       const fb  = document.getElementById('cp-fb-pixel');
       const ga  = document.getElementById('cp-ga-id');
       const gtm = document.getElementById('cp-gtm-id');
-      if (fb  && integrations.facebookPixel)    fb.value  = integrations.facebookPixel;
+      if (fb  && integrations.facebookPixelId)   fb.value  = integrations.facebookPixelId;
       if (ga  && integrations.googleAnalytics)  ga.value  = integrations.googleAnalytics;
       if (gtm && integrations.googleTagManager) gtm.value = integrations.googleTagManager;
     }, 0);
@@ -1728,7 +1863,16 @@ function typeLabel(t) { return TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() 
 function buildCard(id, d) {
   const isActive = d.status !== 'inactive' && d.status !== 'draft';
   const sales    = d.totalSales || d.salesCount || 0;
-  const price    = typeof d.price === 'number' ? '$' + d.price.toFixed(2) : (d.price ? '$' + d.price : '—');
+  const _priceVal = d.cardPrice != null ? d.cardPrice : d.price;
+  const _priceCur = d.currency || 'USD';
+  let price;
+  try {
+    price = _priceVal != null
+      ? new Intl.NumberFormat('en', { style: 'currency', currency: _priceCur }).format(_priceVal)
+      : '—';
+  } catch (_) {
+    price = _priceVal != null ? _priceCur + ' ' + Number(_priceVal).toFixed(2) : '—';
+  }
   const type     = typeLabel(d.deliveryType || d.type);
 
   const coverHtml = d.coverUrl
@@ -1903,6 +2047,16 @@ onAuthStateChanged(auth, async user => {
 
     _currentUserPlan = profile.plan === 'pro' ? 'pro' : 'free';
 
+    // ── Fetch platform settings (for currency gating etc.) ──
+    try {
+      const platSnap = await getDoc(fsDoc(db, 'config', 'platform'));
+      if (platSnap.exists()) {
+        _stripeEnabled = !!platSnap.data().stripeEnabled;
+      }
+    } catch (_) {
+      // Non-fatal — default _stripeEnabled stays false
+    }
+
     // ── Authenticated freelancer: boot UI ──
     buildNav(user.uid);
     setAvatar(profile.displayName || user.displayName || user.email);
@@ -2016,7 +2170,7 @@ onAuthStateChanged(auth, async user => {
         </div>
 
         <div class="cp-field">
-          <label class="cp-label" for="cp-price">Price <span style="color:#c81e1e">*</span></label>
+          <label class="cp-label" for="cp-price">Card / Bank Transfer Price <span style="color:#c81e1e">*</span></label>
           <div class="cp-price-row">
             <input class="cp-input" id="cp-price" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01"/>
             <select class="cp-currency-select" id="cp-currency" aria-label="Currency">
@@ -2028,9 +2182,30 @@ onAuthStateChanged(auth, async user => {
               <option value="KES">KES</option>
               <option value="ZAR">ZAR</option>
               <option value="EGP">EGP</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+              <option value="JPY">JPY</option>
+              <option value="INR">INR</option>
+              <option value="TZS">TZS</option>
+              <option value="UGX">UGX</option>
+              <option value="RWF">RWF</option>
+              <option value="XOF">XOF</option>
+              <option value="MYR">MYR</option>
+              <option value="SGD">SGD</option>
+              <option value="AED">AED</option>
+              <option value="BRL">BRL</option>
             </select>
           </div>
           <p class="cp-err" id="cp-price-err">Please enter a valid price.</p>
+          <p class="cp-hint" id="cp-currency-note" style="display:none;"></p>
+          <p class="cp-hint" id="cp-price-cap-hint"></p>
+        </div>
+
+        <div class="cp-field">
+          <label class="cp-label" for="cp-crypto-price">Crypto Price (optional)</label>
+          <input class="cp-input" id="cp-crypto-price" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01"/>
+          <p class="cp-err" id="cp-crypto-price-err">Please enter a valid price.</p>
+          <p class="cp-hint">If left blank, crypto payment won't be shown to buyers for this product.</p>
         </div>
 
       </div><!-- /panel-1 -->
@@ -2187,6 +2362,15 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 </body>
 </html>

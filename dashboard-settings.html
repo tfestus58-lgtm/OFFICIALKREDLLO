@@ -364,6 +364,104 @@ header > div:last-child {
   text-overflow: ellipsis;
 }
 
+/* 22. SETTINGS PAGE â€” mobile-first layout fixes */
+
+/* Tab bar: scrollable row, never wraps, hides scrollbar visually */
+.fu.fu-1:has(.tab-btn) {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  padding-bottom: 4px !important;
+  gap: 6px !important;
+}
+.fu.fu-1:has(.tab-btn)::-webkit-scrollbar { display: none !important; }
+
+/* Tab buttons: compact on mobile so all 6 fit without horizontal break */
+@media (max-width: 500px) {
+  .tab-btn {
+    padding: 9px 14px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Settings cards: reduce padding on small screens, never overflow viewport */
+.settings-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+@media (max-width: 767px) {
+  .glass.settings-card {
+    padding: 18px 16px !important;
+  }
+  .settings-card [style*="padding:24px"] {
+    padding: 18px 16px !important;
+  }
+}
+
+/* Settings rows: keep label + toggle on one line, shrink label text if needed */
+.settings-row {
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+.settings-row > div:first-child {
+  min-width: 0 !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+.settings-row > div:first-child > div {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+}
+
+/* Input fields: never bleed outside card */
+.input-field {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+/* Store slug row: prevent prefix text from pushing input off screen */
+@media (max-width: 400px) {
+  .input-field[id="f-store-slug"] {
+    font-size: 13px !important;
+  }
+  [style*="kreddlo.com/store/"] {
+    font-size: 12px !important;
+    padding-left: 10px !important;
+  }
+}
+
+/* Save button rows: always full width on mobile */
+@media (max-width: 767px) {
+  .save-btn-row {
+    justify-content: stretch !important;
+  }
+  .save-btn-row .btn-green {
+    width: 100% !important;
+  }
+}
+
+/* Skills preview pills: wrap cleanly */
+#skills-preview {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  min-width: 0 !important;
+}
+.skill-pill {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
 </style>
 </head>
 <body>
@@ -444,7 +542,7 @@ header > div:last-child {
 
         <!-- ===================== PROFILE TAB ===================== -->
         <div id="tab-profile" class="tab-panel active">
-          <div class="glass settings-card" style="padding:24px;">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
 
             <!-- Photo row -->
             <div style="display:flex;gap:20px;align-items:center;margin-bottom:28px;flex-wrap:wrap;">
@@ -507,7 +605,7 @@ header > div:last-child {
 
         <!-- ===================== SECURITY TAB ===================== -->
         <div id="tab-security" class="tab-panel">
-          <div class="glass settings-card" style="padding:24px;">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
 
             <!-- Email -->
             <div>
@@ -555,7 +653,7 @@ header > div:last-child {
 
         <!-- ===================== WALLET TAB ===================== -->
         <div id="tab-wallet" class="tab-panel">
-          <div class="glass settings-card" style="padding:24px;">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
             <h2 style="font-size:18px;font-weight:700;color:#0d2145;margin:0 0 8px;">Your Withdrawal Wallet</h2>
             <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 20px;">Funds are sent here when you withdraw.</p>
 
@@ -595,15 +693,37 @@ header > div:last-child {
 
         <!-- ===================== NOTIFICATIONS TAB ===================== -->
         <div id="tab-notifications" class="tab-panel">
-          <div class="glass settings-card" style="padding:24px;">
+          <!-- Push notification enable banner -->
+          <div id="push-enable-banner" class="glass settings-card" style="padding:20px 24px;margin-bottom:16px;display:none;">
+            <div style="display:flex;align-items:flex-start;gap:14px;">
+              <div style="width:40px;height:40px;background:rgba(45,138,94,0.10);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:14px;font-weight:700;color:#0d2145;margin-bottom:4px;">Enable Push Notifications</div>
+                <div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.52);line-height:1.5;">Get notified instantly about payments, contracts and messages.</div>
+              </div>
+            </div>
+            <button id="push-enable-btn" onclick="requestPushPermission()" class="btn-green" style="width:100%;margin-top:16px;padding:10px;">
+              Enable Notifications
+            </button>
+            <div id="push-status-msg" style="font-size:12px;font-weight:600;margin-top:10px;display:none;text-align:center;"></div>
+          </div>
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
             <h2 style="font-size:18px;font-weight:700;color:#0d2145;margin:0 0 24px;">Notification Preferences</h2>
             <div id="notif-rows"></div>
+            <div class="save-btn-row" style="display:flex;margin-top:28px;">
+              <button class="btn-green" style="width:100%;" onclick="saveNotifPrefs()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Preferences
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- ===================== STORE TAB ===================== -->
         <div id="tab-store" class="tab-panel">
-          <div class="glass settings-card" style="padding:24px;">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
 
             <div style="display:flex;flex-direction:column;gap:16px;">
 
@@ -643,7 +763,7 @@ header > div:last-child {
 
         <!-- ===================== INTEGRATIONS TAB ===================== -->
         <div id="tab-integrations" class="tab-panel">
-          <div class="glass settings-card" style="padding:24px;">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
 
             <!-- Global Tracking -->
             <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 4px;">Global Tracking</h3>
@@ -753,15 +873,27 @@ var NOTIF_TYPES = [
 ];
 
 // ============ NAV ============
-var NAV = [
+var NAV_FREELANCER = [
   { label:'Dashboard',     href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',      href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
   { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Browse',        href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
   { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
 ];
+var NAV_BUYER = [
+  { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Projects',  href:'/buyer-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Browse',    href:'/browse.html',         icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Payments',  href:'/buyer-payments.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Notifications', href:'/notifications.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+];
+var NAV = NAV_FREELANCER;
 
 function buildNav(uid) {
   var cur = (window.location.pathname.split('/').pop() || 'dashboard-settings.html');
@@ -857,13 +989,22 @@ function updateCharCount() {
 
 // ============ PROFILE SAVE ============
 async function saveProfile() {
+  // Auto-commit any skill currently typed in the input (user may not have pressed Enter)
+  var skillInput = document.getElementById('f-skills');
+  var pendingSkill = skillInput ? skillInput.value.trim() : '';
+  if (pendingSkill && SKILLS.map(function(s){return s.toLowerCase();}).indexOf(pendingSkill.toLowerCase()) === -1) {
+    SKILLS.push(pendingSkill);
+    skillInput.value = '';
+    renderSkills();
+  }
+
   var name = document.getElementById('f-name').value.trim();
   var title = document.getElementById('f-title').value.trim();
   var price = document.getElementById('f-price').value;
   var desc = document.getElementById('f-desc').value.trim();
   if (!name) { showToast('Full name is required'); return; }
   if (!title) { showToast('Professional title is required'); return; }
-  if (SKILLS.length === 0) { showToast('Add at least one skill'); return; }
+  if (SKILLS.length === 0) { showToast('Type a skill in the field above and press Enter, then save'); return; }
   if (price === '' || Number(price) < 0) { showToast('Enter a valid starting price'); return; }
 
   var ready = await waitForFirestore();
@@ -976,7 +1117,21 @@ function renderNotifPrefs() {
 function toggleNotif(key) {
   NOTIF_PREFS[key] = !NOTIF_PREFS[key];
   renderNotifPrefs();
-  showToast('Preference updated');
+}
+
+async function saveNotifPrefs() {
+  var ready = await waitForFirestore();
+  if (!ready || !DEMO.uid) { showToast('Could not connect. Try again.'); return; }
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), {
+      notificationPrefs: NOTIF_PREFS
+    }, { merge: true });
+    showToast('Notification preferences saved');
+  } catch (e) {
+    console.warn('[Settings] Could not save notif prefs:', e);
+    showToast('Could not save preferences. Try again.');
+  }
 }
 
 // ============ STORE TAB ============
@@ -1007,7 +1162,7 @@ function waitForFirestore() {
     var waited = 0;
     (function check() {
       if (window.db && window._fsSettings) { resolve(true); return; }
-      if (waited >= 5000) { resolve(false); return; }
+      if (waited >= 12000) { resolve(false); return; }
       waited += 100;
       setTimeout(check, 100);
     })();
@@ -1180,8 +1335,10 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ============ BOOT ============
-window._boot = function(user) {
+window._boot = function(user, role) {
   DEMO.uid  = user.uid;
+  DEMO.role = role || 'freelancer';
+  NAV = (DEMO.role === 'buyer') ? NAV_BUYER : NAV_FREELANCER;
   DEMO.name = user.displayName || user.email || 'User';
 
   var parts    = DEMO.name.trim().split(' ');
@@ -1231,6 +1388,14 @@ async function loadProfile() {
     if (typeof data.description === 'string') { document.getElementById('f-desc').value = data.description; updateCharCount(); }
     if (data.startingPrice != null)            document.getElementById('f-price').value = data.startingPrice;
     if (Array.isArray(data.skills)) { SKILLS = data.skills.slice(); renderSkills(); }
+    if (data.notificationPrefs && typeof data.notificationPrefs === 'object') {
+      Object.keys(NOTIF_PREFS).forEach(function(k) {
+        if (typeof data.notificationPrefs[k] === 'boolean') {
+          NOTIF_PREFS[k] = data.notificationPrefs[k];
+        }
+      });
+      renderNotifPrefs();
+    }
 
     if (data.photoUrl) {
       var img = document.getElementById('photo-img');
@@ -1266,11 +1431,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>Â// Safety: force-hide loading overlay after 10s if auth/boot stallsÂ(function() {Â  var _safetyTimer = setTimeout(function() {Â    var ov = document.getElementById("loading-overlay");Â    if (ov) { ov.style.display = "none"; }Â  }, 10000);Â  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };Â})();Â</script>Â
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 
 <script type="module">
   import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged }                            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, onAuthStateChanged, signOut }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs }
                                                                     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -1285,13 +1459,89 @@ if ('serviceWorker' in navigator) {
 
   const app = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
+  window.handleLogout = function() {
+    signOut(auth).then(function(){ window.location.href = '/login.html'; })
+      .catch(function(){ window.location.href = '/login.html'; });
+  };
+  document.getElementById('mb-signout').onclick = window.handleLogout;
+  document.getElementById('dt-signout').onclick = window.handleLogout;
   window.db = getFirestore(app);
   window._fsSettings = { doc, getDoc, setDoc, collection, query, where, getDocs };
 
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
-    if (typeof window._boot === 'function') window._boot(user);
+    getDoc(doc(window.db, 'users', user.uid)).then(function(snap) {
+      var role = snap.exists() ? (snap.data().role || 'freelancer') : 'freelancer';
+      if (typeof window._boot === 'function') window._boot(user, role);
+    }).catch(function() {
+      if (typeof window._boot === 'function') window._boot(user, 'freelancer');
+    });
   });
+</script>
+<script>
+// ============ PUSH NOTIFICATIONS ============
+function requestPushPermission() {
+  var btn = document.getElementById('push-enable-btn');
+  var msg = document.getElementById('push-status-msg');
+  if (!msg) return;
+
+  if (!('Notification' in window)) {
+    msg.style.display = 'block';
+    msg.style.color = 'rgba(13,33,69,0.52)';
+    msg.textContent = 'Push notifications are not supported in this browser.';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    msg.style.display = 'block';
+    msg.style.color = '#2d8a5e';
+    msg.textContent = 'Push notifications are already enabled.';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    msg.style.display = 'block';
+    msg.style.color = '#c81e1e';
+    msg.textContent = 'Notifications blocked. Enable them in your browser or phone settings.';
+    return;
+  }
+  // 'default' â€” ask the user
+  Notification.requestPermission().then(function(permission) {
+    msg.style.display = 'block';
+    if (permission === 'granted') {
+      msg.style.color = '#2d8a5e';
+      msg.textContent = 'Push notifications enabled.';
+      if (btn) btn.style.display = 'none';
+      setTimeout(function() {
+        var banner = document.getElementById('push-enable-banner');
+        if (banner) banner.style.display = 'none';
+      }, 2000);
+    } else {
+      msg.style.color = 'rgba(13,33,69,0.52)';
+      msg.textContent = 'Notifications not enabled. You can change this in your device settings.';
+    }
+  }).catch(function() {
+    msg.style.display = 'block';
+    msg.style.color = 'rgba(13,33,69,0.52)';
+    msg.textContent = 'Could not request permission. Try again from your browser settings.';
+  });
+}
+
+// Show or hide the push banner based on current permission state
+(function initPushBanner() {
+  var banner = document.getElementById('push-enable-banner');
+  if (!banner) return;
+  if (!('Notification' in window)) {
+    // Browser doesn't support notifications â€” hide banner entirely
+    banner.style.display = 'none';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    banner.style.display = 'none';
+  } else {
+    // 'default' or 'denied' â€” show banner so user can act
+    banner.style.display = 'block';
+  }
+})();
 </script>
 </body>
 </html>

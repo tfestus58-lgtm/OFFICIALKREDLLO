@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- IMPORTANT: Replace the content value below with your actual ADMIN_SECRET from Netlify env vars. Never commit this to a public repo. -->
+<meta name="admin-secret" content="d13fe31b-c4fb-40cc-8701-fcec55267199">
 <link rel="manifest" href="/manifest.json" />
 <meta name="theme-color" content="#0d2145" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -838,6 +840,29 @@ input[type=range]::-moz-range-thumb {
               style="width:48px;height:28px;border-radius:50px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
               <div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform .2s;"></div>
             </div>
+          </div>
+
+          <!-- Crypto toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:4px;">Crypto Payments (NOWPayments)</label>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;line-height:1.5;">Enables cryptocurrency payments via NOWPayments. Accepts Bitcoin, Ethereum, USDT, USDC and 300+ coins. Buyers pay in crypto; sellers receive the fiat equivalent.</p>
+            </div>
+            <div id="toggle-crypto"
+              onclick="toggleGateway('crypto')"
+              role="switch"
+              tabindex="0"
+              onkeydown="if(event.key==='Enter'||event.key===' ')toggleGateway('crypto')"
+              style="width:48px;height:28px;border-radius:50px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+              <div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform .2s;"></div>
+            </div>
+          </div>
+
+          <!-- Max Product Price -->
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Max Product Price (USD equivalent)</label>
+            <input type="number" id="set-max-product-price" class="input-field" value="1800" min="1" max="50000" step="1"/>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">The maximum allowed product price in USD equivalent. Applies to all currencies dynamically via live exchange rates.</p>
           </div>
 
         </div>
@@ -1825,19 +1850,20 @@ function confirmKycReject(uid) {
 
 /* ============ SETTINGS ============ */
 var SETTINGS_FIELDS = [
-  { id: 'set-platform-fee',    min: 0, max: 100, key: 'platformFeePercent',       parse: parseFloat },
-  { id: 'set-protection-fee',  min: 0, max: 100, key: 'projectProtectionPercent', parse: parseFloat },
-  { id: 'set-withdrawal-fee',  min: 0, max: 100, key: 'withdrawalFeePercent',     parse: parseFloat },
-  { id: 'set-early-payout-fee',min: 0, max: 100, key: 'earlyPayoutFeePercent',    parse: parseFloat },
-  { id: 'set-boost-24h',       min: 0, max: null, key: 'boostPrice24h',           parse: parseFloat },
-  { id: 'set-boost-3d',        min: 0, max: null, key: 'boostPrice3d',            parse: parseFloat },
-  { id: 'set-boost-7d',        min: 0, max: null, key: 'boostPrice7d',            parse: parseFloat },
-  { id: 'set-holding-days',    min: 0, max: 30,   key: 'holdingPeriodDays',       parse: parseInt   },
-  { id: 'set-referral-credit', min: 0, max: null, key: 'referralCreditAmount',    parse: parseFloat }
+  { id: 'set-platform-fee',      min: 0, max: 100,   key: 'platformFeePercent',       parse: parseFloat },
+  { id: 'set-protection-fee',    min: 0, max: 100,   key: 'projectProtectionPercent', parse: parseFloat },
+  { id: 'set-withdrawal-fee',    min: 0, max: 100,   key: 'withdrawalFeePercent',     parse: parseFloat },
+  { id: 'set-early-payout-fee',  min: 0, max: 100,   key: 'earlyPayoutFeePercent',    parse: parseFloat },
+  { id: 'set-boost-24h',         min: 0, max: null,  key: 'boostPrice24h',            parse: parseFloat },
+  { id: 'set-boost-3d',          min: 0, max: null,  key: 'boostPrice3d',             parse: parseFloat },
+  { id: 'set-boost-7d',          min: 0, max: null,  key: 'boostPrice7d',             parse: parseFloat },
+  { id: 'set-holding-days',      min: 0, max: 30,    key: 'holdingPeriodDays',        parse: parseInt   },
+  { id: 'set-referral-credit',   min: 0, max: null,  key: 'referralCreditAmount',     parse: parseFloat },
+  { id: 'set-max-product-price', min: 1, max: 50000, key: 'maxProductPriceUsd',       parse: parseInt   }
 ];
 
 /* -- Toggle visual helper -- */
-var GATEWAY_STATE = { stripe: false, paystack: false };
+var GATEWAY_STATE = { stripe: false, paystack: false, crypto: false };
 
 function setToggleVisual(gateway, enabled) {
   var el = document.getElementById('toggle-' + gateway);
@@ -1852,13 +1878,16 @@ function toggleGateway(gateway) {
   var newState = !GATEWAY_STATE[gateway];
   setToggleVisual(gateway, newState);
 
+  var keyMap   = { stripe: 'stripeEnabled', paystack: 'paystackEnabled', crypto: 'cryptoEnabled' };
+  var labelMap = { stripe: 'Stripe',        paystack: 'Paystack',        crypto: 'Crypto (NOWPayments)' };
+
   if (window.firestore && window.db) {
     var _f = window.firestore;
     var payload = {};
-    payload[gateway === 'stripe' ? 'stripeEnabled' : 'paystackEnabled'] = newState;
+    payload[keyMap[gateway]] = newState;
     _f.setDoc(_f.doc(window.db, 'config', 'platform'), payload, { merge: true })
       .then(function() {
-        showToast((gateway === 'stripe' ? 'Stripe' : 'Paystack') + ' payments ' + (newState ? 'enabled' : 'disabled') + '.');
+        showToast((labelMap[gateway] || gateway) + ' payments ' + (newState ? 'enabled' : 'disabled') + '.');
       })
       .catch(function(err) {
         console.error('toggleGateway error:', err);
@@ -1868,7 +1897,7 @@ function toggleGateway(gateway) {
         showError(err);
       });
   } else {
-    showToast((gateway === 'stripe' ? 'Stripe' : 'Paystack') + ' payments ' + (newState ? 'enabled' : 'disabled') + ' (demo mode).');
+    showToast((labelMap[gateway] || gateway) + ' payments ' + (newState ? 'enabled' : 'disabled') + ' (demo mode).');
   }
 }
 
@@ -1885,6 +1914,7 @@ function loadSettings() {
     });
     if (d.stripeEnabled  !== undefined) setToggleVisual('stripe',   !!d.stripeEnabled);
     if (d.paystackEnabled !== undefined) setToggleVisual('paystack', !!d.paystackEnabled);
+    if (d.cryptoEnabled   !== undefined) setToggleVisual('crypto',   !!d.cryptoEnabled);
     var twEl = document.getElementById('twitterUrl');  if (twEl) twEl.value  = d.twitterUrl  || '';
     var liEl = document.getElementById('linkedinUrl'); if (liEl) liEl.value  = d.linkedinUrl || '';
     var igEl = document.getElementById('instagramUrl');if (igEl) igEl.value  = d.instagramUrl|| '';
@@ -1921,6 +1951,7 @@ function saveSettings() {
   });
   payload.stripeEnabled  = GATEWAY_STATE.stripe;
   payload.paystackEnabled = GATEWAY_STATE.paystack;
+  payload.cryptoEnabled  = GATEWAY_STATE.crypto;
   payload.twitterUrl  = (document.getElementById('twitterUrl')  || {}).value ? document.getElementById('twitterUrl').value.trim()  : '';
   payload.linkedinUrl = (document.getElementById('linkedinUrl') || {}).value ? document.getElementById('linkedinUrl').value.trim() : '';
   payload.instagramUrl= (document.getElementById('instagramUrl')|| {}).value ? document.getElementById('instagramUrl').value.trim(): '';
@@ -2229,8 +2260,9 @@ var _kycUnsubscribe = null; /* store onSnapshot cleanup fn */
 
 function boot() {
   /* ADMIN_SECRET â€” must match the ADMIN_SECRET env var set in Netlify.
-     Set your chosen secret string here after adding it to Netlify env vars. */
-  window.ADMIN_SECRET = '';
+     Read from a meta tag in the head. Update the meta tag content value
+     to match whatever you set as ADMIN_SECRET in Netlify environment variables. */
+  window.ADMIN_SECRET = (document.querySelector('meta[name="admin-secret"]') || {}).content || '';
 
   buildNav();
   showSection('overview');
@@ -2299,7 +2331,16 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>Â// Safety: force-hide loading overlay after 10s if auth/boot stallsÂ(function() {Â  var _safetyTimer = setTimeout(function() {Â    var ov = document.getElementById("loading-overlay");Â    if (ov) { ov.style.display = "none"; }Â  }, 10000);Â  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };Â})();Â</script>Â
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 
 <script type="module">
   import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';

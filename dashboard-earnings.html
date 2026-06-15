@@ -583,9 +583,12 @@ var NAV = [
   { label:'Dashboard',     href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',      href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
   { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Browse',        href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
   { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
 ];
 
@@ -639,28 +642,77 @@ function filterByPeriod(items, dateKey, period) {
   return items.filter(function(item) { return item[dateKey] >= cutoff; });
 }
 
+// ============ HELPERS ============
+function fmtCurrency(amount, currency) {
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: currency, maximumFractionDigits: 2 }).format(amount);
+  } catch(e) {
+    return currency + ' ' + Number(amount).toFixed(2);
+  }
+}
+
+// Group an array of {netAmount, currency} items by currency, summing amounts
+function groupByCurrency(items) {
+  var map = {};
+  items.forEach(function(item) {
+    var cur = item.currency || 'USD';
+    map[cur] = (map[cur] || 0) + (item.netAmount || 0);
+  });
+  return map;
+}
+
+// Render a per-currency breakdown as compact lines, mobile-friendly
+function renderCurrencyLines(map) {
+  var keys = Object.keys(map);
+  if (!keys.length) return fmtCurrency(0, 'USD');
+  if (keys.length === 1) return fmtCurrency(map[keys[0]], keys[0]);
+  // Multiple currencies — stack them
+  return keys.map(function(cur) {
+    return '<span style="display:block;font-size:inherit;line-height:1.3;">' + fmtCurrency(map[cur], cur) + '</span>';
+  }).join('');
+}
+
 // ============ SUMMARY CARDS ============
 function renderSummaryCards(period) {
   var projectsInPeriod = filterByPeriod(DEMO_PROJECTS, 'completedAt', period);
   var payoutsInPeriod  = filterByPeriod(DEMO_PAYOUTS, 'date', period).filter(function(p){ return p.status === 'completed'; });
 
-  var totalEarned = projectsInPeriod.reduce(function(sum, p){ return sum + p.netAmount; }, 0);
-  var totalWithdrawn = payoutsInPeriod.reduce(function(sum, p){ return sum + p.amountUsd; }, 0);
+  // Group earned amounts by currency
+  var earnedByCurrency = groupByCurrency(projectsInPeriod);
 
-  document.getElementById('card-earned').classList.remove('sk');
-  document.getElementById('card-earned').style.width = 'auto';
-  document.getElementById('card-earned').style.height = 'auto';
-  document.getElementById('card-earned').textContent = '$' + totalEarned.toLocaleString();
+  // Group withdrawn by currency (payouts may have currency field; fall back to USD)
+  var withdrawnByCurrency = {};
+  payoutsInPeriod.forEach(function(p) {
+    var cur = (p.currency && p.currency !== 'USDT') ? p.currency : 'USD';
+    withdrawnByCurrency[cur] = (withdrawnByCurrency[cur] || 0) + (p.amountUsd || 0);
+  });
 
-  document.getElementById('card-withdrawn').classList.remove('sk');
-  document.getElementById('card-withdrawn').style.width = 'auto';
-  document.getElementById('card-withdrawn').style.height = 'auto';
-  document.getElementById('card-withdrawn').textContent = '$' + totalWithdrawn.toLocaleString();
+  // Available balance from per-currency balances map
+  var balances = DEMO.balances || {};
 
-  document.getElementById('card-pending').classList.remove('sk');
-  document.getElementById('card-pending').style.width = 'auto';
-  document.getElementById('card-pending').style.height = 'auto';
-  document.getElementById('card-pending').textContent = '$' + (DEMO.availableBalance || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  var cardEarned = document.getElementById('card-earned');
+  cardEarned.classList.remove('sk');
+  cardEarned.style.width = 'auto';
+  cardEarned.style.height = 'auto';
+  cardEarned.innerHTML = renderCurrencyLines(earnedByCurrency);
+
+  var cardWithdrawn = document.getElementById('card-withdrawn');
+  cardWithdrawn.classList.remove('sk');
+  cardWithdrawn.style.width = 'auto';
+  cardWithdrawn.style.height = 'auto';
+  cardWithdrawn.innerHTML = renderCurrencyLines(withdrawnByCurrency);
+
+  var cardPending = document.getElementById('card-pending');
+  cardPending.classList.remove('sk');
+  cardPending.style.width = 'auto';
+  cardPending.style.height = 'auto';
+  if (Object.keys(balances).length) {
+    cardPending.innerHTML = renderCurrencyLines(
+      Object.fromEntries(Object.entries(balances).map(function(e){ return [e[0], e[1]]; }))
+    );
+  } else {
+    cardPending.textContent = fmtCurrency(0, 'USD');
+  }
 
   var trendEarned = document.getElementById('trend-earned');
   trendEarned.querySelector('span').textContent = projectsInPeriod.length + ' projects completed';
@@ -796,7 +848,7 @@ function renderChart(period) {
           ticks: {
             color: 'rgba(13,33,69,0.50)',
             font: { family: "'Plus Jakarta Sans'", size: 11 },
-            callback: function(v) { return '$' + v; }
+            callback: function(v) { return v.toLocaleString(); }
           }
         }
       }
@@ -827,7 +879,7 @@ function renderPayouts() {
     var cryptoStr = p.currency === 'USDT' ? p.amountCrypto.toFixed(2) : p.amountCrypto.toFixed(4);
     return '<tr>'
       + '<td style="font-size:13px;color:rgba(13,33,69,0.55);">'+dateStr+'</td>'
-      + '<td style="font-weight:700;color:#0d2145;">$'+p.amountUsd.toLocaleString()+'</td>'
+      + '<td style="font-weight:700;color:#0d2145;">'+fmtCurrency(p.amountUsd, p.fiatCurrency||(p.currency!=='USDT'?p.currency:'USD'))+'</td>'
       + '<td style="font-size:13px;color:#2d8a5e;font-weight:600;">'+cryptoStr+'</td>'
       + '<td style="font-size:13px;color:rgba(13,33,69,0.55);">'+p.currency+'</td>'
       + '<td style="font-size:13px;color:rgba(13,33,69,0.55);font-family:monospace;">'+p.wallet+'</td>'
@@ -842,7 +894,7 @@ function renderPayouts() {
     return '<div class="payout-card">'
       + '<div class="payout-row1">'
         + '<span style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);">'+dateStr+'</span>'
-        + '<span style="font-size:15px;font-weight:700;color:#0d2145;">$'+p.amountUsd.toLocaleString()+'</span>'
+        + '<span style="font-size:15px;font-weight:700;color:#0d2145;">'+fmtCurrency(p.amountUsd, p.fiatCurrency||(p.currency!=='USDT'?p.currency:'USD'))+'</span>'
       + '</div>'
       + '<div class="payout-row2">'
         + '<span style="font-size:13px;font-weight:600;color:#2d8a5e;">'+cryptoStr+' '+p.currency+'</span>'
@@ -1141,6 +1193,7 @@ async function loadEarningsData(uid) {
       var ts = data.completedAt;
       return {
         netAmount:   data.netAmount || data.amount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
         completedAt: ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date()
       };
     });
@@ -1157,6 +1210,7 @@ async function loadEarningsData(uid) {
       var ts = data.deliveredAt || data.createdAt;
       return {
         netAmount:   data.sellerAmount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
         completedAt: ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date()
       };
     });
@@ -1184,13 +1238,18 @@ async function loadEarningsData(uid) {
       };
     });
 
-    // ── User doc: availableBalance + plan ──
+    // ── User doc: balances map + plan ──
     var userSnap = await fsQ.getDoc(fsQ.doc(window.db, 'users', uid));
     if (userSnap.exists()) {
       var ud = userSnap.data();
-      DEMO.availableBalance = ud.availableBalance || 0;
-      DEMO.premiumStatus    = ud.premiumStatus    || 'inactive';
-      DEMO.plan             = ud.plan             || '';
+      // Support new per-currency balances map; fall back to legacy availableBalance
+      var balancesMap = ud.balances || {};
+      if (!Object.keys(balancesMap).length && ud.availableBalance) {
+        balancesMap['USD'] = ud.availableBalance;
+      }
+      DEMO.balances      = balancesMap;
+      DEMO.premiumStatus = ud.premiumStatus || 'inactive';
+      DEMO.plan          = ud.plan          || '';
     }
 
   } catch(err) {
@@ -1234,11 +1293,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, collection, query, where, orderBy, getDocs, getDoc, doc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
@@ -1250,11 +1318,21 @@ if ('serviceWorker' in navigator) {
   };
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
+  window.handleLogout = function() {
+    signOut(auth).then(function(){ window.location.href = '/login.html'; })
+      .catch(function(){ window.location.href = '/login.html'; });
+  };
+  document.getElementById('mb-signout').onclick = window.handleLogout;
+  document.getElementById('dt-signout').onclick = window.handleLogout;
   window.db   = getFirestore(app);
   window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc };
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
-    if (typeof window._boot === 'function') window._boot(user);
+    getDoc(doc(window.db, 'users', user.uid)).then(function(snap) {
+      var role = snap.exists() ? snap.data().role : null;
+      if (role && role !== 'freelancer') { window.location.href = '/login.html'; return; }
+      if (typeof window._boot === 'function') window._boot(user);
+    }).catch(function() { window.location.href = '/login.html'; });
   });
 </script>
 </body>

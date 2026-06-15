@@ -425,7 +425,7 @@ header > div:last-child {
                onclick="activateBalanceCard('crypto')"
                style="flex:1;background:linear-gradient(135deg,#fff 60%,#e8f5ef 100%);border:2px solid #2d8a5e;background-color:#e8f5ef;border-radius:24px;padding:24px 22px;box-shadow:0 8px 40px rgba(45,138,94,0.12),0 2px 8px rgba(13,33,69,0.06);position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,background-color .2s,box-shadow .2s;">
             <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(45,138,94,0.12) 0%,transparent 70%);border-radius:50%;pointer-events:none;"></div>
-            <div class="lbl" style="margin-bottom:8px;">Crypto Balance</div>
+            <div class="lbl" style="margin-bottom:8px;">Available Balance</div>
             <div id="balance-crypto" style="font-size:36px;font-weight:800;color:#0d2145;letter-spacing:-1.2px;line-height:1;margin-bottom:10px;">$1,240.00</div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span class="live-dot" style="width:7px;height:7px;flex-shrink:0;"></span>
@@ -439,7 +439,7 @@ header > div:last-child {
                onclick="activateBalanceCard('fiat')"
                style="flex:1;background:#fff;border:2px solid #e2e8f0;border-radius:24px;padding:24px 22px;box-shadow:0 4px 24px rgba(13,33,69,0.06);position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,background-color .2s,box-shadow .2s;">
             <div style="position:absolute;top:-30px;right:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(13,33,69,0.05) 0%,transparent 70%);border-radius:50%;pointer-events:none;"></div>
-            <div class="lbl" style="margin-bottom:8px;">Fiat Balance</div>
+            <div class="lbl" style="margin-bottom:8px;">Bank Withdrawal</div>
             <div id="balance-fiat" style="font-size:36px;font-weight:800;color:#0d2145;letter-spacing:-1.2px;line-height:1;margin-bottom:10px;">$380.00</div>
             <div style="display:flex;align-items:center;gap:6px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.4)" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -580,7 +580,7 @@ header > div:last-child {
             <span id="fee-network" style="font-size:13px;font-weight:600;color:#0d2145;">-</span>
           </div>
           <div class="fee-row">
-            <span style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.58);">Platform fee (1.5%)</span>
+            <span class="platform-fee-label" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.58);">Platform fee (1.5%)</span>
             <span id="fee-platform" style="font-size:13px;font-weight:600;color:#0d2145;">-</span>
           </div>
           <div style="height:1px;background:rgba(45,138,94,0.18);margin:8px 0;"></div>
@@ -619,15 +619,18 @@ header > div:last-child {
   </div>
 </div>
 
+        <!-- Per-currency withdrawal selector (shown when multiple currencies available) -->
+        <div id="withdrawal-currency-selector" style="display:none;margin-bottom:16px;"></div>
+
         <div class="fu fu-3 glass" style="padding:24px 22px;margin-bottom:20px;">
           <div style="font-size:16px;font-weight:700;color:#0d2145;margin-bottom:20px;">Bank Transfer Details</div>
 
           <!-- Amount -->
           <div style="margin-bottom:16px;">
-            <label for="input-bank-amount" class="lbl" style="display:block;margin-bottom:8px;">Amount (USD)</label>
+            <label for="input-bank-amount" id="bank-amount-label" class="lbl" style="display:block;margin-bottom:8px;">Amount (USD)</label>
             <div class="amt-wrap">
               <input type="number" id="input-bank-amount" class="inp" placeholder="0.00" min="10" step="0.01" oninput="calcBankFees()" style="padding-right:60px;">
-              <span class="amt-unit">USD</span>
+              <span class="amt-unit" id="bank-amount-unit">USD</span>
             </div>
             <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.42);margin:6px 0 0;display:flex;align-items:center;gap:5px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -679,7 +682,7 @@ header > div:last-child {
           <div id="bank-fee-breakdown" style="background:#e8f5ef;border-radius:12px;padding:16px;margin-bottom:20px;">
             <div style="font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Fee Breakdown</div>
             <div class="fee-row">
-              <span style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.58);">Platform fee (1.5%)</span>
+              <span class="platform-fee-label" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.58);">Platform fee (1.5%)</span>
               <span id="bank-fee-platform" style="font-size:13px;font-weight:600;color:#0d2145;">-</span>
             </div>
             <div style="height:1px;background:rgba(45,138,94,0.18);margin:8px 0;"></div>
@@ -803,17 +806,19 @@ header > div:last-child {
 <script>
 // ======= APP STATE =======
 // Live balances loaded from Firestore in _boot
-let liveBalance = 0;
+let liveBalance = 0;          // legacy — kept for crypto withdrawal (always USD)
+let balancesMap = {};         // { 'NGN': 150000, 'USD': 245.00, ... }
+let selectedWithdrawalCurrency = 'USD'; // for bank withdrawal currency selector
 let liveWalletAddress = '';
 let kycVerified = false;
 let currentUid = '';
 
-const PLATFORM_FEE_PCT     = 1.5;
-const NOWPAYMENTS_FEE_PCT  = 0.5;
-const HOLDING_DAYS         = 7;
-const EARLY_PAYOUT_FEE_PCT = 2;
-const MIN_WITHDRAWAL       = 10;
-const MIN_BANK_WITHDRAWAL  = 10;
+let PLATFORM_FEE_PCT     = 1.5;
+let NOWPAYMENTS_FEE_PCT  = 0.5;
+let HOLDING_DAYS         = 7;
+let EARLY_PAYOUT_FEE_PCT = 2;
+let MIN_WITHDRAWAL       = 10;
+let MIN_BANK_WITHDRAWAL  = 10;
 
 // ======= STATE =======
 let liveRates = { usdt: 1, bitcoin: 0.000015, ethereum: 0.00042, binancecoin: 0.0017, 'usd-coin': 1 };
@@ -827,13 +832,100 @@ let fiatEnabled       = false;
 // ======= BALANCE DISPLAY =======
 function fmt(n){ return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
+function fmtCurrency(amount, currency) {
+  try {
+    return new Intl.NumberFormat('en', { style: 'currency', currency: currency }).format(Number(amount) || 0);
+  } catch(e) {
+    return currency + ' ' + Number(amount||0).toFixed(2);
+  }
+}
+
 function renderBalances() {
-  document.getElementById('balance-crypto').textContent   = fmt(liveBalance);
-  document.getElementById('balance-fiat').textContent     = fmt(liveBalance);
-  document.getElementById('max-display').textContent      = fmt(liveBalance);
-  document.getElementById('bank-max-display').textContent = fmt(liveBalance);
-  document.getElementById('input-withdraw-amount').max    = liveBalance;
-  document.getElementById('input-bank-amount').max        = liveBalance;
+  // ---- Crypto card: always uses USD balance (liveBalance) ----
+  var cryptoEl = document.getElementById('balance-crypto');
+  if (cryptoEl) cryptoEl.textContent = fmt(liveBalance);
+
+  // ---- Fiat card: render per-currency breakdown ----
+  var fiatEl = document.getElementById('balance-fiat');
+  var currencies = Object.keys(balancesMap).filter(function(c){ return Number(balancesMap[c]) > 0; });
+  if (fiatEl) {
+    if (currencies.length === 0) {
+      fiatEl.textContent = fmtCurrency(0, 'USD');
+    } else if (currencies.length === 1) {
+      fiatEl.textContent = fmtCurrency(balancesMap[currencies[0]], currencies[0]);
+    } else {
+      // Multiple currencies — show stacked list
+      fiatEl.innerHTML = currencies.map(function(c) {
+        return '<div style="font-size:22px;font-weight:800;line-height:1.25;">' + fmtCurrency(balancesMap[c], c) + '</div>';
+      }).join('');
+    }
+  }
+
+  // ---- Withdrawal currency selector for bank form ----
+  renderWithdrawalCurrencySelector();
+
+  // ---- Crypto form caps (USD) ----
+  var maxDisplay = document.getElementById('max-display');
+  if (maxDisplay) maxDisplay.textContent = fmt(liveBalance);
+  var cryptoInput = document.getElementById('input-withdraw-amount');
+  if (cryptoInput) cryptoInput.max = liveBalance;
+
+  // ---- Bank form caps (selected currency) ----
+  updateBankFormForCurrency();
+}
+
+function renderWithdrawalCurrencySelector() {
+  var container = document.getElementById('withdrawal-currency-selector');
+  if (!container) return;
+  var currencies = Object.keys(balancesMap).filter(function(c){ return Number(balancesMap[c]) > 0; });
+  if (currencies.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  // If currently selected currency has no balance, pick first available
+  if (!balancesMap[selectedWithdrawalCurrency] || Number(balancesMap[selectedWithdrawalCurrency]) <= 0) {
+    selectedWithdrawalCurrency = currencies[0];
+  }
+  if (currencies.length === 1) {
+    // Only one currency — no selector needed, just set it
+    selectedWithdrawalCurrency = currencies[0];
+    container.style.display = 'none';
+  } else {
+    container.style.display = 'block';
+    var html = '<label class="lbl" style="display:block;margin-bottom:8px;">Withdrawal Currency</label>';
+    html += '<div class="scroll-row" style="gap:8px;padding-bottom:4px;">';
+    currencies.forEach(function(c) {
+      var isActive = c === selectedWithdrawalCurrency;
+      html += '<button onclick="selectWithdrawalCurrency(\'' + c + '\')" style="' +
+        'flex-shrink:0;padding:8px 16px;border-radius:50px;border:1.5px solid ' + (isActive ? '#2d8a5e' : '#e2e8f0') + ';' +
+        'background:' + (isActive ? '#e8f5ef' : '#fff') + ';color:' + (isActive ? '#2d8a5e' : 'rgba(13,33,69,0.7)') + ';' +
+        'font-family:\'Plus Jakarta Sans\',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;">' +
+        c + '<span style="font-size:11px;font-weight:500;opacity:0.8;margin-left:4px;">(' + fmtCurrency(balancesMap[c], c) + ')</span>' +
+        '</button>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+  }
+  updateBankFormForCurrency();
+}
+
+function selectWithdrawalCurrency(currency) {
+  selectedWithdrawalCurrency = currency;
+  renderWithdrawalCurrencySelector();
+}
+
+function updateBankFormForCurrency() {
+  var bal = Number(balancesMap[selectedWithdrawalCurrency] || 0);
+  var bankMaxEl = document.getElementById('bank-max-display');
+  if (bankMaxEl) bankMaxEl.textContent = fmtCurrency(bal, selectedWithdrawalCurrency);
+  var bankInput = document.getElementById('input-bank-amount');
+  if (bankInput) bankInput.max = bal;
+  // Update the amount label
+  var bankAmtLabel = document.getElementById('bank-amount-label');
+  if (bankAmtLabel) bankAmtLabel.textContent = 'Amount (' + selectedWithdrawalCurrency + ')';
+  var bankAmtUnit = document.getElementById('bank-amount-unit');
+  if (bankAmtUnit) bankAmtUnit.textContent = selectedWithdrawalCurrency;
+  calcBankFees();
 }
 
 // ======= KYC GATE =======
@@ -891,8 +983,9 @@ function calcBankFees() {
   const amt     = parseFloat(document.getElementById('input-bank-amount').value) || 0;
   const platFee = amt * (PLATFORM_FEE_PCT / 100);
   const after   = amt - platFee;
-  document.getElementById('bank-fee-platform').textContent = amt > 0 ? '-$'+platFee.toFixed(2) : '-';
-  document.getElementById('bank-fee-final').textContent    = (amt > 0 && after > 0) ? '$'+after.toFixed(2) : '-';
+  const cur     = selectedWithdrawalCurrency || 'USD';
+  document.getElementById('bank-fee-platform').textContent = amt > 0 ? '-' + fmtCurrency(platFee, cur) : '-';
+  document.getElementById('bank-fee-final').textContent    = (amt > 0 && after > 0) ? fmtCurrency(after, cur) : '-';
 }
 
 // ======= BANK WITHDRAW (real Netlify Function) =======
@@ -905,6 +998,8 @@ async function handleBankWithdraw() {
   var country       = document.getElementById('input-bank-country').value;
   var saveDetails   = document.getElementById('save-bank-details').checked;
   var errEl         = document.getElementById('bank-error');
+  var cur           = selectedWithdrawalCurrency || 'USD';
+  var curBalance    = Number(balancesMap[cur] || 0);
   errEl.style.display = 'none';
 
   if (!kycVerified) {
@@ -912,13 +1007,13 @@ async function handleBankWithdraw() {
     errEl.style.display = 'block';
     return;
   }
-  if (!amt || amt < MIN_WITHDRAWAL) {
-    errEl.textContent = 'Minimum withdrawal is $'+MIN_WITHDRAWAL+'.00.';
+  if (!amt || amt < MIN_BANK_WITHDRAWAL) {
+    errEl.textContent = 'Minimum withdrawal is ' + fmtCurrency(MIN_BANK_WITHDRAWAL, cur) + '.';
     errEl.style.display = 'block';
     return;
   }
-  if (amt > liveBalance) {
-    errEl.textContent = 'Amount exceeds your available balance of '+fmt(liveBalance)+'.';
+  if (amt > curBalance) {
+    errEl.textContent = 'Amount exceeds your available ' + cur + ' balance of ' + fmtCurrency(curBalance, cur) + '.';
     errEl.style.display = 'block';
     return;
   }
@@ -954,25 +1049,30 @@ async function handleBankWithdraw() {
   try {
     var res = await fetch('/.netlify/functions/create-bank-payout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (auth.currentUser ? await auth.currentUser.getIdToken() : '') },
       body: JSON.stringify({
-        uid:           currentUid,
-        amount:        amt,
-        accountName:   accountName,
-        accountNumber: accountNumber,
-        bankName:      bankName,
-        swift:         swift,
-        country:       country,
-        saveDetails:   saveDetails,
+        uid:                currentUid,
+        amount:             amt,
+        withdrawalCurrency: cur,
+        accountName:        accountName,
+        accountNumber:      accountNumber,
+        bankName:           bankName,
+        swift:              swift,
+        country:            country,
+        saveDetails:        saveDetails,
         fees: { platformFee: platFee },
       }),
     });
     var result = await res.json();
     if (result.success) {
-      if (typeof result.newBalance === 'number') {
-        liveBalance = result.newBalance;
-        renderBalances();
+      // Update per-currency balance map from backend response
+      if (result.balances && typeof result.balances === 'object') {
+        balancesMap = result.balances;
+      } else if (typeof result.newBalance === 'number') {
+        // Legacy fallback: backend returned single balance
+        balancesMap[cur] = result.newBalance;
       }
+      renderBalances();
       showToast(result.message || 'Bank withdrawal request received.');
       document.getElementById('input-bank-amount').value = '';
       document.getElementById('input-account-name').value = '';
@@ -997,12 +1097,16 @@ async function handleBankWithdraw() {
 
 // ======= NAV =======
 const NAV_LINKS = [
-  { label:'Dashboard',  href:'dashboard.html',           icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
-  { label:'Projects',   href:'dashboard-projects.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' },
-  { label:'Earnings',   href:'dashboard-earnings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
-  { label:'Withdraw',   href:'dashboard-withdraw.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
-  { label:'Contracts',  href:'dashboard-contracts.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
-  { label:'Settings',   href:'dashboard-settings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' },
+  { label:'Dashboard',     href:'dashboard.html',           icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Earnings',      href:'dashboard-earnings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+  { label:'Projects',      href:'dashboard-projects.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Store',         href:'store.html',               icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Products',      href:'dashboard-products.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
+  { label:'Contracts',     href:'dashboard-contracts.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Withdraw',      href:'dashboard-withdraw.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+  { label:'Notifications', href:'notifications.html',       icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Browse',        href:'browse.html',              icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Settings',      href:'dashboard-settings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
 ];
 function buildNav(uid) {
   const cur  = 'dashboard-withdraw.html';
@@ -1172,7 +1276,7 @@ async function handleWithdraw(){
   try {
     var res = await fetch('/.netlify/functions/create-payout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (auth.currentUser ? await auth.currentUser.getIdToken() : '') },
       body: JSON.stringify({
         uid:          currentUid,
         amount:       amt,
@@ -1189,10 +1293,13 @@ async function handleWithdraw(){
     });
     var result = await res.json();
     if (result.success) {
-      if (typeof result.newBalance === 'number') {
+      if (result.balances && typeof result.balances === 'object') {
+        balancesMap = result.balances;
+        liveBalance = Number(result.balances['USD'] || 0);
+      } else if (typeof result.newBalance === 'number') {
         liveBalance = result.newBalance;
-        renderBalances();
       }
+      renderBalances();
       showToast(result.message || 'Withdrawal initiated. Funds are on their way.');
       document.getElementById('input-withdraw-amount').value = '';
       calcFees();
@@ -1280,7 +1387,12 @@ async function refreshPageData() {
       var snap = await mod.getDoc(mod.doc(window.db, 'users', currentUid));
       if (snap.exists()) {
         var d = snap.data();
-        liveBalance       = Number(d.availableBalance || 0);
+        // Load per-currency balances map (new) with backward compat for old availableBalance
+        balancesMap = d.balances && typeof d.balances === 'object' ? d.balances : {};
+        if (!Object.keys(balancesMap).length && d.availableBalance) {
+          balancesMap['USD'] = Number(d.availableBalance);
+        }
+        liveBalance       = Number(balancesMap['USD'] || d.availableBalance || 0);
         liveWalletAddress = d.walletAddress || '';
         kycVerified       = d.kycStatus === 'verified';
         renderBalances();
@@ -1412,7 +1524,12 @@ window._boot = async function(user) {
     var snap = await mod.getDoc(mod.doc(window.db, 'users', currentUid));
     if (snap.exists()) {
       var d = snap.data();
-      liveBalance       = Number(d.availableBalance || 0);
+      // Load per-currency balances map (new) with backward compat for old availableBalance
+      balancesMap = d.balances && typeof d.balances === 'object' ? d.balances : {};
+      if (!Object.keys(balancesMap).length && d.availableBalance) {
+        balancesMap['USD'] = Number(d.availableBalance);
+      }
+      liveBalance       = Number(balancesMap['USD'] || d.availableBalance || 0);
       liveWalletAddress = d.walletAddress || '';
       kycVerified       = d.kycStatus === 'verified';
 
@@ -1438,6 +1555,18 @@ window._boot = async function(user) {
       cfgSnap.data().paystackEnabled === true ||
       cfgSnap.data().stripeEnabled   === true
     );
+    // Load live fee settings from Firestore
+    if (cfgSnap.exists()) {
+      var cfg = cfgSnap.data();
+      if (typeof cfg.withdrawalFeePercent  === 'number') PLATFORM_FEE_PCT     = cfg.withdrawalFeePercent;
+      if (typeof cfg.earlyPayoutFeePercent === 'number') EARLY_PAYOUT_FEE_PCT = cfg.earlyPayoutFeePercent;
+      if (typeof cfg.holdingPeriodDays     === 'number') HOLDING_DAYS         = cfg.holdingPeriodDays;
+      if (typeof cfg.minWithdrawalUsd      === 'number') { MIN_WITHDRAWAL = cfg.minWithdrawalUsd; MIN_BANK_WITHDRAWAL = cfg.minWithdrawalUsd; }
+      // Update fee labels in UI
+      document.querySelectorAll('.platform-fee-label').forEach(function(el) {
+        el.textContent = 'Platform fee (' + PLATFORM_FEE_PCT + '%)';
+      });
+    }
   } catch(e) {
     console.warn('[withdraw] config/platform load failed:', e.message);
     fiatEnabled = false;
@@ -1473,12 +1602,21 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore }      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
     authDomain:        'kreddlo.firebaseapp.com',
@@ -1489,10 +1627,18 @@ if ('serviceWorker' in navigator) {
   };
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
+  window.handleLogout = function() {
+    signOut(auth).then(function(){ window.location.href = '/login.html'; })
+      .catch(function(){ window.location.href = '/login.html'; });
+  };
   window.db  = getFirestore(app);
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
-    if (typeof window._boot === 'function') window._boot(user);
+    getDoc(doc(window.db, 'users', user.uid)).then(function(snap) {
+      var role = snap.exists() ? snap.data().role : null;
+      if (role && role !== 'freelancer') { window.location.href = '/login.html'; return; }
+      if (typeof window._boot === 'function') window._boot(user);
+    }).catch(function() { window.location.href = '/login.html'; });
   });
 </script>
 </body>

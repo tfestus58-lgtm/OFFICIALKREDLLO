@@ -111,7 +111,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 /* Fade up */
 .fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
 @keyframes fu{to{opacity:1;transform:translateY(0)}}
-.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}.fu-3{animation-delay:.19s}.fu-4{animation-delay:.26s}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}.fu-3{animation-delay:.19s}.fu-4{animation-delay:.26s}.fu-5{animation-delay:.33s}
 
 /* Spinner */
 .spin{animation:spin .7s linear infinite}
@@ -131,11 +131,94 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   #desktop-actions{display:flex!important}
 }
 </style>
+<style id="mobile-first-patch">
+/* 1. BODY — no horizontal scroll on mobile */
+body { overflow-x: hidden !important; }
+
+/* 2. SIDEBAR — safe area on desktop */
+#sidebar {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-top: max(30px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+
+/* 3. PAGE CONTENT — proper mobile padding, no bleed */
+#page-content {
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  min-height: 100dvh !important;
+}
+
+/* 4. HAMBURGER — always visible on mobile, proper tap size */
+#hamburger {
+  display: flex !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+@media (min-width: 768px) {
+  #hamburger { display: none !important; }
+  #sidebar { display: flex !important; }
+}
+
+/* 5. LOADING OVERLAY */
+#loading-overlay {
+  min-height: 100dvh !important;
+}
+
+/* 6. NAV LINKS — prevent text overflow in sidebar */
+.nav-link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. TOAST — above safe area on mobile */
+#toast {
+  bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+}
+
+/* 8. MODALS — full width on mobile */
+@media (max-width: 600px) {
+  .modal-box {
+    max-width: 100% !important;
+    border-radius: 18px !important;
+    padding: 24px 16px !important;
+  }
+}
+
+/* B3. QUICK CARDS — 5 cards: 3-top / 2-bottom on mobile, single row on wider screens */
+#quick-cards .qcard {
+  flex: 1 1 calc(33.333% - 8px);
+  min-width: 0;
+}
+@media (min-width: 480px) {
+  #quick-cards .qcard {
+    flex: 1 1 calc(20% - 9px);
+  }
+}
+
+/* A1. STAT CARDS — shrink font on small phones */
+@media (max-width: 480px) {
+  .stat-card { padding: 16px !important; }
+  .stat-val { font-size: 26px !important; letter-spacing: -0.5px !important; }
+}
+
+/* A1. STAT CARDS — single column on very small phones */
+@media (max-width: 360px) {
+  #stats-2col { grid-template-columns: 1fr !important; }
+}
+
+/* A5. DESKTOP ACTIONS — force hidden on mobile */
+@media (max-width: 767px) {
+  #desktop-actions { display: none !important; }
+}
+</style>
 </head>
 <body>
 
 <!-- LOADING OVERLAY -->
-<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
   <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
@@ -150,7 +233,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 <div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
 
 <!-- MOBILE MENU -->
-<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;height:100dvh;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
@@ -163,7 +246,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 </div>
 
 <!-- DESKTOP SIDEBAR -->
-<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;height:100dvh;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
   <a href="/buyer-dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
   <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
   <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
@@ -173,7 +256,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 </aside>
 
 <!-- MAIN WRAPPER -->
-<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+<div id="main-wrap" style="min-height:100dvh;display:flex;flex-direction:column;">
 
   <!-- TOPBAR -->
   <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
@@ -217,7 +300,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
       </div>
 
       <!-- SECTION B: Stat cards -->
-      <div class="fu fu-2" style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:26px;">
+      <div id="stats-2col" class="fu fu-2" style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:26px;">
 
         <div class="stat-card" style="background:linear-gradient(135deg,rgba(13,33,69,0.04),rgba(255,255,255,0.85));border:1px solid rgba(255,255,255,0.55);box-shadow:0 4px 24px rgba(13,33,69,0.06);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -332,7 +415,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
       </div>
 
       <!-- SECTION D: Mobile quick cards -->
-      <div id="quick-cards" class="fu fu-4" style="display:flex;gap:11px;margin-bottom:24px;">
+      <div id="quick-cards" class="fu fu-4" style="display:flex;flex-wrap:wrap;gap:11px;margin-bottom:24px;">
         <div class="qcard" onclick="window.location.href='/browse.html'">
           <div class="qcard-icon" style="background:#e8f5ef;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -351,11 +434,31 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
           </div>
           <span class="qcard-lbl">Projects</span>
         </div>
+        <div class="qcard" onclick="window.location.href='/buyer-purchases.html'">
+          <div class="qcard-icon" style="background:#f0eaff;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6c3fc5" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+          <span class="qcard-lbl">Purchases</span>
+        </div>
         <div class="qcard" onclick="window.location.href='/dashboard-settings.html'">
           <div class="qcard-icon" style="background:#fff3cd;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
           </div>
           <span class="qcard-lbl">Settings</span>
+        </div>
+      </div>
+
+      <!-- SECTION E: Recent Purchases -->
+      <div id="recent-purchases-section" class="fu fu-5" style="margin-bottom:32px;">
+        <div class="glass" style="overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0;">
+            <div>
+              <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 2px;">Recent Purchases</h3>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;">Your last 3 digital products</p>
+            </div>
+            <a href="/buyer-purchases.html" style="font-size:13px;font-weight:600;color:#6c3fc5;text-decoration:none;">View all</a>
+          </div>
+          <div id="recent-purchases-list" style="margin-top:12px;"></div>
         </div>
       </div>
 
@@ -372,6 +475,7 @@ var DEMO = { name: '', role: 'buyer', uid: null };
 
 // LIVE DATA — populated by loadBuyerDashboard() in _boot
 var PROJECTS = [];
+var PURCHASES = [];
 var DISPUTES_COUNT = 0;
 
 var STATUS = {
@@ -387,10 +491,13 @@ var STATUS = {
 var NAV = [
   { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Projects',  href:'/buyer-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts', href:'/dashboard-contracts.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Browse',    href:'/browse.html',         icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
   { label:'Payments',  href:'/buyer-payments.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Purchases', href:'/buyer-purchases.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Notifications', href:'/notifications.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
-  { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+  { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+  { label:'Profile', href:'/profile.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
 ];
 
 function buildNav() {
@@ -474,6 +581,37 @@ function renderProjects() {
   }).join('');
 }
 
+// ============ RECENT PURCHASES ============
+function renderRecentPurchases() {
+  var el = document.getElementById('recent-purchases-list');
+  if (!el) return;
+  if (PURCHASES.length === 0) {
+    el.innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:32px 20px;font-size:14px;">No purchases yet. <a href="/store.html" style="color:#6c3fc5;font-weight:600;">Visit the store</a> to buy products.</p>';
+    return;
+  }
+  el.innerHTML = PURCHASES.slice(0, 3).map(function(pur) {
+    var delivered = pur.deliveryStatus === 'delivered' && pur.deliveryContent;
+    var badgeCls  = delivered ? 'badge-green' : 'badge-grey';
+    var badgeTxt  = delivered ? 'Delivered' : 'Pending';
+    var accessBtn = delivered
+      ? '<a href="' + pur.deliveryContent + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6c3fc5;background:#f0eaff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;text-decoration:none;white-space:nowrap;">'
+          + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+          + 'Access Product</a>'
+      : '<span style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.4);">Awaiting delivery</span>';
+    return '<div class="proj-row">'
+      + '<div style="min-width:0;flex:1;">'
+        + '<div class="proj-title">' + pur.title + '</div>'
+        + '<div class="proj-buyer">' + pur.seller + ' &middot; ' + pur.date + '</div>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:10px;">'
+        + '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>'
+        + '<span style="font-size:14px;font-weight:800;color:#0d2145;">€' + pur.amount + '</span>'
+      + '</div>'
+      + '<div class="proj-actions">' + accessBtn + '</div>'
+    + '</div>';
+  }).join('');
+}
+
 // ============ ACTION BUTTONS PER STATUS ============
 function getActions(p) {
   if (p.escrowStatus === 'unfunded' && p.signed) {
@@ -501,42 +639,115 @@ function getActions(p) {
 }
 
 // ============ MAKE PAYMENT ============
-function makePayment(id) {
+async function makePayment(id) {
   var btn = document.getElementById('pay-btn-'+id);
+  if (!btn) return;
   var original = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Redirecting...';
 
-  // In production: POST to /.netlify/functions/create-crypto-payment
-  // with { projectId: id } then window.location.href = response.invoiceUrl
-  setTimeout(function() {
-    showToast('Demo mode: would redirect to NOWPayments invoice');
+  try {
+    // Step 1: Read platform settings to know which gateway is active
+    var fsQ = window._fsQ;
+    var settingsSnap = await fsQ.getDoc(fsQ.doc(window.db, 'config', 'platform'));
+    var settings = settingsSnap.exists() ? settingsSnap.data() : {};
+    var stripeEnabled   = !!settings.stripeEnabled;
+    var paystackEnabled = !!settings.paystackEnabled;
+
+    // Step 2: Get project data
+    var project = PROJECTS.find(function(p) { return p.id === id; });
+    if (!project) throw new Error('Project not found.');
+
+    // Step 3: Pick the right gateway (Paystack > Stripe > Crypto fallback)
+    var endpoint, payload;
+
+    if (paystackEnabled) {
+      endpoint = '/.netlify/functions/create-paystack-payment';
+      payload = {
+        orderId:      id,
+        amount:       project.totalAmount || project.budget || project.amount,
+        description:  'Escrow payment for: ' + (project.title || id),
+        buyerEmail:   DEMO.email || '',
+        projectTitle: project.title || id
+      };
+    } else if (stripeEnabled) {
+      endpoint = '/.netlify/functions/create-stripe-payment';
+      payload = {
+        orderId:      id,
+        amount:       project.totalAmount || project.budget || project.amount,
+        description:  'Escrow payment for: ' + (project.title || id),
+        buyerEmail:   DEMO.email || '',
+        projectTitle: project.title || id
+      };
+    } else {
+      endpoint = '/.netlify/functions/create-crypto-payment';
+      payload = {
+        orderId:      id,
+        amount:       project.totalAmount || project.budget || project.amount,
+        description:  'Escrow payment for: ' + (project.title || id),
+        buyerEmail:   DEMO.email || ''
+      };
+    }
+
+    // Step 4: Call the chosen endpoint
+    var res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+
+    if (!res.ok || (!data.checkoutUrl && !data.invoiceUrl)) {
+      throw new Error(data.error || 'Payment initiation failed.');
+    }
+
+    window.location.href = data.checkoutUrl || data.invoiceUrl;
+
+  } catch (err) {
+    showToast(err.message || 'Could not start payment. Try again.');
     btn.disabled = false;
     btn.innerHTML = original;
-  }, 1200);
+  }
 }
 
 // ============ APPROVE DELIVERY ============
-function approveDelivery(id) {
+async function approveDelivery(id) {
   var btn = document.getElementById('approve-btn-'+id);
   var original = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Approving...';
 
-  // In production: POST to /.netlify/functions/approve-delivery
-  // with { projectId: id, buyerUid: DEMO.uid }
-  setTimeout(function() {
-    var p = PROJECTS.find(function(x){ return x.id === id; });
-    if (p) { p.status = 'completed'; p.escrowStatus = 'released'; }
-    renderProjects();
-    renderStats();
-    showToast('Payment released to freelancer');
-  }, 1200);
+  var _idToken = auth && auth.currentUser ? await auth.currentUser.getIdToken() : '';
+  fetch('/.netlify/functions/approve-delivery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _idToken },
+    body: JSON.stringify({ projectId: id, buyerUid: DEMO.uid })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success || data.message) {
+      var p = PROJECTS.find(function(x){ return x.id === id; });
+      if (p) { p.status = 'completed'; p.escrowStatus = 'released'; }
+      renderProjects();
+      renderStats();
+      showToast('Payment released to freelancer');
+    } else {
+      showToast(data.error || 'Could not approve delivery. Try again.');
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  })
+  .catch(function() {
+    showToast('Network error. Check your connection and try again.');
+    btn.disabled = false;
+    btn.innerHTML = original;
+  });
 }
 
 // ============ RAISE DISPUTE ============
 function raiseDispute(id) {
-  showToast('Demo mode: dispute form would open here');
+  // Redirect to the projects page where the full dispute modal lives
+  window.location.href = '/buyer-projects.html?dispute=' + encodeURIComponent(id);
 }
 
 // ============ VIEW CONTRACT ============
@@ -605,19 +816,51 @@ async function loadBuyerDashboard(uid) {
       };
     });
     DISPUTES_COUNT = PROJECTS.filter(function(p){ return p.status === 'disputed'; }).length;
+
+    // ---- Recent Purchases (product-orders) ----
+    try {
+      var pq = fsQ.query(
+        fsQ.collection(window.db, 'product-orders'),
+        fsQ.where('buyerUid', '==', uid),
+        fsQ.where('paymentStatus', '==', 'completed'),
+        fsQ.orderBy('createdAt', 'desc'),
+        fsQ.limit(3)
+      );
+      var psnap = await fsQ.getDocs(pq);
+      PURCHASES = psnap.docs.map(function(d) {
+        var data = d.data();
+        var ts = data.createdAt;
+        var dateStr = ts ? new Date(ts.toDate ? ts.toDate() : ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
+        return {
+          id:              d.id,
+          title:           data.productTitle   || 'Untitled Product',
+          seller:          data.sellerName      || 'Seller',
+          amount:          data.amount          || 0,
+          deliveryStatus:  data.deliveryStatus  || 'pending',
+          deliveryContent: data.deliveryContent || '',
+          date:            dateStr,
+        };
+      });
+    } catch(pe) {
+      console.warn('[purchases]', pe);
+      PURCHASES = [];
+    }
+
   } catch(err) {
     console.error('[loadBuyerDashboard]', err);
     showToast('Could not load dashboard data. Pull to refresh.');
   }
   renderStats();
   renderProjects();
+  renderRecentPurchases();
   document.getElementById('loading-overlay').style.display = 'none';
 }
 
 // ============ BOOT ============
 window._boot = function(user, userData) {
-  DEMO.uid  = user.uid;
-  DEMO.name = user.displayName || (userData && userData.name) || user.email || 'User';
+  DEMO.uid   = user.uid;
+  DEMO.email = user.email || '';
+  DEMO.name  = user.displayName || (userData && userData.name) || user.email || 'User';
 
   // Avatar initials
   var parts = DEMO.name.trim().split(' ');
@@ -639,11 +882,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+<script>
+// Safety: force-hide loading overlay after 10s if auth/boot stalls
+(function() {
+  var _safetyTimer = setTimeout(function() {
+    var ov = document.getElementById("loading-overlay");
+    if (ov) { ov.style.display = "none"; }
+  }, 10000);
+  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
+})();
+</script>
 
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
@@ -655,14 +907,25 @@ if ('serviceWorker' in navigator) {
   };
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
+  window.handleLogout = function() {
+    signOut(auth).then(function(){ window.location.href = '/login.html'; })
+      .catch(function(){ window.location.href = '/login.html'; });
+  };
+  document.getElementById('mb-signout').onclick = window.handleLogout;
+  document.getElementById('dt-signout').onclick = window.handleLogout;
   const db   = getFirestore(app);
   window.db  = db;
   window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc };
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
     getDoc(doc(db, 'users', user.uid)).then(function(snap) {
-      if (!snap.exists() || snap.data().role !== 'buyer') {
-        window.location.href = '/login.html'; return;
+      if (!snap.exists()) { window.location.href = '/login.html'; return; }
+      var role = snap.data().role;
+      if (role !== 'buyer') {
+        if (role === 'admin') window.location.href = '/admin.html';
+        else if (role === 'freelancer') window.location.href = '/dashboard.html';
+        else window.location.href = '/login.html';
+        return;
       }
       if (typeof window._boot === 'function') window._boot(user, snap.data());
     }).catch(function() { window.location.href = '/login.html'; });

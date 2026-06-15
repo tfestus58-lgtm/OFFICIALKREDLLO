@@ -168,3 +168,18 @@
   from = "/dashboard-products"
   to   = "/dashboard-products.html"
   status = 200
+
+[[redirects]]
+  from = "/buyer-purchases"
+  to   = "/buyer-purchases.html"
+  status = 200
+
+[[redirects]]
+  from = "/email-confirm"
+  to   = "/email-confirm.html"
+  status = 200
+
+[[redirects]]
+  from = "/nowpayments-webhook"
+  to   = "/.netlify/functions/nowpayments-webhook"
+  status = 200

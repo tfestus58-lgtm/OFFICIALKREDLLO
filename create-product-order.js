@@ -31,6 +31,7 @@ const { getSettings }                  = require('./get-settings');
 const NOWPAYMENTS_INVOICE_ENDPOINT = 'https://api.nowpayments.io/v1/invoice';
 const STRIPE_CHECKOUT_URL          = 'https://api.stripe.com/v1/checkout/sessions';
 const PAYSTACK_INIT_URL            = 'https://api.paystack.co/transaction/initialize';
+const FRANKFURTER_URL              = 'https://api.frankfurter.app/latest';
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -75,20 +76,40 @@ function toFormEncoded(obj, prefix) {
   return parts.join('&');
 }
 
+/* ── Price cap check via Frankfurter API ── */
+async function checkPriceCap(amount, currency, maxProductPriceUsd) {
+  // USD needs no conversion
+  if (currency === 'USD') {
+    return amount <= maxProductPriceUsd;
+  }
+  try {
+    const res = await fetch(`${FRANKFURTER_URL}?from=${currency}&to=USD`);
+    if (!res.ok) return true; // skip cap check if rate API is down
+    const data = await res.json();
+    const rate = data?.rates?.USD;
+    if (!rate) return true; // skip if rate missing
+    const usdEquivalent = amount * rate;
+    return usdEquivalent <= maxProductPriceUsd;
+  } catch {
+    // Don't break orders over a rate API outage
+    return true;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════════
    PAYMENT CREATORS
 ══════════════════════════════════════════════════════════════ */
 
-async function createCryptoCheckout({ orderId, amount, description, buyerEmail, platformUrl }) {
+async function createCryptoCheckout({ orderId, amount, productCurrency, description, buyerEmail, platformUrl }) {
   const apiKey = process.env.NOWPAYMENTS_API_KEY;
   if (!apiKey) throw new Error('NOWPAYMENTS_API_KEY is not set.');
 
   const payload = {
-    price_amount:     amount,
-    price_currency:   'usd',
-    order_id:         orderId,
+    price_amount:      amount,
+    price_currency:    productCurrency.toLowerCase(),
+    order_id:          orderId,
     order_description: description.trim().substring(0, 500),
-    is_fixed_rate:    false,
+    is_fixed_rate:     false,
     success_url: `${platformUrl}/buyer-payments.html?payment=success&orderId=${encodeURIComponent(orderId)}&method=crypto`,
     cancel_url:  `${platformUrl}/buyer-payments.html?payment=cancelled&orderId=${encodeURIComponent(orderId)}`,
     ipn_callback_url: `${platformUrl}/.netlify/functions/nowpayments-webhook`,
@@ -110,14 +131,14 @@ async function createCryptoCheckout({ orderId, amount, description, buyerEmail, 
   return { checkoutUrl: data.invoice_url, paymentRef: data.id };
 }
 
-async function createStripeCheckout({ orderId, amount, description, buyerEmail, productTitle, platformUrl }) {
+async function createStripeCheckout({ orderId, amount, productCurrency, description, buyerEmail, productTitle, platformUrl }) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not set.');
 
   const sessionParams = {
     'payment_method_types[]':                                    'card',
     'mode':                                                      'payment',
-    'line_items[0][price_data][currency]':                       'usd',
+    'line_items[0][price_data][currency]':                       productCurrency.toLowerCase(),
     'line_items[0][price_data][product_data][name]':             productTitle,
     'line_items[0][price_data][product_data][description]':      description,
     'line_items[0][price_data][unit_amount]':                    Math.round(amount * 100),
@@ -144,7 +165,7 @@ async function createStripeCheckout({ orderId, amount, description, buyerEmail, 
   return { checkoutUrl: data.url, paymentRef: data.id };
 }
 
-async function createPaystackCheckout({ orderId, amount, description, buyerEmail, productTitle, platformUrl }) {
+async function createPaystackCheckout({ orderId, amount, productCurrency, description, buyerEmail, productTitle, platformUrl }) {
   const paystackKey = process.env.PAYSTACK_SECRET_KEY;
   if (!paystackKey) throw new Error('PAYSTACK_SECRET_KEY is not set.');
   if (!buyerEmail) throw new Error('buyerEmail is required for Paystack payments.');
@@ -154,7 +175,7 @@ async function createPaystackCheckout({ orderId, amount, description, buyerEmail
   const payload = {
     email:        buyerEmail.trim().toLowerCase(),
     amount:       Math.round(amount * 100),
-    currency:     'USD',
+    currency:     productCurrency,
     reference:    paymentRef,
     callback_url: `${platformUrl}/buyer-payments.html?payment=success&orderId=${encodeURIComponent(orderId)}&method=paystack`,
     metadata: { orderId, productTitle, platform: 'kreddlo' },
@@ -221,34 +242,53 @@ exports.handler = async (event) => {
     }
     const product = productSnap.data();
 
-    /* ── Platform fee calculation ── */
-    const settings        = await getSettings(db);
-    const platformFee     = +(product.price * (settings.platformFeePercent / 100)).toFixed(2);
-    const sellerAmount    = +(product.price - platformFee).toFixed(2);
+    /* ── Determine currency and amount based on payment method ── */
+    const productCurrency = (product.currency || 'USD').toUpperCase();
+
+    let amount;
+    if (paymentMethod === 'crypto') {
+      amount = product.cryptoPrice || product.cardPrice || product.price;
+    } else {
+      amount = product.cardPrice || product.price;
+    }
+
+    if (!amount || amount <= 0) {
+      return respond(400, { error: 'This product does not have a price set for the selected payment method.' });
+    }
+
+    /* ── Enforce price cap on backend ── */
+    const settings = await getSettings(db);
+    const withinCap = await checkPriceCap(amount, productCurrency, settings.maxProductPriceUsd || 1800);
+    if (!withinCap) {
+      return respond(400, { error: 'Product price exceeds the platform maximum.' });
+    }
 
     /* ── Create product-orders document ── */
-    const orderRef  = db.collection('product-orders').doc();
-    const orderId   = orderRef.id;
+    const orderRef = db.collection('product-orders').doc();
+    const orderId  = orderRef.id;
 
     await orderRef.set({
       productId,
-      sellerUid:       product.uid,
-      buyerEmail:      buyerEmail.trim().toLowerCase(),
-      buyerName:       buyerName.trim(),
-      amountUsd:       product.price,
-      platformFee,
-      sellerAmount,
+      sellerUid:      product.uid,
+      buyerEmail:     buyerEmail.trim().toLowerCase(),
+      buyerName:      buyerName.trim(),
+      amount,
+      currency:       productCurrency,
+      amountUsd:      null,    // filled in by webhook after confirmed exchange rate
+      platformFee:    null,    // calculated by webhook from confirmed amount
+      sellerAmount:   null,    // calculated by webhook from confirmed amount
       paymentMethod,
-      paymentStatus:   'pending',
-      deliveryStatus:  'pending',
-      reviewLeft:      false,
-      createdAt:       FieldValue.serverTimestamp(),
+      paymentStatus:  'pending',
+      deliveryStatus: 'pending',
+      reviewLeft:     false,
+      createdAt:      FieldValue.serverTimestamp(),
     });
 
     /* ── Initiate payment ── */
     const paymentArgs = {
       orderId,
-      amount:       product.price,
+      amount,
+      productCurrency,
       description:  product.title || 'Kreddlo Product',
       productTitle: product.title || 'Kreddlo Product',
       buyerEmail:   buyerEmail.trim().toLowerCase(),
@@ -267,7 +307,7 @@ exports.handler = async (event) => {
     /* ── Store paymentRef on order ── */
     await orderRef.update({ paymentRef: result.paymentRef || null });
 
-    console.log(`Product order created — orderId: ${orderId}, product: ${productId}, method: ${paymentMethod}`);
+    console.log(`Product order created — orderId: ${orderId}, product: ${productId}, method: ${paymentMethod}, currency: ${productCurrency}, amount: ${amount}`);
 
     return respond(200, { checkoutUrl: result.checkoutUrl, orderId });
 

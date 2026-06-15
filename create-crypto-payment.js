@@ -28,6 +28,21 @@
 
 const NOWPAYMENTS_INVOICE_ENDPOINT = 'https://api.nowpayments.io/v1/invoice';
 
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getFirestore }                 = require('firebase-admin/firestore');
+
+/* ── Firebase Admin — lazy singleton ── */
+let _db = null;
+function getDb() {
+  if (_db) return _db;
+  let serviceAccount;
+  try { serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}'); }
+  catch { throw new Error('FIREBASE_SERVICE_ACCOUNT is not valid JSON.'); }
+  if (!getApps().length) { initializeApp({ credential: cert(serviceAccount) }); }
+  _db = getFirestore();
+  return _db;
+}
+
 exports.handler = async (event) => {
 
   /* ── 1. Only allow POST ── */
@@ -43,13 +58,10 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON in request body.' });
   }
 
-  const { orderId, amount, description, buyerEmail } = body;
+  const { orderId, amount: _clientAmount, description, buyerEmail } = body;
 
   if (!orderId || typeof orderId !== 'string' || orderId.trim() === '') {
     return respond(400, { error: 'orderId is required.' });
-  }
-  if (!amount || typeof amount !== 'number' || amount <= 0) {
-    return respond(400, { error: 'amount must be a positive number (USD).' });
   }
   if (!description || typeof description !== 'string' || description.trim() === '') {
     return respond(400, { error: 'description is required.' });
@@ -66,6 +78,24 @@ exports.handler = async (event) => {
   if (!platformUrl) {
     console.error('PLATFORM_URL environment variable is not set.');
     return respond(500, { error: 'Platform URL is not configured. Please contact support.' });
+  }
+
+  /* ── FIX #2: Read authoritative amount from Firestore — ignore client-supplied value ── */
+  let amount;
+  try {
+    const db          = getDb();
+    const projectSnap = await db.collection('projects').doc(orderId.trim()).get();
+    if (!projectSnap.exists) {
+      return respond(404, { error: 'Project not found.' });
+    }
+    const projectDoc = projectSnap.data();
+    amount = Number(projectDoc.totalAmount || projectDoc.budget || projectDoc.amount || 0);
+    if (!amount || amount <= 0) {
+      return respond(400, { error: 'Project has no valid payment amount set.' });
+    }
+  } catch (dbErr) {
+    console.error('[create-crypto-payment] Firestore read failed:', dbErr.message);
+    return respond(500, { error: 'Could not verify project amount. Please try again.' });
   }
 
   /* ── 4. Build the NOWPayments invoice payload ── */

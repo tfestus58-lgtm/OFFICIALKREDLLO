@@ -18,6 +18,7 @@
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
+const { verifyCaller }                 = require('./_verify-auth');
 const https                            = require('https');
 const crypto                           = require('crypto');
 
@@ -152,6 +153,12 @@ exports.handler = async function (event) {
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  /* ── Verify caller identity ── */
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return respond(401, { error: 'Unauthorized. Please log in again.' });
   }
 
   /* Parse body */

@@ -1090,9 +1090,10 @@
 
       setProgressPct(40, 'Uploading to server…');
 
+      const _kycToken = window.auth && window.auth.currentUser ? await window.auth.currentUser.getIdToken() : '';
       const response = await fetch('/.netlify/functions/kyc-submit', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _kycToken },
         body: JSON.stringify({
           uid:        window._currentUid,
           frontImage: frontB64,
@@ -1172,10 +1173,21 @@
     document.getElementById('submitted-review').style.display   = 'none';
     document.getElementById('submitted-declined').style.display = 'none';
     document.getElementById('submitted-verified').style.display = 'block';
-    // Auto-redirect after 3 seconds; clean up listener first
-    setTimeout(function() {
+    // Auto-redirect after 3 seconds, based on role; clean up listener first
+    setTimeout(async function() {
       if (kycListener) { kycListener(); kycListener = null; }
-      window.location.href = 'dashboard.html';
+      var target = 'dashboard.html';
+      try {
+        var { doc, getDoc } = window._fbModules;
+        var snap = await getDoc(doc(window.db, 'users', window._currentUid));
+        if (snap.exists()) {
+          var role = snap.data().role;
+          if (role === 'admin') target = 'admin.html';
+          else if (role === 'buyer') target = 'buyer-dashboard.html';
+          else target = 'dashboard.html';
+        }
+      } catch (e) { /* fall back to dashboard.html */ }
+      window.location.href = target;
     }, 3000);
   }
 

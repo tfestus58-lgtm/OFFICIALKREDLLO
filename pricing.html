@@ -912,14 +912,23 @@
         getDoc(doc(window.db, 'config', 'platform')).then(function (snap) {
           if (snap.exists()) {
             var d = snap.data();
-            if (typeof d.platformFeeMin === 'number')   fees.platformFeeMin       = d.platformFeeMin;
-            if (typeof d.platformFeeMax === 'number')   fees.platformFeeMax       = d.platformFeeMax;
-            if (typeof d.platformFee === 'number')      fees.platformFeeExample   = d.platformFee;
-            if (typeof d.protectionFeeMin === 'number') fees.protectionFeeMin     = d.protectionFeeMin;
-            if (typeof d.protectionFeeMax === 'number') fees.protectionFeeMax     = d.protectionFeeMax;
-            if (typeof d.protectionFee === 'number')    fees.protectionFeeExample = d.protectionFee;
-            if (typeof d.withdrawalFee === 'number')    fees.withdrawalFeeFree    = d.withdrawalFee;
-            if (typeof d.earlyPayoutFee === 'number')   fees.withdrawalFeePro     = d.earlyPayoutFee;
+            // Admin saves a single platformFeePercent — use it as both min and max
+            if (typeof d.platformFeePercent === 'number') {
+              fees.platformFeeMin     = d.platformFeePercent;
+              fees.platformFeeMax     = d.platformFeePercent;
+              fees.platformFeeExample = d.platformFeePercent;
+            }
+            if (typeof d.projectProtectionPercent === 'number') {
+              fees.protectionFeeMin     = d.projectProtectionPercent;
+              fees.protectionFeeMax     = d.projectProtectionPercent;
+              fees.protectionFeeExample = d.projectProtectionPercent;
+            }
+            if (typeof d.withdrawalFeePercent === 'number') {
+              fees.withdrawalFeeFree = d.withdrawalFeePercent;
+            }
+            if (typeof d.earlyPayoutFeePercent === 'number') {
+              fees.withdrawalFeePro = d.earlyPayoutFeePercent;
+            }
           }
           renderFees(fees);
         }).catch(function (err) {
@@ -961,5 +970,23 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+  <script type="module">
+    // Load social links from Firestore config
+    (async () => {
+      try {
+        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const snap = await getDoc(doc(window.db, 'config', 'platform'));
+        const s = snap.exists() ? snap.data() : {};
+        const links = { twitter: s.twitterUrl || '', linkedin: s.linkedinUrl || '', instagram: s.instagramUrl || '' };
+        ['twitter', 'linkedin', 'instagram'].forEach(name => {
+          const el = document.getElementById('social-' + name);
+          if (!el) return;
+          if (links[name]) { el.href = links[name]; el.style.display = 'flex'; }
+          else { el.style.display = 'none'; }
+        });
+      } catch (e) { /* silent fail */ }
+    })();
+  </script>
 </body>
 </html>

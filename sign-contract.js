@@ -15,6 +15,7 @@
 //   { ok: true, bothSigned: bool, contractPdfUrl: string|null }
 
 const admin      = require('firebase-admin');
+const { verifyCaller } = require('./_verify-auth');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fetch      = (...args) => import('node-fetch').then(m => m.default(...args));
 const { createHash } = require('crypto');
@@ -140,6 +141,12 @@ async function callFunction(name, payload) {
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  /* ── Verify caller identity ── */
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized. Please log in again.' }) };
   }
 
   let body;
