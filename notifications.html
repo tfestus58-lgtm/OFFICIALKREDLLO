@@ -328,100 +328,9 @@ function showToast(msg, duration=2800) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// ─── NOTIFICATION DATA (demo) ─────────────────────────────────────────────────
-// In production these come from Firestore onSnapshot. For preview, we use rich demo data.
-const DEMO_NOTIFICATIONS = [
-  {
-    id: 'n1',
-    title: 'Payment received for Brand Identity project',
-    body: 'Apex Digital has funded escrow with €1,200. Work can begin now.',
-    type: 'payment',
-    read: false,
-    url: 'dashboard-projects.html',
-    createdAt: Date.now() - 1000 * 60 * 22  // 22 min ago
-  },
-  {
-    id: 'n2',
-    title: 'Contract signed by both parties',
-    body: 'The service agreement for "E-commerce UX Redesign" has been signed. The client can now proceed to payment.',
-    type: 'project',
-    read: false,
-    url: 'dashboard-contracts.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 1.5  // 1.5 hrs ago
-  },
-  {
-    id: 'n3',
-    title: 'Work approved - payment on its way',
-    body: 'NovaTech Ltd. approved your delivery on "Dashboard UI Kit". Your payment of €850 is being released.',
-    type: 'payment',
-    read: false,
-    url: 'dashboard-earnings.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 5  // 5 hrs ago
-  },
-  {
-    id: 'n4',
-    title: 'Your identity has been verified',
-    body: 'Your KYC verification was approved. Your Kreddlo profile is now live and visible to clients worldwide.',
-    type: 'account',
-    read: false,
-    url: 'dashboard.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 9  // 9 hrs ago
-  },
-  {
-    id: 'n5',
-    title: 'New message from Apex Digital',
-    body: 'James Harlow sent you a message about the Brand Identity project. Tap to view.',
-    type: 'project',
-    read: true,
-    url: 'dashboard-projects.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24  // 1 day ago
-  },
-  {
-    id: 'n6',
-    title: 'Withdrawal of €940 sent',
-    body: 'Your withdrawal has been processed. Funds are being sent to your USDT wallet ending in ...4f8a.',
-    type: 'payment',
-    read: true,
-    url: 'dashboard-withdraw.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 27  // 27 hrs ago
-  },
-  {
-    id: 'n7',
-    title: 'Kreddlo Pro plan activated',
-    body: 'Your Pro plan is now active. You have unlocked Verified Badge, Featured Profile, Priority Disputes and Advanced Analytics.',
-    type: 'account',
-    read: true,
-    url: 'dashboard-settings.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 48  // 2 days ago
-  },
-  {
-    id: 'n8',
-    title: 'Dispute resolved in your favor',
-    body: 'The Kreddlo team has reviewed the dispute for "Social Media Design Pack" and ruled in your favor. Funds have been released.',
-    type: 'project',
-    read: true,
-    url: 'dashboard-projects.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 72  // 3 days ago
-  },
-  {
-    id: 'n9',
-    title: 'Referral credit earned',
-    body: 'Someone you referred has completed their first project. A fee credit has been added to your account.',
-    type: 'account',
-    read: true,
-    url: 'dashboard.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 120  // 5 days ago
-  },
-  {
-    id: 'n10',
-    title: 'Profile boost is live',
-    body: 'Your profile will appear at the top of search results for the next 7 days.',
-    type: 'account',
-    read: true,
-    url: 'dashboard-settings.html',
-    createdAt: Date.now() - 1000 * 60 * 60 * 168  // 7 days ago
-  },
-];
+// ─── NOTIFICATION DATA ────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let notifications = [];
 
 // ─── TYPE CONFIG ──────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -429,8 +338,6 @@ const TYPE_CONFIG = {
   project: { label:'Project', color:'#1a56db', bg:'#e8f0fe' },
   account: { label:'Account', color:'#856404', bg:'#fff3cd' },
 };
-
-// ─── RELATIVE TIME ────────────────────────────────────────────────────────────
 function relTime(ts) {
   const diff = (Date.now() - ts) / 1000;
   if (diff < 60) return 'Just now';
@@ -443,9 +350,6 @@ function relTime(ts) {
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
-let currentFilter = 'all';
-let notifications = [...DEMO_NOTIFICATIONS];
-
 function getFiltered() {
   if (currentFilter === 'all') return notifications;
   if (currentFilter === 'unread') return notifications.filter(n => !n.read);
@@ -545,16 +449,77 @@ function filterNotifs(type, btn) {
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
-window._boot = function(user) {
+window._boot = function(user, db, firestoreModules) {
   buildNav('freelancer');
 
-  document.getElementById('notif-skeleton').style.display = 'none';
-  renderNotifications();
+  const { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch } = firestoreModules;
+  const uid = user.uid;
+
+  // Show skeleton, load real notifications
+  const skeleton = document.getElementById('notif-skeleton');
+
+  getDocs(query(
+    collection(db, 'users', uid, 'notifications'),
+    orderBy('createdAt', 'desc'),
+    limit(50)
+  ))
+  .then(function(snap) {
+    notifications = [];
+    snap.forEach(function(d) {
+      var data = d.data();
+      var ts = data.createdAt && data.createdAt.toDate
+        ? data.createdAt.toDate().getTime()
+        : (typeof data.createdAt === 'number' ? data.createdAt : Date.now());
+      notifications.push({
+        id: d.id,
+        title: data.title || '',
+        body: data.body || '',
+        type: data.type || 'account',
+        read: data.read === true,
+        url: data.url || '',
+        createdAt: ts
+      });
+    });
+    if (skeleton) skeleton.style.display = 'none';
+    renderNotifications();
+  })
+  .catch(function(err) {
+    console.warn('Failed to load notifications:', err);
+    if (skeleton) skeleton.style.display = 'none';
+    notifications = [];
+    renderNotifications();
+  });
+
+  // Override handleNotifClick to also write to Firestore
+  window.handleNotifClick = function(id, url) {
+    var notif = notifications.find(function(n) { return n.id === id; });
+    if (notif && !notif.read) {
+      notif.read = true;
+      updateDoc(doc(db, 'users', uid, 'notifications', id), { read: true })
+        .catch(function(e) { console.warn('Mark read failed:', e); });
+      renderNotifications();
+    }
+    if (url) setTimeout(function() { window.location.href = url; }, 100);
+  };
+
+  // Override markAllAsRead to write to Firestore
+  window.markAllAsRead = function() {
+    var unread = notifications.filter(function(n) { return !n.read; });
+    if (!unread.length) return;
+    var batch = writeBatch(db);
+    unread.forEach(function(n) {
+      batch.update(doc(db, 'users', uid, 'notifications', n.id), { read: true });
+      n.read = true;
+    });
+    batch.commit().catch(function(e) { console.warn('Batch mark-read failed:', e); });
+    renderNotifications();
+    showToast('All notifications marked as read');
+  };
 
   const overlay = document.getElementById('loading-overlay');
   overlay.style.transition = 'opacity 0.35s';
   overlay.style.opacity = '0';
-  setTimeout(() => overlay.style.display = 'none', 360);
+  setTimeout(function() { overlay.style.display = 'none'; }, 360);
 };
 </script>
 <script>
@@ -571,7 +536,7 @@ if ('serviceWorker' in navigator) {
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore }      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
     authDomain:        'kreddlo.firebaseapp.com',
@@ -582,10 +547,11 @@ if ('serviceWorker' in navigator) {
   };
   const app  = initializeApp(FIREBASE_CONFIG);
   const auth = getAuth(app);
-  window.db  = getFirestore(app);
+  const db   = getFirestore(app);
+  window.db  = db;
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
-    if (typeof window._boot === 'function') window._boot(user);
+    if (typeof window._boot === 'function') window._boot(user, db, { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch });
   });
 </script>
 </body>
