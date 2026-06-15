@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>My Projects — Kreddlo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+/* Glass */
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+/* Buttons */
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0d2145;color:#fff;border:none;border-radius:50px;padding:12px 28px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(13,33,69,0.20);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-primary:hover{background:#162f5e;transform:translateY(-1px);box-shadow:0 6px 20px rgba(13,33,69,0.28)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:focus-visible{outline:2px solid #2d8a5e;outline-offset:3px}
+.btn-primary:disabled{opacity:.6;cursor:default;transform:none}
+
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#0d2145;border:2px solid #0d2145;border-radius:50px;padding:10px 22px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,background .15s,color .15s}
+.btn-secondary:hover{background:#0d2145;color:#fff;transform:translateY(-1px)}
+.btn-secondary:active{transform:translateY(0)}
+.btn-secondary:focus-visible{outline:2px solid #2d8a5e;outline-offset:3px}
+
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#c81e1e;border:none;border-radius:50px;padding:10px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s,transform .15s}
+.btn-ghost:hover{background:rgba(200,30,30,0.06);transform:translateY(-1px)}
+.btn-ghost:focus-visible{outline:2px solid #2d8a5e;outline-offset:3px}
+
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:12px 28px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.30);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.38)}
+.btn-green:active{transform:translateY(0)}
+.btn-green:focus-visible{outline:2px solid #3dbd7a;outline-offset:3px}
+.btn-green:disabled{opacity:.6;cursor:default;transform:none}
+
+/* Sizes for inline action buttons */
+.btn-sm{font-size:13px!important;padding:9px 18px!important}
+
+/* Input */
+.input-field{width:100%;padding:12px 16px;background:rgba(255,255,255,0.85);border:1.5px solid #e2e8f0;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:#0d2145;outline:none;transition:border-color .2s,box-shadow .2s}
+.input-field:focus{border-color:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.11)}
+.input-field::placeholder{color:rgba(13,33,69,0.35)}
+
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap;flex-shrink:0}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-navy{background:rgba(13,33,69,0.08);color:#0d2145}
+.badge-amber{background:#fff3cd;color:#856404}
+.badge-blue{background:#e8f0fe;color:#1a56db}
+.badge-red{background:#fde8e8;color:#c81e1e}
+.badge-grey{background:rgba(13,33,69,0.07);color:rgba(13,33,69,0.55)}
+
+/* Skeleton */
+.sk{background:linear-gradient(90deg,#f0f2f6 25%,#e8eaf0 50%,#f0f2f6 75%);background-size:200% 100%;animation:sk 1.5s infinite linear;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Pills */
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:9px 20px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:background .15s,color .15s,transform .15s}
+.pill-inactive{background:rgba(13,33,69,0.06);color:#0d2145}
+.pill-inactive:hover{background:rgba(13,33,69,0.10);transform:translateY(-1px)}
+.pill-active{background:#0d2145;color:#fff;box-shadow:0 4px 16px rgba(13,33,69,0.20)}
+.pill:focus-visible{outline:2px solid #2d8a5e;outline-offset:2px}
+
+/* Nav */
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+/* Mobile menu */
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+/* Project card */
+.proj-card{padding:20px;transition:box-shadow .2s}
+.proj-card:hover{box-shadow:0 10px 40px rgba(13,33,69,0.13)}
+.proj-card-title{font-size:16px;font-weight:700;color:#0d2145;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+.meta-item{display:flex;align-items:center;gap:4px;color:rgba(13,33,69,0.50)}
+.meta-item span{font-size:12px;font-weight:500;color:rgba(13,33,69,0.50)}
+
+/* Modal */
+.modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(9,24,48,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(13,33,69,0.20);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:32px}
+
+/* File upload */
+.file-drop{border:1.5px dashed #e2e8f0;border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.file-drop:hover{border-color:#2d8a5e;background:rgba(45,138,94,0.03)}
+.file-drop.has-file{border-color:#2d8a5e;background:rgba(45,138,94,0.05)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#091830;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* Blobs */
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+
+/* Fade up */
+.fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}
+
+/* Spinner */
+.spin{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px}
+
+/* Responsive */
+@media(min-width:1024px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+  #projects-grid{grid-template-columns:1fr 1fr!important}
+}
+@media(min-width:768px){
+  #page-content{padding:32px!important}
+  .search-wrap{width:auto!important;max-width:240px!important}
+  .proj-card{padding:24px!important}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
+    <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
+  </div>
+</div>
+<style>
+@keyframes loaderSlide{0%{left:-100%}100%{left:100%}}
+#loader-bar{animation:loaderSlide 1.1s ease-in-out infinite}
+</style>
+
+<!-- MOBILE BACKDROP -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
+
+<!-- MOBILE MENU -->
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:36px;margin-top:2px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="mb-signout" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/buyer-dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- MAIN WRAPPER -->
+<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOPBAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">My Projects</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="window.location.href='/notifications.html'" style="position:relative;width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">CD</div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;">
+
+      <!-- SECTION A: Tabs + Search -->
+      <div class="fu fu-1" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;">
+          <button class="pill pill-active" data-tab="active" onclick="selectTab('active')">Active</button>
+          <button class="pill pill-inactive" data-tab="completed" onclick="selectTab('completed')">Completed</button>
+        </div>
+        <div class="search-wrap" style="position:relative;width:100%;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2" stroke-linecap="round" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" class="input-field" placeholder="Search projects" style="padding-left:38px;" oninput="renderProjects()"/>
+        </div>
+      </div>
+
+      <!-- SECTION B: Projects grid -->
+      <div id="projects-grid" class="fu fu-2" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:26px;"></div>
+
+      <!-- Empty state (hidden by default) -->
+      <div id="empty-state" class="empty-state glass" style="display:none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 16px;display:block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h3 style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 6px;">No projects found</h3>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Try adjusting your search or check back later.</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- DISPUTE MODAL -->
+<div id="dispute-modal" class="modal" onclick="if(event.target===this)closeDisputeModal()">
+  <div class="modal-box">
+    <h3 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 10px;">Raise a Dispute</h3>
+    <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 22px;line-height:1.6;">Disputes are reviewed by the Kreddlo team within 3 to 5 business days. Decisions made by our resolution team are final.</p>
+
+    <div style="margin-bottom:16px;">
+      <label class="lbl" style="display:block;margin-bottom:8px;">Describe the issue in detail</label>
+      <textarea id="dispute-text" class="input-field" style="min-height:120px;resize:vertical;font-family:'Plus Jakarta Sans',sans-serif;" placeholder="Explain what happened, including any relevant dates, deliverables, or communication..."></textarea>
+    </div>
+
+    <div style="margin-bottom:22px;">
+      <label class="lbl" style="display:block;margin-bottom:8px;">Supporting evidence (optional)</label>
+      <div class="file-drop" id="file-drop" onclick="document.getElementById('dispute-file').click()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2" stroke-linecap="round" style="margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span id="file-drop-label" style="font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);">Upload supporting evidence (optional)</span>
+        <div style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.35);margin-top:4px;">Images or PDF accepted</div>
+      </div>
+      <input type="file" id="dispute-file" accept="image/*,application/pdf" style="display:none;" onchange="onFileSelected()"/>
+    </div>
+
+    <button class="btn-primary" id="dispute-submit-btn" style="width:100%;" onclick="submitDispute()">Submit Dispute</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ============ DEMO USER (buyer) ============
+var DEMO_USER = { name: '', role: 'buyer', uid: null };
+
+// ============ LIVE DATA — populated by loadBuyerProjects() in _boot ============
+var PROJECTS = [];
+
+var STATUS_CONFIG = {
+  in_progress:         { label: 'In Progress',         cls: 'badge-blue'  },
+  delivered:           { label: 'Delivered',           cls: 'badge-amber' },
+  completed:           { label: 'Completed',           cls: 'badge-green' },
+  disputed:            { label: 'Disputed',            cls: 'badge-red'   },
+  awaiting_signatures: { label: 'Awaiting Signatures', cls: 'badge-grey'  }
+};
+
+var currentTab = 'active';
+var activeDisputeProjectId = null;
+var selectedFile = null;
+
+// ============ NAV (buyer) ============
+var NAV = [
+  { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Projects',  href:'/buyer-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Browse',    href:'/browse.html',         icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Payments',  href:'/buyer-payments.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Notifications', href:'/notifications.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+];
+
+function buildNav() {
+  var cur = (window.location.pathname.split('/').pop() || 'buyer-projects.html');
+  var html = NAV.map(function(n) {
+    var active = cur === n.href.replace('/','') ? ' active' : '';
+    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML = html;
+  document.getElementById('desktop-nav').innerHTML = html;
+}
+
+// ============ MOBILE MENU ============
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ============ LOGOUT ============
+function handleLogout() { showToast('Signed out (demo mode)'); }
+document.getElementById('mb-signout').onclick = handleLogout;
+document.getElementById('dt-signout').onclick = handleLogout;
+
+// ============ TOAST ============
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3500);
+}
+
+// ============ TAB SELECTION ============
+function selectTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.pill[data-tab]').forEach(function(btn) {
+    if (btn.dataset.tab === tab) {
+      btn.classList.add('pill-active');
+      btn.classList.remove('pill-inactive');
+    } else {
+      btn.classList.add('pill-inactive');
+      btn.classList.remove('pill-active');
+    }
+  });
+  renderProjects();
+}
+
+// ============ ICON HELPERS ============
+var ICON_PERSON   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+var ICON_DOLLAR   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+var ICON_CALENDAR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+
+// ============ ACTION ROW BUILDER (buyer-specific) ============
+function buildActionRow(p) {
+  // Both signed but escrow unfunded: Make Payment
+  if (p.escrowStatus === 'unfunded' && p.freelancerSigned && p.buyerSigned) {
+    return '<button class="btn-green btn-sm" style="width:100%;" onclick="makePayment(\''+p.id+'\')" id="pay-btn-'+p.id+'">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>'
+      + 'Make Payment</button>';
+  }
+
+  // Awaiting signatures (buyer has not signed yet)
+  if (p.status === 'awaiting_signatures') {
+    return '<button class="btn-secondary" style="width:100%;" onclick="viewContract(\''+p.id+'\')">View Contract Status</button>';
+  }
+
+  // Delivered: Approve Delivery + Raise Dispute
+  if (p.status === 'delivered') {
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      + '<button class="btn-green btn-sm" onclick="approveDelivery(\''+p.id+'\')" id="approve-btn-'+p.id+'">'
+      + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      + 'Approve Delivery</button>'
+      + '<button class="btn-ghost" onclick="openDisputeModal(\''+p.id+'\')">Raise Dispute</button>'
+    + '</div>';
+  }
+
+  // In progress: View Contract + Raise Dispute
+  if (p.status === 'in_progress') {
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      + '<button class="btn-secondary" onclick="viewContract(\''+p.id+'\')">View Contract</button>'
+      + '<button class="btn-ghost" onclick="openDisputeModal(\''+p.id+'\')">Raise Dispute</button>'
+    + '</div>';
+  }
+
+  // Completed: View Contract only
+  if (p.status === 'completed') {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">'
+      + '<button class="btn-secondary" onclick="viewContract(\''+p.id+'\')">View Contract</button>'
+      + '<span style="font-size:13px;font-weight:600;color:#2d8a5e;">Completed '+(p.completedDate||'')+'</span>'
+    + '</div>';
+  }
+
+  // Disputed: View Contract only
+  if (p.status === 'disputed') {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">'
+      + '<span class="badge badge-red">Disputed</span>'
+      + '<button class="btn-secondary" onclick="viewContract(\''+p.id+'\')">View Contract</button>'
+    + '</div>';
+  }
+
+  return '';
+}
+
+// ============ MAKE PAYMENT ============
+function makePayment(id) {
+  var btn = document.getElementById('pay-btn-'+id);
+  if (!btn) return;
+  var original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Redirecting...';
+
+  // In production: POST to /.netlify/functions/create-crypto-payment with { projectId: id }
+  // then window.location.href = response.invoiceUrl
+  setTimeout(function() {
+    showToast('Demo mode: would redirect to NOWPayments invoice');
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }, 1200);
+}
+
+// ============ APPROVE DELIVERY ============
+function approveDelivery(id) {
+  var btn = document.getElementById('approve-btn-'+id);
+  if (!btn) return;
+  var original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Approving...';
+
+  // In production: POST to /.netlify/functions/approve-delivery with { projectId: id, buyerUid: DEMO_USER.uid }
+  setTimeout(function() {
+    var p = PROJECTS.find(function(x){ return x.id === id; });
+    if (p) {
+      p.status = 'completed';
+      p.escrowStatus = 'released';
+      p.completedDate = 'Today';
+    }
+    renderProjects();
+    showToast('Payment released to freelancer');
+  }, 1200);
+}
+
+// ============ VIEW CONTRACT ============
+function viewContract(projectId) {
+  var p = PROJECTS.find(function(x){ return x.id===projectId; });
+  if (!p || !p.contractPdfUrl) { showToast('Contract not available'); return; }
+  window.open(p.contractPdfUrl, '_blank');
+}
+
+// ============ RENDER PROJECTS ============
+function renderProjects() {
+  var grid = document.getElementById('projects-grid');
+  var empty = document.getElementById('empty-state');
+  var searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+
+  if (PROJECTS.length === 0) {
+    var grid = document.getElementById('projects-grid');
+    var empty = document.getElementById('empty-state');
+    if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+    if (empty) { empty.style.display = 'block'; empty.innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:40px 20px;">No projects yet.<br>Projects will appear here once funded.</p>'; }
+    return;
+  }
+  var filtered = PROJECTS.filter(function(p) {
+    if (currentTab === 'active') {
+      return p.status !== 'completed' && p.status !== 'disputed';
+    } else {
+      return p.status === 'completed' || p.status === 'disputed';
+    }
+  });
+
+  if (searchTerm) {
+    filtered = filtered.filter(function(p) {
+      return p.title.toLowerCase().indexOf(searchTerm) !== -1;
+    });
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  grid.style.display = 'grid';
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(function(p) {
+    var cfg = STATUS_CONFIG[p.status] || STATUS_CONFIG.in_progress;
+    return '<div class="glass proj-card">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">'
+        + '<div class="proj-card-title">'+p.title+'</div>'
+        + '<span class="badge '+cfg.cls+'">'+cfg.label+'</span>'
+      + '</div>'
+      + '<div style="display:flex;gap:16px;margin-top:10px;flex-wrap:wrap;">'
+        + '<div class="meta-item">'+ICON_PERSON+'<span>'+p.freelancer+'</span></div>'
+        + '<div class="meta-item">'+ICON_DOLLAR+'<span>$'+p.amount.toLocaleString()+'</span></div>'
+        + '<div class="meta-item">'+ICON_CALENDAR+'<span>'+p.deadline+'</span></div>'
+      + '</div>'
+      + '<div style="height:1px;background:#e2e8f0;margin:16px 0;"></div>'
+      + buildActionRow(p)
+    + '</div>';
+  }).join('');
+}
+
+// ============ DISPUTE MODAL (raisedByRole = buyer) ============
+function openDisputeModal(projectId) {
+  activeDisputeProjectId = projectId;
+  selectedFile = null;
+  document.getElementById('dispute-text').value = '';
+  document.getElementById('file-drop-label').textContent = 'Upload supporting evidence (optional)';
+  document.getElementById('file-drop').classList.remove('has-file');
+  document.getElementById('dispute-file').value = '';
+  document.getElementById('dispute-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDisputeModal() {
+  document.getElementById('dispute-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  activeDisputeProjectId = null;
+}
+function onFileSelected() {
+  var input = document.getElementById('dispute-file');
+  if (input.files && input.files.length > 0) {
+    selectedFile = input.files[0];
+    document.getElementById('file-drop-label').textContent = selectedFile.name;
+    document.getElementById('file-drop').classList.add('has-file');
+  }
+}
+function submitDispute() {
+  var text = document.getElementById('dispute-text').value.trim();
+  if (!text) { showToast('Please describe the issue before submitting'); return; }
+  if (!activeDisputeProjectId) { closeDisputeModal(); return; }
+
+  var btn = document.getElementById('dispute-submit-btn');
+  var original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Submitting...';
+
+  // In production: POST to /.netlify/functions/raise-dispute with
+  // { projectId: activeDisputeProjectId, raisedBy: DEMO_USER.uid, raisedByRole: 'buyer',
+  //   description: text, evidenceFile: selectedFile }
+  setTimeout(function() {
+    var p = PROJECTS.find(function(x){ return x.id === activeDisputeProjectId; });
+    if (p) {
+      p.status = 'disputed';
+      p.escrowStatus = 'disputed';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = original;
+    closeDisputeModal();
+    renderProjects();
+    showToast('Dispute submitted. The Kreddlo team will be in touch.');
+  }, 1000);
+}
+
+// ============ ESCAPE KEY ============
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeDisputeModal();
+    closeMobileMenu();
+  }
+});
+
+// ============ LOAD BUYER PROJECTS FROM FIRESTORE ============
+async function loadBuyerProjects(uid) {
+  if (!window.db || !window._fsQ) return;
+  var fsQ = window._fsQ;
+  try {
+    var q = fsQ.query(
+      fsQ.collection(window.db, 'projects'),
+      fsQ.where('buyerUid', '==', uid),
+      fsQ.orderBy('createdAt', 'desc')
+    );
+    var snap = await fsQ.getDocs(q);
+
+    // Fetch freelancer names in parallel
+    var flUids = [];
+    snap.docs.forEach(function(d) { if (d.data().freelancerUid) flUids.push(d.data().freelancerUid); });
+    var uniqueFlUids = flUids.filter(function(v, i, a) { return a.indexOf(v) === i; });
+    var flMap = {};
+    await Promise.all(uniqueFlUids.map(async function(fuid) {
+      try {
+        var fsnap = await fsQ.getDoc(fsQ.doc(window.db, 'users', fuid));
+        if (fsnap.exists()) {
+          var fd = fsnap.data();
+          flMap[fuid] = fd.displayName || fd.name || fd.email || 'Freelancer';
+        }
+      } catch(e) { /* non-fatal */ }
+    }));
+
+    PROJECTS = snap.docs.map(function(d) {
+      var data = d.data();
+      var dl = data.deadline;
+      return {
+        id:               d.id,
+        title:            data.title          || 'Untitled Project',
+        freelancer:       flMap[data.freelancerUid] || data.freelancerName || 'Freelancer',
+        freelancerUid:    data.freelancerUid,
+        buyerUid:         data.buyerUid,
+        amount:           data.amount         || data.netAmount || 0,
+        deadline:         dl ? (typeof dl === 'string' ? dl : new Date(dl.toDate ? dl.toDate() : dl).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})) : '—',
+        status:           data.status         || 'in_progress',
+        escrowStatus:     data.escrowStatus   || 'unfunded',
+        freelancerSigned: data.freelancerSigned || false,
+        buyerSigned:      data.buyerSigned    || false,
+        contractPdfUrl:   data.contractPdfUrl || null,
+        deliveredAt:      data.deliveredAt    || null,
+        completedDate:    data.completedAt    ? new Date(data.completedAt.toDate ? data.completedAt.toDate() : data.completedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '',
+      };
+    });
+  } catch(err) {
+    console.error('[loadBuyerProjects]', err);
+    showToast('Could not load projects. Pull to refresh.');
+  }
+  renderProjects();
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ============ BOOT ============
+window._boot = function(user, userData) {
+  DEMO_USER.uid  = user.uid;
+  DEMO_USER.name = user.displayName || (userData && userData.name) || user.email || 'User';
+
+  // Avatar initials
+  var parts = DEMO_USER.name.trim().split(' ');
+  document.getElementById('user-avatar').textContent =
+    parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : DEMO_USER.name.slice(0,2).toUpperCase();
+
+  buildNav();
+  document.getElementById('bell-dot').style.display = 'block';
+  loadBuyerProjects(user.uid);
+};
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+
+<script type="module">
+  import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const FIREBASE_CONFIG = {
+    apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+    authDomain:        'kreddlo.firebaseapp.com',
+    projectId:         'kreddlo',
+    storageBucket:     'kreddlo.firebasestorage.app',
+    messagingSenderId: '764500458567',
+    appId:             '1:764500458567:web:2389d5cf8c688caafd0562',
+  };
+  const app  = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+  window.db  = db;
+  window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc };
+  onAuthStateChanged(auth, function(user) {
+    if (!user) { window.location.href = '/login.html'; return; }
+    getDoc(doc(db, 'users', user.uid)).then(function(snap) {
+      if (!snap.exists() || snap.data().role !== 'buyer') {
+        window.location.href = '/login.html'; return;
+      }
+      if (typeof window._boot === 'function') window._boot(user, snap.data());
+    }).catch(function() { window.location.href = '/login.html'; });
+  });
+</script>
+</body>
+</html>

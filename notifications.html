@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>Notifications — Kreddlo</title>
+<meta name="robots" content="noindex,nofollow"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+/* Glass */
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+/* Buttons */
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:9px 20px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.28);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.38)}
+.btn-green:active{transform:translateY(0)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:transparent;color:rgba(13,33,69,0.52);border:1.5px solid #e2e8f0;border-radius:50px;padding:8px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .15s}
+.btn-ghost:hover{border-color:#0d2145;color:#0d2145;background:rgba(13,33,69,0.04);transform:translateY(-1px)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-blue{background:#e8f0fe;color:#1a56db}
+.badge-amber{background:#fff3cd;color:#856404}
+.badge-red{background:#fde8e8;color:#c81e1e}
+.badge-grey{background:rgba(13,33,69,0.07);color:rgba(13,33,69,0.55)}
+.badge-navy{background:rgba(13,33,69,0.08);color:#0d2145}
+
+/* Label */
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+/* Skeleton */
+.sk{background:linear-gradient(90deg,#f0f2f6 25%,#e8eaf0 50%,#f0f2f6 75%);background-size:200% 100%;animation:sk 1.5s infinite linear;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Nav */
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+/* Mobile menu */
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#091830;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* Blobs */
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+
+/* Fade up */
+.fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}.fu-3{animation-delay:.19s}
+
+/* Notification item */
+.notif-item{display:flex;gap:16px;padding:18px 20px;border-bottom:1px solid #e2e8f0;cursor:pointer;transition:background .15s;position:relative;text-decoration:none;color:inherit}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:rgba(13,33,69,0.025)}
+.notif-item:active{background:rgba(13,33,69,0.04)}
+.notif-item.unread{background:rgba(232,245,239,0.45)}
+.notif-item.unread:hover{background:rgba(232,245,239,0.70)}
+
+/* Timeline connector */
+.notif-timeline{display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px}
+.notif-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;transition:transform .15s}
+.notif-item:hover .notif-dot{transform:scale(1.2)}
+.notif-dot.unread{background:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.18)}
+.notif-dot.read{background:#e2e8f0;border:1.5px solid #cbd5e1}
+.notif-line{width:1.5px;flex:1;margin-top:6px;min-height:24px}
+.notif-line.unread{background:linear-gradient(to bottom,rgba(45,138,94,0.35),rgba(45,138,94,0.05))}
+.notif-line.read{background:#f0f2f6}
+
+/* Content */
+.notif-content{flex:1;min-width:0}
+.notif-title{font-size:14px;line-height:1.4;margin:0 0 4px;word-break:break-word}
+.notif-title.unread{font-weight:700;color:#0d2145}
+.notif-title.read{font-weight:500;color:rgba(13,33,69,0.72)}
+.notif-body{font-size:13px;font-weight:400;color:rgba(13,33,69,0.52);line-height:1.55;margin:0 0 6px;word-break:break-word}
+.notif-time{font-size:11px;font-weight:500;color:rgba(13,33,69,0.38);display:flex;align-items:center;gap:5px}
+.notif-time.unread{color:rgba(45,138,94,0.80)}
+
+/* Category pill on notification */
+.notif-type{display:inline-flex;align-items:center;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
+
+/* Filter tabs */
+.filter-tab{padding:7px 16px;border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.filter-tab.active{background:#0d2145;color:#fff;border-color:#0d2145}
+.filter-tab:not(.active){background:transparent;color:rgba(13,33,69,0.52);border-color:#e2e8f0}
+.filter-tab:not(.active):hover{border-color:#0d2145;color:#0d2145}
+
+/* Responsive */
+@media(min-width:1024px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+}
+@media(min-width:768px){
+  #page-content{padding:32px!important}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
+    <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
+  </div>
+</div>
+<style>@keyframes loaderSlide{0%{left:-100%}100%{left:100%}}#loader-bar{animation:loaderSlide 1.1s ease-in-out infinite}</style>
+
+<!-- MOBILE BACKDROP -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
+
+<!-- MOBILE MENU -->
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:36px;margin-top:2px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button onclick="handleLogout()" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button onclick="handleLogout()" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- MAIN WRAPPER -->
+<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOPBAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 id="page-title" style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">Notifications</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="window.location.href='notifications.html'" style="position:relative;width:38px;height:38px;background:rgba(13,33,69,0.06);border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.10)'" onmouseout="this.style.background='rgba(13,33,69,0.06)'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">MR</div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;">
+
+      <!-- HEADER ROW -->
+      <div class="fu fu-1" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;margin:0 0 2px;line-height:1.2;">All Notifications</h2>
+          <p id="notif-count-label" class="lbl" style="margin:0;">Loading...</p>
+        </div>
+        <button id="mark-all-btn" class="btn-green" onclick="markAllAsRead()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Mark All as Read
+        </button>
+      </div>
+
+      <!-- FILTER TABS -->
+      <div class="fu fu-2" style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">
+        <button class="filter-tab active" onclick="filterNotifs('all', this)">All</button>
+        <button class="filter-tab" onclick="filterNotifs('unread', this)">Unread</button>
+        <button class="filter-tab" onclick="filterNotifs('payment', this)">Payments</button>
+        <button class="filter-tab" onclick="filterNotifs('project', this)">Projects</button>
+        <button class="filter-tab" onclick="filterNotifs('account', this)">Account</button>
+      </div>
+
+      <!-- NOTIFICATIONS LIST -->
+      <div class="fu fu-3 glass" style="overflow:hidden;padding:0;" id="notif-container">
+
+        <!-- Skeleton loading state -->
+        <div id="notif-skeleton" style="padding:8px 0;">
+          <div style="display:flex;gap:16px;padding:18px 20px;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;">
+              <div class="sk" style="width:10px;height:10px;border-radius:50%;"></div>
+              <div class="sk" style="width:1.5px;height:36px;margin-top:6px;border-radius:0;"></div>
+            </div>
+            <div style="flex:1;">
+              <div class="sk" style="height:13px;width:60%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:11px;width:85%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:10px;width:30%;"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;padding:18px 20px;border-bottom:1px solid #e2e8f0;">
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;">
+              <div class="sk" style="width:10px;height:10px;border-radius:50%;"></div>
+              <div class="sk" style="width:1.5px;height:36px;margin-top:6px;border-radius:0;"></div>
+            </div>
+            <div style="flex:1;">
+              <div class="sk" style="height:13px;width:45%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:11px;width:75%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:10px;width:25%;"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;padding:18px 20px;">
+            <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:3px;">
+              <div class="sk" style="width:10px;height:10px;border-radius:50%;"></div>
+            </div>
+            <div style="flex:1;">
+              <div class="sk" style="height:13px;width:55%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:11px;width:80%;margin-bottom:8px;"></div>
+              <div class="sk" style="height:10px;width:20%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actual notification list -->
+        <div id="notif-list" style="display:none;"></div>
+
+        <!-- Empty state -->
+        <div id="notif-empty" style="display:none;padding:64px 24px;text-align:center;">
+          <div style="width:72px;height:72px;background:#e8f5ef;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="1.5" stroke-linecap="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </div>
+          <h3 style="font-size:17px;font-weight:800;color:#0d2145;margin:0 0 8px;letter-spacing:-0.3px;">All caught up</h3>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;max-width:260px;margin-left:auto;margin-right:auto;line-height:1.6;">You have no new notifications right now.</p>
+        </div>
+
+        <!-- Filter empty state -->
+        <div id="notif-filter-empty" style="display:none;padding:48px 24px;text-align:center;">
+          <div style="width:56px;height:56px;background:rgba(13,33,69,0.05);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.35)" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <p style="font-size:14px;font-weight:600;color:rgba(13,33,69,0.45);margin:0;">No notifications in this category.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ─── NAV CONFIG ───────────────────────────────────────────────────────────────
+const NAV_LINKS = {
+  freelancer: [
+    { label:'Dashboard',    href:'dashboard.html',          icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+    { label:'Projects',     href:'dashboard-projects.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
+    { label:'Contracts',    href:'dashboard-contracts.html',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>' },
+    { label:'Earnings',     href:'dashboard-earnings.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+    { label:'Withdraw',     href:'dashboard-withdraw.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+    { label:'Notifications',href:'notifications.html',      icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+    { label:'Settings',     href:'dashboard-settings.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' },
+  ]
+};
+
+function buildNav(role) {
+  const links = NAV_LINKS[role] || NAV_LINKS.freelancer;
+  const current = window.location.pathname.split('/').pop() || 'dashboard.html';
+  const html = links.map(l => {
+    const isActive = current === l.href || current === '' && l.href === 'dashboard.html';
+    return `<a href="${l.href}" class="nav-link${isActive?' active':''}">${l.icon}<span>${l.label}</span></a>`;
+  }).join('');
+  document.getElementById('desktop-nav').innerHTML = html;
+  document.getElementById('mobile-nav').innerHTML = html;
+}
+
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function handleLogout() {
+  window.location.href = 'login.html';
+}
+function showToast(msg, duration=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ─── NOTIFICATION DATA (demo) ─────────────────────────────────────────────────
+// In production these come from Firestore onSnapshot. For preview, we use rich demo data.
+const DEMO_NOTIFICATIONS = [
+  {
+    id: 'n1',
+    title: 'Payment received for Brand Identity project',
+    body: 'Apex Digital has funded escrow with €1,200. Work can begin now.',
+    type: 'payment',
+    read: false,
+    url: 'dashboard-projects.html',
+    createdAt: Date.now() - 1000 * 60 * 22  // 22 min ago
+  },
+  {
+    id: 'n2',
+    title: 'Contract signed by both parties',
+    body: 'The service agreement for "E-commerce UX Redesign" has been signed. The client can now proceed to payment.',
+    type: 'project',
+    read: false,
+    url: 'dashboard-contracts.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 1.5  // 1.5 hrs ago
+  },
+  {
+    id: 'n3',
+    title: 'Work approved - payment on its way',
+    body: 'NovaTech Ltd. approved your delivery on "Dashboard UI Kit". Your payment of €850 is being released.',
+    type: 'payment',
+    read: false,
+    url: 'dashboard-earnings.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 5  // 5 hrs ago
+  },
+  {
+    id: 'n4',
+    title: 'Your identity has been verified',
+    body: 'Your KYC verification was approved. Your Kreddlo profile is now live and visible to clients worldwide.',
+    type: 'account',
+    read: false,
+    url: 'dashboard.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 9  // 9 hrs ago
+  },
+  {
+    id: 'n5',
+    title: 'New message from Apex Digital',
+    body: 'James Harlow sent you a message about the Brand Identity project. Tap to view.',
+    type: 'project',
+    read: true,
+    url: 'dashboard-projects.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24  // 1 day ago
+  },
+  {
+    id: 'n6',
+    title: 'Withdrawal of €940 sent',
+    body: 'Your withdrawal has been processed. Funds are being sent to your USDT wallet ending in ...4f8a.',
+    type: 'payment',
+    read: true,
+    url: 'dashboard-withdraw.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 27  // 27 hrs ago
+  },
+  {
+    id: 'n7',
+    title: 'Kreddlo Pro plan activated',
+    body: 'Your Pro plan is now active. You have unlocked Verified Badge, Featured Profile, Priority Disputes and Advanced Analytics.',
+    type: 'account',
+    read: true,
+    url: 'dashboard-settings.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 48  // 2 days ago
+  },
+  {
+    id: 'n8',
+    title: 'Dispute resolved in your favor',
+    body: 'The Kreddlo team has reviewed the dispute for "Social Media Design Pack" and ruled in your favor. Funds have been released.',
+    type: 'project',
+    read: true,
+    url: 'dashboard-projects.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 72  // 3 days ago
+  },
+  {
+    id: 'n9',
+    title: 'Referral credit earned',
+    body: 'Someone you referred has completed their first project. A fee credit has been added to your account.',
+    type: 'account',
+    read: true,
+    url: 'dashboard.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 120  // 5 days ago
+  },
+  {
+    id: 'n10',
+    title: 'Profile boost is live',
+    body: 'Your profile will appear at the top of search results for the next 7 days.',
+    type: 'account',
+    read: true,
+    url: 'dashboard-settings.html',
+    createdAt: Date.now() - 1000 * 60 * 60 * 168  // 7 days ago
+  },
+];
+
+// ─── TYPE CONFIG ──────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  payment: { label:'Payment', color:'#2d8a5e', bg:'#e8f5ef' },
+  project: { label:'Project', color:'#1a56db', bg:'#e8f0fe' },
+  account: { label:'Account', color:'#856404', bg:'#fff3cd' },
+};
+
+// ─── RELATIVE TIME ────────────────────────────────────────────────────────────
+function relTime(ts) {
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)} hr ago`;
+  if (diff < 172800) return 'Yesterday';
+  const days = Math.floor(diff/86400);
+  if (days < 7) return `${days} days ago`;
+  return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+let currentFilter = 'all';
+let notifications = [...DEMO_NOTIFICATIONS];
+
+function getFiltered() {
+  if (currentFilter === 'all') return notifications;
+  if (currentFilter === 'unread') return notifications.filter(n => !n.read);
+  return notifications.filter(n => n.type === currentFilter);
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notif-list');
+  const empty = document.getElementById('notif-empty');
+  const filterEmpty = document.getElementById('notif-filter-empty');
+  const filtered = getFiltered();
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Update count label
+  const countLabel = document.getElementById('notif-count-label');
+  countLabel.textContent = unreadCount > 0 ? `${unreadCount} unread` : 'No unread notifications';
+
+  // Toggle mark all button visibility
+  const markAllBtn = document.getElementById('mark-all-btn');
+  markAllBtn.style.display = unreadCount > 0 ? 'inline-flex' : 'none';
+
+  // Toggle bell dot
+  const bellDot = document.getElementById('bell-dot');
+  bellDot.style.display = unreadCount > 0 ? 'block' : 'none';
+
+  if (notifications.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    filterEmpty.style.display = 'none';
+    return;
+  }
+
+  if (filtered.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'none';
+    filterEmpty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  filterEmpty.style.display = 'none';
+  list.style.display = 'block';
+
+  list.innerHTML = filtered.map((n, i) => {
+    const type = TYPE_CONFIG[n.type] || TYPE_CONFIG.account;
+    const isLast = i === filtered.length - 1;
+    const readClass = n.read ? 'read' : 'unread';
+
+    return `
+    <div class="notif-item ${readClass}" onclick="handleNotifClick('${n.id}', '${n.url || ''}')">
+      <div class="notif-timeline">
+        <div class="notif-dot ${readClass}"></div>
+        ${!isLast ? `<div class="notif-line ${readClass}"></div>` : ''}
+      </div>
+      <div class="notif-content">
+        <div style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;background:${type.bg};color:${type.color};margin-bottom:5px;">${type.label}</div>
+        <p class="notif-title ${readClass}">${n.title}</p>
+        <p class="notif-body">${n.body}</p>
+        <div class="notif-time ${readClass}">
+          ${!n.read ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="#2d8a5e"><circle cx="12" cy="12" r="10"/></svg>` : `<svg width="8" height="8" viewBox="0 0 24 24" fill="rgba(13,33,69,0.25)"><circle cx="12" cy="12" r="10"/></svg>`}
+          ${relTime(n.createdAt)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function handleNotifClick(id, url) {
+  // Mark as read
+  const notif = notifications.find(n => n.id === id);
+  if (notif && !notif.read) {
+    notif.read = true;
+    // In production: update Firestore doc
+    renderNotifications();
+  }
+  // Navigate if URL
+  if (url) {
+    setTimeout(() => { window.location.href = url; }, 100);
+  }
+}
+
+function markAllAsRead() {
+  const unreadExists = notifications.some(n => !n.read);
+  if (!unreadExists) return;
+  notifications.forEach(n => n.read = true);
+  // In production: Firestore batch write setting read=true on all unread docs
+  renderNotifications();
+  showToast('All notifications marked as read');
+}
+
+function filterNotifs(type, btn) {
+  currentFilter = type;
+  // Update tab styling
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderNotifications();
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+window._boot = function(user) {
+  buildNav('freelancer');
+
+  document.getElementById('notif-skeleton').style.display = 'none';
+  renderNotifications();
+
+  const overlay = document.getElementById('loading-overlay');
+  overlay.style.transition = 'opacity 0.35s';
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.style.display = 'none', 360);
+};
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+
+<script type="module">
+  import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore }      from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  const FIREBASE_CONFIG = {
+    apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+    authDomain:        'kreddlo.firebaseapp.com',
+    projectId:         'kreddlo',
+    storageBucket:     'kreddlo.firebasestorage.app',
+    messagingSenderId: '764500458567',
+    appId:             '1:764500458567:web:2389d5cf8c688caafd0562',
+  };
+  const app  = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  window.db  = getFirestore(app);
+  onAuthStateChanged(auth, function(user) {
+    if (!user) { window.location.href = '/login.html'; return; }
+    if (typeof window._boot === 'function') window._boot(user);
+  });
+</script>
+</body>
+</html>

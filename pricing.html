@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+  <title>Pricing and Fees — Kreddlo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy:          '#0d2145',
+            green:         '#2d8a5e',
+            'green-light': '#3dbd7a',
+            cream:         '#f8f9fb',
+            border:        '#e2e8f0',
+          },
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+          borderRadius: { pill: '50px' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ── Base ── */
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8f9fb;
+      color: #0d2145;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ════════════════════════════════════════
+       PREMIUM GLASSMORPHISM
+       Multi-layer approach for depth & realism
+    ════════════════════════════════════════ */
+    .glass {
+      /* Layered background: subtle noise texture + translucent white */
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255,255,255,0.72) 0%,
+          rgba(255,255,255,0.48) 100%
+        );
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      /* Top highlight edge + subtle inner glow */
+      border: 1px solid rgba(255,255,255,0.55);
+      border-bottom-color: rgba(255,255,255,0.25);
+      border-right-color:  rgba(255,255,255,0.25);
+      border-radius: 20px;
+      /* Layered shadows: outer depth + inner light rim */
+      box-shadow:
+        0 2px 0   0   rgba(255,255,255,0.80) inset,   /* top inner highlight */
+        0 -1px 0  0   rgba(255,255,255,0.20) inset,   /* bottom inner edge */
+        0 8px 32px    rgba(13,33,69,0.10),             /* soft outer shadow */
+        0 1px 2px     rgba(13,33,69,0.06);             /* tight base shadow */
+      position: relative;
+    }
+    /* Subtle frosted sheen overlay */
+    .glass::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        160deg,
+        rgba(255,255,255,0.30) 0%,
+        rgba(255,255,255,0.00) 50%,
+        rgba(255,255,255,0.08) 100%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Ensure children sit above the sheen */
+    .glass > * { position: relative; z-index: 1; }
+
+    /* Pro card: green-tinted glass */
+    .glass-pro {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255,255,255,0.78) 0%,
+          rgba(220,248,235,0.55) 100%
+        );
+      backdrop-filter: blur(20px) saturate(200%);
+      -webkit-backdrop-filter: blur(20px) saturate(200%);
+      border: 1.5px solid rgba(61,189,122,0.50);
+      border-bottom-color: rgba(61,189,122,0.20);
+      border-right-color:  rgba(61,189,122,0.20);
+      border-radius: 20px;
+      box-shadow:
+        0 2px 0   0   rgba(255,255,255,0.80) inset,
+        0 8px 40px    rgba(45,138,94,0.14),
+        0 1px 2px     rgba(13,33,69,0.06);
+      position: relative;
+    }
+    .glass-pro::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        160deg,
+        rgba(255,255,255,0.35) 0%,
+        rgba(255,255,255,0.00) 50%,
+        rgba(61,189,122,0.05) 100%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glass-pro > * { position: relative; z-index: 1; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #0d2145; color: #fff; border-radius: 50px;
+      padding: 12px 28px; font-weight: 600; font-size: 15px;
+      border: 2px solid #0d2145; cursor: pointer;
+      transition: background .2s, transform .15s; text-decoration: none; white-space: nowrap;
+    }
+    .btn-primary:hover { background: #162f5e; transform: translateY(-1px); }
+
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; color: #0d2145; border-radius: 50px;
+      padding: 12px 28px; font-weight: 600; font-size: 15px;
+      border: 2px solid #0d2145; cursor: pointer;
+      transition: background .2s, color .2s, transform .15s; text-decoration: none; white-space: nowrap;
+    }
+    .btn-secondary:hover { background: #0d2145; color: #fff; transform: translateY(-1px); }
+
+    .btn-green {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #2d8a5e; color: #fff; border-radius: 50px;
+      padding: 12px 28px; font-weight: 600; font-size: 15px;
+      border: 2px solid #2d8a5e; cursor: pointer;
+      transition: background .2s, transform .15s; text-decoration: none; white-space: nowrap;
+    }
+    .btn-green:hover { background: #236b49; border-color: #236b49; transform: translateY(-1px); }
+
+    /* ── Blobs ── */
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(90px); pointer-events: none; z-index: 0;
+    }
+
+    /* ── Toggle ── */
+    .tab-btn {
+      padding: 10px 28px; border-radius: 50px; font-weight: 600;
+      font-size: 14px; cursor: pointer; transition: all .2s;
+      border: none; outline: none;
+    }
+    .tab-btn.active   { background: #0d2145; color: #fff; }
+    .tab-btn.inactive { background: transparent; color: #0d2145; }
+
+    /* ── Check icon ── */
+    .check { color: #2d8a5e; font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .cross { color: #cbd5e1; font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── FAQ ── */
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease; }
+    .faq-answer.open { max-height: 200px; }
+    .faq-icon { transition: transform .3s ease; }
+    .faq-icon.open { transform: rotate(45deg); }
+
+    /* ── Mobile menu ── */
+    #mobile-menu { display: none; }
+    #mobile-menu.open { display: block; }
+
+    /* ── Section hidden ── */
+    .pricing-section { display: none; }
+    .pricing-section.active { display: block; }
+
+    /* ── Fade up ── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp .65s ease both; }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+
+    /* ── Fee skeleton placeholders ── */
+    @keyframes feeShimmer {
+      0%   { background-position: -120px 0; }
+      100% { background-position: 120px 0; }
+    }
+    .fee-skel {
+      display: inline-block;
+      vertical-align: middle;
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(13,33,69,0.08) 25%, rgba(13,33,69,0.15) 37%, rgba(13,33,69,0.08) 63%);
+      background-size: 240px 100%;
+      animation: feeShimmer 1.4s ease-in-out infinite;
+      color: transparent;
+    }
+    .fee-skel-lg { width: 84px; height: 38px; border-radius: 8px; }
+    .fee-skel-sm { width: 46px; height: 14px; }
+
+    /* ── Mobile fee card list ── */
+    .fee-card {
+      padding: 16px 20px;
+    }
+    .fee-card-name { color: #0d2145; font-weight: 700; font-size: 14px; }
+    .fee-card-row  { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+    .fee-card-meta { color: rgba(13,33,69,0.55); font-size: 13px; }
+    .fee-card-amount { color: #0d2145; font-weight: 600; font-size: 13px; }
+    .fee-card-list { display: flex; flex-direction: column; gap: 10px; }
+  </style>
+
+  <script type="module">
+    import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+    import { getAuth }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getStorage }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+    const firebaseConfig = {
+      apiKey:"AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk", authDomain:"kreddlo.firebaseapp.com",
+      projectId:"kreddlo", storageBucket:"kreddlo.firebasestorage.app",
+      messagingSenderId:"764500458567", appId:"1:764500458567:web:2389d5cf8c688caafd0562",
+    };
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app); window.auth = getAuth(app); window.storage = getStorage(app);
+    window._fsPlatformConfig = { doc, getDoc };
+    window.dispatchEvent(new Event('kreddlo-firebase-ready'));
+
+    // Load social links from Firestore config
+    (async () => {
+      try {
+        const snap = await getDoc(doc(window.db, 'config', 'platform'));
+        const s = snap.exists() ? snap.data() : {};
+        ['twitter', 'linkedin', 'instagram'].forEach(name => {
+          const el = document.getElementById('social-' + name);
+          if (!el) return;
+          const url = s[name + 'Url'] || '';
+          if (url) { el.href = url; el.style.display = 'flex'; } else { el.style.display = 'none'; }
+        });
+      } catch (e) { /* silent fail */ }
+    })();
+  </script>
+  <meta id="meta-description" name="description" content="" />
+  <meta id="og-title" property="og:title" content="" />
+  <meta id="og-description" property="og:description" content="" />
+  <meta id="og-url" property="og:url" content="" />
+  <meta id="twitter-title" name="twitter:title" content="" />
+  <meta id="twitter-description" name="twitter:description" content="" />
+  <link id="canonical" rel="canonical" href="" />
+  <script src="/assets/shared.js"></script>
+</head>
+
+<body class="overflow-x-hidden">
+
+<div id="navbar-placeholder"></div>
+
+  <!-- ══ NAVBAR ══ -->
+  <nav class="glass sticky top-0 z-50 mx-4 mt-3 rounded-2xl px-5 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <a href="index.html" class="flex-shrink-0">
+        <img src="assets/kreddlo-logo.png" alt="Kreddlo" width="120" height="36"
+             onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
+      </a>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="index.html#features"    class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">Features</a>
+        <a href="index.html#how-it-works" class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">How It Works</a>
+        <a href="browse.html"   class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">Browse</a>
+        <a href="pricing.html"  class="text-navy font-600 text-sm">Pricing</a>
+      </div>
+      <div class="hidden md:flex items-center gap-3">
+        <a href="login.html"  class="btn-secondary" style="padding:10px 22px;font-size:14px;">Log In</a>
+        <a href="signup.html" class="btn-green"     style="padding:10px 22px;font-size:14px;">Get Started</a>
+      </div>
+      <button id="hamburger" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Menu">
+        <span class="block w-5 h-0.5 bg-navy rounded"></span>
+        <span class="block w-5 h-0.5 bg-navy rounded"></span>
+        <span class="block w-5 h-0.5 bg-navy rounded"></span>
+      </button>
+    </div>
+    <div id="mobile-menu" class="glass mt-3 rounded-xl px-5 py-5 flex flex-col gap-4">
+      <a href="index.html#features"     class="text-navy font-500 text-sm">Features</a>
+      <a href="index.html#how-it-works" class="text-navy font-500 text-sm">How It Works</a>
+      <a href="browse.html"   class="text-navy font-500 text-sm">Browse</a>
+      <a href="pricing.html"  class="text-navy font-600 text-sm">Pricing</a>
+      <div class="flex flex-col gap-3 pt-2 border-t border-border">
+        <a href="login.html"  class="btn-secondary text-center">Log In</a>
+        <a href="signup.html" class="btn-green text-center">Get Started</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE HERO ══ -->
+  <section class="relative py-20 px-5 text-center overflow-hidden">
+    <div class="blob" style="width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.07) 0%,transparent 70%);top:-150px;right:-100px;"></div>
+    <div class="blob" style="width:420px;height:420px;background:radial-gradient(circle,rgba(45,138,94,0.06) 0%,transparent 70%);bottom:-100px;left:-80px;"></div>
+    <div class="relative z-10 max-w-2xl mx-auto">
+      <div class="fade-up inline-flex items-center gap-2 bg-green/10 border border-green/20 text-green rounded-full px-4 py-1.5 text-sm font-600 mb-6">
+        Transparent &amp; Fair
+      </div>
+      <h1 class="fade-up delay-1 text-[34px] md:text-[52px] font-800 tracking-[-1px] text-navy mb-4 leading-tight">
+        Simple, Transparent Pricing
+      </h1>
+      <p class="fade-up delay-2 text-[16px] md:text-[18px] font-400 text-navy/55 leading-relaxed">
+        No hidden fees, no surprises, ever.
+      </p>
+    </div>
+  </section>
+
+  <!-- ══ TOGGLE ══ -->
+  <div class="flex justify-center mb-12 px-5">
+    <div class="glass inline-flex p-1.5 rounded-full gap-1">
+      <button id="tab-freelancer" class="tab-btn active" onclick="switchTab('freelancer')">Freelancer Pricing</button>
+      <button id="tab-buyer"      class="tab-btn inactive" onclick="switchTab('buyer')">Buyer Pricing</button>
+    </div>
+  </div>
+
+  <!-- ══ FREELANCER PRICING ══ -->
+  <section id="section-freelancer" class="pricing-section active px-5 pb-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+
+        <!-- Free Plan -->
+        <div class="glass p-8 flex flex-col gap-5">
+          <div>
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/40 mb-2">Free Plan</p>
+            <div class="flex items-baseline gap-1 mb-1">
+              <span class="text-[42px] font-800 text-navy tracking-tight leading-none">$0</span>
+              <span class="text-navy/40 font-500 text-sm">/ month</span>
+            </div>
+            <p class="text-navy/50 text-[13px] font-400">Everything to get started globally.</p>
+          </div>
+
+          <div class="border-t border-border/60 pt-5 flex flex-col gap-3">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-1">Included</p>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Verified freelancer profile</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Auto-generated contracts</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Escrow payment protection</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">300+ crypto coins accepted</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Standard dispute resolution</span></div>
+            <div class="flex gap-3 items-start"><span class="cross">&#10005;</span><span class="text-[14px] text-navy/35 font-400">Verified badge on profile</span></div>
+            <div class="flex gap-3 items-start"><span class="cross">&#10005;</span><span class="text-[14px] text-navy/35 font-400">Featured in search results</span></div>
+            <div class="flex gap-3 items-start"><span class="cross">&#10005;</span><span class="text-[14px] text-navy/35 font-400">Advanced analytics</span></div>
+          </div>
+
+          <div class="border-t border-border/60 pt-5">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-3">Withdrawal Fee</p>
+            <div class="glass rounded-xl px-4 py-3 flex flex-col gap-2">
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Platform cut</span><span class="text-[13px] font-600 text-navy"><span id="fee-free-withdrawal-cut" class="fee-skel fee-skel-sm">5%</span></span></div>
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Network fee</span><span class="text-[13px] font-600 text-navy">~$1.20</span></div>
+            </div>
+          </div>
+
+          <a href="signup.html" class="btn-secondary text-center mt-auto">Get Started Free</a>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="glass-pro p-8 flex flex-col gap-5 relative">
+          <!-- Badge -->
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+            <span class="bg-green text-white text-[11px] font-700 uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md">Most Popular</span>
+          </div>
+
+          <div class="pt-2">
+            <p class="text-xs font-700 uppercase tracking-widest text-green/70 mb-2">Pro Plan</p>
+            <div class="flex items-baseline gap-1 mb-0.5">
+              <span class="text-[42px] font-800 text-navy tracking-tight leading-none">$19</span>
+              <span class="text-navy/40 font-500 text-sm">/ month</span>
+            </div>
+            <p class="text-green font-600 text-[13px]">$15/mo billed annually <span class="bg-green/10 rounded-full px-2 py-0.5 text-[11px] ml-1">Save 21%</span></p>
+          </div>
+
+          <div class="border-t border-green/20 pt-5 flex flex-col gap-3">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-1">Everything in Free, plus</p>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Verified badge on profile</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Featured profile in search</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Priority dispute resolution</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Advanced analytics dashboard</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Early payout on escrow release</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Reduced withdrawal fee (<span id="fee-pro-withdrawal-bullet" class="fee-skel fee-skel-sm">3%</span>)</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Pro-only client badge</span></div>
+          </div>
+
+          <div class="border-t border-green/20 pt-5">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-3">Withdrawal Fee</p>
+            <div class="glass rounded-xl px-4 py-3 flex flex-col gap-2">
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Platform cut</span><span class="text-[13px] font-600 text-green"><span id="fee-pro-withdrawal-cut" class="fee-skel fee-skel-sm">3%</span></span></div>
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Network fee</span><span class="text-[13px] font-600 text-navy">~$1.20</span></div>
+            </div>
+          </div>
+
+          <a href="signup.html" class="btn-green text-center mt-auto">Start Pro Plan</a>
+        </div>
+
+        <!-- Boost Add-On -->
+        <div class="glass p-8 flex flex-col gap-5">
+          <div>
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/40 mb-2">Boost Add-On</p>
+            <p class="text-[16px] font-600 text-navy mb-1 tracking-tight">Profile Boost</p>
+            <p class="text-navy/50 text-[13px] font-400">One-time purchase. Appear at the top of search results for your chosen duration.</p>
+          </div>
+
+          <div class="border-t border-border/60 pt-5 flex flex-col gap-3">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-1">Boost Options</p>
+
+            <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-green/30 transition-colors">
+              <div>
+                <p class="text-[14px] font-600 text-navy">3-Day Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">72 hours at the top</p>
+              </div>
+              <span class="text-[15px] font-700 text-navy">$5</span>
+            </div>
+
+            <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer border border-green/30 hover:border-green/50 transition-colors">
+              <div>
+                <p class="text-[14px] font-600 text-navy">7-Day Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">One week at the top</p>
+              </div>
+              <span class="text-[15px] font-700 text-navy">$10</span>
+            </div>
+
+            <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-green/30 transition-colors">
+              <div>
+                <p class="text-[14px] font-600 text-navy">30-Day Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">Full month at the top</p>
+              </div>
+              <span class="text-[15px] font-700 text-navy">$35</span>
+            </div>
+          </div>
+
+          <div class="glass rounded-xl px-4 py-3 flex items-start gap-2.5 bg-navy/2">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#2d8a5e" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+            <p class="text-[12px] text-navy/55 font-400 leading-relaxed">One-time purchase. No subscription. Buy a boost anytime from your dashboard.</p>
+          </div>
+
+          <a href="signup.html" class="btn-primary text-center mt-auto">Buy a Boost</a>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ BUYER PRICING ══ -->
+  <section id="section-buyer" class="pricing-section px-5 pb-6">
+    <div class="max-w-4xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Platform Fee -->
+        <div class="glass p-8 flex flex-col gap-5">
+          <div>
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/40 mb-2">Standard</p>
+            <p class="text-[20px] font-700 text-navy mb-1 tracking-tight">Platform Fee</p>
+            <div class="flex items-baseline gap-1 mb-2">
+              <span id="fee-platform-range" class="text-[42px] font-800 text-navy tracking-tight leading-none fee-skel fee-skel-lg">8–10%</span>
+            </div>
+            <p class="text-navy/50 text-[14px] font-400 leading-relaxed">
+              Added to the project total at checkout. The exact rate is shown before you confirm any payment, with no last-minute additions.
+            </p>
+          </div>
+          <div class="border-t border-border/60 pt-5">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-3">Worked Example</p>
+            <div class="glass rounded-xl px-5 py-4 flex flex-col gap-2.5">
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Project price</span><span class="text-[13px] font-600 text-navy">$500.00</span></div>
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Platform fee (<span id="fee-platform-example" class="fee-skel fee-skel-sm">9%</span>)</span><span class="text-[13px] font-600 text-navy">$45.00</span></div>
+              <div class="border-t border-border/60 pt-2 flex justify-between"><span class="text-[13px] font-700 text-navy">Total charged</span><span class="text-[13px] font-700 text-green">$545.00</span></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Escrow protection included</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Full refund if work not delivered</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">No additional subscription needed</span></div>
+          </div>
+        </div>
+
+        <!-- Project Protection -->
+        <div class="glass p-8 flex flex-col gap-5">
+          <div>
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/40 mb-2">Optional Add-On</p>
+            <p class="text-[20px] font-700 text-navy mb-1 tracking-tight">Project Protection</p>
+            <div class="flex items-baseline gap-1 mb-2">
+              <span id="fee-protection-range" class="text-[42px] font-800 text-navy tracking-tight leading-none fee-skel fee-skel-lg">2–3%</span>
+            </div>
+            <p class="text-navy/50 text-[14px] font-400 leading-relaxed">
+              An optional add-on that escalates your dispute to a senior admin reviewer and guarantees a ruling within 48 hours.
+            </p>
+          </div>
+          <div class="border-t border-border/60 pt-5">
+            <p class="text-xs font-700 uppercase tracking-widest text-navy/35 mb-3">Worked Example</p>
+            <div class="glass rounded-xl px-5 py-4 flex flex-col gap-2.5">
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Project price</span><span class="text-[13px] font-600 text-navy">$500.00</span></div>
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Platform fee (<span id="fee-protection-platform-example" class="fee-skel fee-skel-sm">9%</span>)</span><span class="text-[13px] font-600 text-navy">$45.00</span></div>
+              <div class="flex justify-between"><span class="text-[13px] text-navy/60">Protection add-on (<span id="fee-protection-example" class="fee-skel fee-skel-sm">2.5%</span>)</span><span class="text-[13px] font-600 text-navy">$12.50</span></div>
+              <div class="border-t border-border/60 pt-2 flex justify-between"><span class="text-[13px] font-700 text-navy">Total charged</span><span class="text-[13px] font-700 text-green">$557.50</span></div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Senior admin dispute review</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Ruling guaranteed within 48 hours</span></div>
+            <div class="flex gap-3 items-start"><span class="check">&#10003;</span><span class="text-[14px] text-navy/70 font-400">Priority support throughout project</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FEE COMPARISON TABLE ══ -->
+  <section class="py-16 px-5">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-[24px] md:text-[32px] font-800 tracking-[-0.6px] text-navy mb-8 text-center">Full Fee Breakdown</h2>
+
+      <!-- Mobile fee card list -->
+      <div class="fee-card-list md:hidden">
+        <div class="glass fee-card">
+          <p class="fee-card-name">Platform Fee</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Buyer</span><span class="fee-card-amount"><span id="fee-card-platform" class="fee-skel fee-skel-sm">8–10%</span> of project total</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Freelancer Withdrawal (Free)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer</span><span class="fee-card-amount"><span id="fee-card-withdrawal-free" class="fee-skel fee-skel-sm">5%</span> + ~$1.20 network</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Freelancer Withdrawal (Pro)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer</span><span class="fee-card-amount text-green"><span id="fee-card-withdrawal-pro" class="fee-skel fee-skel-sm">3%</span> + ~$1.20 network</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Project Protection</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Buyer (optional)</span><span class="fee-card-amount"><span id="fee-card-protection" class="fee-skel fee-skel-sm">2–3%</span> of project total</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Profile Boost (3 days)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$5 one-time</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Profile Boost (7 days)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$10 one-time</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Profile Boost (30 days)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$35 one-time</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">KYC Verification</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer</span><span class="fee-card-amount text-green">Free</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Contract Generation</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Both parties</span><span class="fee-card-amount text-green">Free</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Product Platform Fee</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Buyer</span><span class="fee-card-amount"><span id="fee-card-product-platform" class="fee-skel fee-skel-sm">8–10%</span> of project total</span></div>
+        </div>
+        <div class="glass fee-card">
+          <p class="fee-card-name">Bank Withdrawal Fee</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer</span><span class="fee-card-amount"><span id="fee-card-bank-withdrawal" class="fee-skel fee-skel-sm">5%</span> + ~$1.20 network</span></div>
+        </div>
+      </div>
+
+      <div class="glass overflow-hidden hidden md:block">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-border/60">
+                <th class="text-left px-6 py-4 text-[12px] font-700 uppercase tracking-widest text-navy/40">Fee Name</th>
+                <th class="text-left px-6 py-4 text-[12px] font-700 uppercase tracking-widest text-navy/40">Who Pays</th>
+                <th class="text-left px-6 py-4 text-[12px] font-700 uppercase tracking-widest text-navy/40">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border/40">
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Platform Fee</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Buyer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-platform" class="fee-skel fee-skel-sm">8–10%</span> of project total</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Freelancer Withdrawal (Free)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-withdrawal-free" class="fee-skel fee-skel-sm">5%</span> + ~$1.20 network</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Freelancer Withdrawal (Pro)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-green"><span id="fee-table-withdrawal-pro" class="fee-skel fee-skel-sm">3%</span> + ~$1.20 network</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Project Protection</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Buyer (optional)</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-protection" class="fee-skel fee-skel-sm">2–3%</span> of project total</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (3 days)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">$5 one-time</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (7 days)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">$10 one-time</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (30 days)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">$35 one-time</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">KYC Verification</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-green">Free</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Contract Generation</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Both parties</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-green">Free</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Product Platform Fee</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Buyer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-product-platform" class="fee-skel fee-skel-sm">8–10%</span> of project total</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Bank Withdrawal Fee</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-bank-withdrawal" class="fee-skel fee-skel-sm">5%</span> + ~$1.20 network</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FAQ ══ -->
+  <section class="py-4 pb-20 px-5">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-[24px] md:text-[32px] font-800 tracking-[-0.6px] text-navy mb-8 text-center">Common Questions</h2>
+
+      <div class="flex flex-col gap-3">
+
+        <!-- Q1 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">What currencies can buyers pay in?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Buyers can pay using over 300 cryptocurrencies through NowPayments, including Bitcoin, Ethereum, USDT, USDC, BNB and many others. The exact project amount is displayed in USD and converted at the live rate at the time of payment. No bank account is required on either side.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q2 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">When do freelancers get paid?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Funds are released from escrow as soon as the buyer marks the project as complete or within 72 hours of delivery if the buyer takes no action. Pro plan freelancers receive an early payout option that skips the waiting period entirely. Once released, withdrawal to a crypto wallet processes automatically at the live exchange rate.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">What happens if there is a dispute?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Either party can open a dispute while funds remain in escrow. Both sides submit evidence through the platform. A Kreddlo admin reviews all submissions and issues a fair ruling that splits or awards the escrow balance accordingly. Buyers who purchased Project Protection receive a senior reviewer and a guaranteed ruling within 48 hours.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">Is my identity information safe?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              KYC verification is processed entirely by Didit, a dedicated identity verification provider that operates under strict data protection regulations. Kreddlo does not store your identity documents. Only your verification status (verified or pending) is recorded in your Kreddlo account. All data on the platform is stored in Google Firebase with role-based access controls.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">Can I cancel my Pro Plan anytime?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Yes. You can cancel your Pro Plan at any time from your dashboard settings. Your Pro benefits remain active until the end of the billing period you have already paid for. There are no cancellation fees and no lock-in contracts. After cancellation your account reverts to the Free plan automatically.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">Can I sell digital products without doing custom work?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Yes. Create a product in your dashboard, set a price and share your product link anywhere including social media, newsletters or your own website. Buyers pay and receive instant automatic delivery. No contract or escrow required for product sales.
+            </p>
+          </div>
+        </div>
+
+        <!-- Q7 -->
+        <div class="glass overflow-hidden">
+          <button class="faq-trigger w-full flex items-center justify-between px-6 py-5 text-left" onclick="toggleFaq(this)">
+            <span class="text-[15px] font-600 text-navy">Does Kreddlo take a cut of product sales?</span>
+            <span class="faq-icon text-green text-xl font-300 ml-4 flex-shrink-0">+</span>
+          </button>
+          <div class="faq-answer px-6">
+            <p class="text-[14px] text-navy/60 font-400 leading-relaxed pb-5">
+              Yes the same platform fee applies to product sales as to service projects. You always see the exact amount you will receive before publishing your product.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CTA ══ -->
+  <section class="py-16 px-5">
+    <div class="max-w-3xl mx-auto">
+      <div class="glass relative overflow-hidden px-8 py-16 text-center">
+        <div class="blob" style="width:260px;height:260px;background:radial-gradient(circle,rgba(13,33,69,0.07) 0%,transparent 70%);top:-60px;right:-60px;"></div>
+        <div class="blob" style="width:220px;height:220px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-40px;left:-40px;"></div>
+        <div class="relative z-10">
+          <h2 class="text-[26px] md:text-[36px] font-800 tracking-[-0.7px] text-navy mb-3 leading-tight">Ready to Work Without Borders?</h2>
+          <p class="text-navy/50 font-400 text-[15px] mb-8 max-w-sm mx-auto">Start free. Upgrade when you are ready. No card required.</p>
+          <a href="signup.html" class="btn-green" style="padding:14px 36px;font-size:16px;">Get Started Free</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ══ -->
+  <footer class="border-t border-border mt-8 py-14 px-5">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
+        <div class="flex flex-col gap-4">
+          <a href="index.html">
+            <img src="assets/kreddlo-logo.png" alt="Kreddlo" width="120"
+                 onerror="this.outerHTML='<span style=\'font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
+          </a>
+          <p class="text-navy/50 text-[14px] leading-relaxed max-w-xs font-400">The complete freelance operating system for verified professionals in countries locked out of traditional payment networks.</p>
+        </div>
+        <div class="flex flex-col md:items-center gap-3">
+          <p class="text-navy font-700 text-[13px] uppercase tracking-widest mb-1">Platform</p>
+          <div class="grid grid-cols-2 gap-x-8 gap-y-2">
+            <a href="index.html#features"      class="text-navy/55 text-[14px] hover:text-navy transition-colors">Features</a>
+            <a href="index.html#how-it-works"  class="text-navy/55 text-[14px] hover:text-navy transition-colors">How It Works</a>
+            <a href="browse.html"   class="text-navy/55 text-[14px] hover:text-navy transition-colors">Browse</a>
+            <a href="pricing.html"  class="text-navy/55 text-[14px] hover:text-navy transition-colors">Pricing</a>
+            <a href="signup.html"   class="text-navy/55 text-[14px] hover:text-navy transition-colors">Sign Up</a>
+            <a href="login.html"    class="text-navy/55 text-[14px] hover:text-navy transition-colors">Log In</a>
+          </div>
+        </div>
+        <div class="flex flex-col md:items-end gap-4">
+          <p class="text-navy font-700 text-[13px] uppercase tracking-widest mb-1">Connect</p>
+          <div class="flex items-center gap-4">
+            <a id="social-twitter" href="#" target="_blank" rel="noopener" aria-label="Twitter" style="display:none;" class="w-9 h-9 rounded-xl bg-navy/5 hover:bg-navy/10 flex items-center justify-center transition-colors">
+              <svg width="16" height="16" fill="#0d2145" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a id="social-linkedin" href="#" target="_blank" rel="noopener" aria-label="LinkedIn" style="display:none;" class="w-9 h-9 rounded-xl bg-navy/5 hover:bg-navy/10 flex items-center justify-center transition-colors">
+              <svg width="16" height="16" fill="#0d2145" viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+            </a>
+            <a id="social-instagram" href="#" target="_blank" rel="noopener" aria-label="Instagram" style="display:none;" class="w-9 h-9 rounded-xl bg-navy/5 hover:bg-navy/10 flex items-center justify-center transition-colors">
+              <svg width="16" height="16" fill="none" stroke="#0d2145" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="#0d2145"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+        <p class="text-navy/40 text-[13px] font-400">&copy; <span id="yr"></span> Kreddlo. All rights reserved.</p>
+        <div class="flex items-center gap-5">
+          <a href="#" class="text-navy/40 text-[13px] hover:text-navy transition-colors">Privacy Policy</a>
+          <a href="#" class="text-navy/40 text-[13px] hover:text-navy transition-colors">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Hamburger
+    document.getElementById('hamburger').addEventListener('click', () => {
+      document.getElementById('mobile-menu').classList.toggle('open');
+    });
+
+    // Pricing tab toggle
+    function switchTab(tab) {
+      const tabs     = ['freelancer', 'buyer'];
+      const tabBtns  = { freelancer: document.getElementById('tab-freelancer'), buyer: document.getElementById('tab-buyer') };
+      const sections = { freelancer: document.getElementById('section-freelancer'), buyer: document.getElementById('section-buyer') };
+      tabs.forEach(t => {
+        tabBtns[t].className  = 'tab-btn ' + (t === tab ? 'active' : 'inactive');
+        sections[t].className = 'pricing-section px-5 pb-6 ' + (t === tab ? 'active' : '');
+      });
+    }
+
+    // FAQ accordion
+    function toggleFaq(btn) {
+      const answer = btn.nextElementSibling;
+      const icon   = btn.querySelector('.faq-icon');
+      const isOpen = answer.classList.contains('open');
+      // Close all
+      document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+      document.querySelectorAll('.faq-icon').forEach(i => i.classList.remove('open'));
+      // Open clicked if it was closed
+      if (!isOpen) { answer.classList.add('open'); icon.classList.add('open'); }
+    }
+  </script>
+
+  <!-- Live fee percentages from config/platform (Firestore) -->
+  <script>
+    (function () {
+      // Fallback values match the figures currently shown in the markup,
+      // so nothing changes visually if Firestore is unreachable.
+      var FEE_DEFAULTS = {
+        platformFeeMin: 8, platformFeeMax: 10, platformFeeExample: 9,
+        protectionFeeMin: 2, protectionFeeMax: 3, protectionFeeExample: 2.5,
+        withdrawalFeeFree: 5, withdrawalFeePro: 3
+      };
+
+      function fmtPct(n) {
+        var num = Number(n);
+        if (!isFinite(num)) return n + '%';
+        var str = (Math.round(num * 100) / 100).toString();
+        return str + '%';
+      }
+      function fmtRange(min, max) {
+        return fmtPct(min).replace('%', '') + '\u2013' + fmtPct(max);
+      }
+      function setFee(id, text) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove('fee-skel', 'fee-skel-lg', 'fee-skel-sm');
+      }
+
+      function renderFees(fees) {
+        var platformRange   = fmtRange(fees.platformFeeMin, fees.platformFeeMax);
+        var protectionRange = fmtRange(fees.protectionFeeMin, fees.protectionFeeMax);
+        var withdrawalFree  = fmtPct(fees.withdrawalFeeFree);
+        var withdrawalPro   = fmtPct(fees.withdrawalFeePro);
+
+        // Freelancer plan cards
+        setFee('fee-free-withdrawal-cut', withdrawalFree);
+        setFee('fee-pro-withdrawal-cut', withdrawalPro);
+        setFee('fee-pro-withdrawal-bullet', withdrawalPro);
+
+        // Buyer pricing cards
+        setFee('fee-platform-range', platformRange);
+        setFee('fee-platform-example', fmtPct(fees.platformFeeExample));
+        setFee('fee-protection-range', protectionRange);
+        setFee('fee-protection-platform-example', fmtPct(fees.platformFeeExample));
+        setFee('fee-protection-example', fmtPct(fees.protectionFeeExample));
+
+        // Fee table (desktop)
+        setFee('fee-table-platform', platformRange);
+        setFee('fee-table-withdrawal-free', withdrawalFree);
+        setFee('fee-table-withdrawal-pro', withdrawalPro);
+        setFee('fee-table-protection', protectionRange);
+        setFee('fee-table-product-platform', platformRange);   // same as Service Platform Fee
+        setFee('fee-table-bank-withdrawal', withdrawalFree);    // same as Crypto Withdrawal Fee
+
+        // Mobile fee card list
+        setFee('fee-card-platform', platformRange);
+        setFee('fee-card-withdrawal-free', withdrawalFree);
+        setFee('fee-card-withdrawal-pro', withdrawalPro);
+        setFee('fee-card-protection', protectionRange);
+        setFee('fee-card-product-platform', platformRange);    // same as Service Platform Fee
+        setFee('fee-card-bank-withdrawal', withdrawalFree);     // same as Crypto Withdrawal Fee
+      }
+
+      function loadPlatformFees() {
+        var fees = Object.assign({}, FEE_DEFAULTS);
+
+        if (!window.db || !window._fsPlatformConfig) {
+          renderFees(fees);
+          return;
+        }
+
+        var doc    = window._fsPlatformConfig.doc;
+        var getDoc = window._fsPlatformConfig.getDoc;
+
+        getDoc(doc(window.db, 'config', 'platform')).then(function (snap) {
+          if (snap.exists()) {
+            var d = snap.data();
+            if (typeof d.platformFeeMin === 'number')   fees.platformFeeMin       = d.platformFeeMin;
+            if (typeof d.platformFeeMax === 'number')   fees.platformFeeMax       = d.platformFeeMax;
+            if (typeof d.platformFee === 'number')      fees.platformFeeExample   = d.platformFee;
+            if (typeof d.protectionFeeMin === 'number') fees.protectionFeeMin     = d.protectionFeeMin;
+            if (typeof d.protectionFeeMax === 'number') fees.protectionFeeMax     = d.protectionFeeMax;
+            if (typeof d.protectionFee === 'number')    fees.protectionFeeExample = d.protectionFee;
+            if (typeof d.withdrawalFee === 'number')    fees.withdrawalFeeFree    = d.withdrawalFee;
+            if (typeof d.earlyPayoutFee === 'number')   fees.withdrawalFeePro     = d.earlyPayoutFee;
+          }
+          renderFees(fees);
+        }).catch(function (err) {
+          console.warn('Platform fee config unavailable, using defaults:', err);
+          renderFees(fees);
+        });
+      }
+
+      function start() {
+        if (window.db && window._fsPlatformConfig) {
+          loadPlatformFees();
+          return;
+        }
+        var started = false;
+        window.addEventListener('kreddlo-firebase-ready', function () {
+          started = true;
+          loadPlatformFees();
+        }, { once: true });
+        // Safety net in case Firebase init never fires (e.g. blocked script)
+        setTimeout(function () { if (!started) loadPlatformFees(); }, 3000);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+    })();
+  </script>
+
+<div id="footer-placeholder"></div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>

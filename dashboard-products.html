@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>My Products — Kreddlo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+/* ── Glass ── */
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+/* ── Buttons ── */
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:11px 22px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.28);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.36)}
+.btn-green:active{transform:translateY(0)}
+.btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#0d2145;border:1.5px solid #e2e8f0;border-radius:50px;padding:10px 20px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,border-color .15s,background .15s}
+.btn-outline:hover{border-color:#0d2145;background:rgba(13,33,69,0.04);transform:translateY(-1px)}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-navy{background:rgba(13,33,69,0.07);color:#0d2145}
+.badge-amber{background:#fff3cd;color:#856404}
+
+/* ── Label ── */
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+/* ── Skeleton ── */
+.sk{background:linear-gradient(90deg,#f0f2f6 25%,#e8eaf0 50%,#f0f2f6 75%);background-size:200% 100%;animation:sk 1.5s infinite linear;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── Stat card ── */
+.stat-card{border-radius:20px;padding:22px;transition:box-shadow .2s,transform .2s}
+.stat-card:hover{box-shadow:0 10px 40px rgba(13,33,69,0.13);transform:translateY(-2px)}
+.stat-val{font-size:32px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+.stat-lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48);margin-top:5px}
+.stat-sub{font-size:12px;font-weight:500;margin-top:9px;color:rgba(13,33,69,0.45)}
+
+/* ── Nav ── */
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+/* ── Mobile slide panel ── */
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#091830;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── Blobs ── */
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+
+/* ── Fade-up animations ── */
+.fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}.fu-3{animation-delay:.19s}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Product card ── */
+.prod-card{background:#fff;border-radius:20px;border:1px solid #e8eaf0;box-shadow:0 2px 12px rgba(13,33,69,0.06);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s,transform .2s}
+.prod-card:hover{box-shadow:0 8px 32px rgba(13,33,69,0.11);transform:translateY(-2px)}
+.prod-cover{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#f0f2f6}
+.prod-cover-placeholder{width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,rgba(13,33,69,0.05) 0%,rgba(45,138,94,0.07) 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prod-body{padding:16px;display:flex;flex-direction:column;flex:1;gap:0}
+.prod-title{font-size:14px;font-weight:700;color:#0d2145;margin:0 0 6px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prod-price{font-size:18px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;margin:0 0 10px}
+.prod-divider{height:1px;background:#f0f2f6;margin:10px 0}
+.prod-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.prod-sales{font-size:12px;font-weight:600;color:rgba(13,33,69,0.45)}
+.prod-actions{display:flex;align-items:center;gap:8px;margin-top:auto}
+.btn-sm{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:34px;padding:0 14px;border-radius:50px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:background .15s,transform .1s,opacity .15s;white-space:nowrap;flex-shrink:0}
+.btn-sm:active{transform:scale(0.97)}
+.btn-edit{background:rgba(13,33,69,0.07);color:#0d2145}
+.btn-edit:hover{background:rgba(13,33,69,0.13)}
+.btn-toggle-active{background:#e8f5ef;color:#2d8a5e}
+.btn-toggle-active:hover{background:#d1eddf}
+.btn-toggle-inactive{background:#fff3cd;color:#856404}
+.btn-toggle-inactive:hover{background:#fde8a0}
+.btn-toggle-spinning{opacity:.55;pointer-events:none}
+
+/* ── Empty state ── */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;gap:16px}
+
+/* ── Grid skeleton cards ── */
+.sk-card{background:#fff;border-radius:20px;border:1px solid #e8eaf0;overflow:hidden}
+.sk-cover{width:100%;aspect-ratio:16/9}
+.sk-lines{padding:16px;display:flex;flex-direction:column;gap:10px}
+
+/* ══ CREATE PRODUCT MODAL ══ */
+
+/* Overlay */
+.cp-overlay{position:fixed;inset:0;z-index:800;background:rgba(9,24,48,0.60);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.cp-overlay.open{opacity:1;pointer-events:all}
+
+/* Sheet — mobile: slides up from bottom; desktop: centred card */
+.cp-sheet{width:100%;max-width:100%;max-height:92vh;background:#fff;border-radius:24px 24px 0 0;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.34,1.1,.64,1);overflow:hidden}
+.cp-overlay.open .cp-sheet{transform:translateY(0)}
+
+/* Drag handle (mobile) */
+.cp-handle{width:36px;height:4px;border-radius:2px;background:rgba(13,33,69,0.15);margin:12px auto 0;flex-shrink:0}
+
+/* Header */
+.cp-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0;flex-shrink:0}
+.cp-title{font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0}
+.cp-close{width:32px;height:32px;border:none;background:rgba(13,33,69,0.07);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s}
+.cp-close:hover{background:rgba(13,33,69,0.13)}
+
+/* Step indicator */
+.cp-steps{padding:14px 20px 0;flex-shrink:0}
+/* Mobile: compact pill progress */
+.cp-step-mobile{display:flex;align-items:center;gap:10px}
+.cp-step-mobile-label{font-size:12px;font-weight:600;color:rgba(13,33,69,0.48)}
+.cp-step-mobile-bar{flex:1;height:4px;background:#e8eaf0;border-radius:2px;overflow:hidden}
+.cp-step-mobile-fill{height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);border-radius:2px;transition:width .3s ease}
+/* Desktop: full label row — hidden on mobile */
+.cp-step-desktop{display:none}
+.cp-step-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:rgba(13,33,69,0.35);white-space:nowrap}
+.cp-step-item.done .cp-dot{background:#2d8a5e}
+.cp-step-item.done{color:#2d8a5e}
+.cp-step-item.active .cp-dot{background:#0d2145;box-shadow:0 0 0 3px rgba(13,33,69,0.12)}
+.cp-step-item.active{color:#0d2145}
+.cp-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0;transition:background .2s}
+.cp-connector{flex:1;height:1px;background:#e8eaf0;min-width:16px}
+
+/* Scrollable body */
+.cp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 0}
+
+/* Step panels */
+.cp-step-panel{display:none}
+.cp-step-panel.active{display:block}
+
+/* Form elements */
+.cp-label{font-size:12px;font-weight:700;color:#0d2145;letter-spacing:.2px;margin-bottom:6px;display:block}
+.cp-input{width:100%;padding:12px 14px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:#0d2145;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
+.cp-input:focus{border-color:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.10)}
+.cp-input::placeholder{color:rgba(13,33,69,0.30)}
+.cp-input.err{border-color:#c81e1e;box-shadow:0 0 0 3px rgba(200,30,30,0.08)}
+.cp-textarea{resize:none;min-height:96px;line-height:1.55}
+.cp-err{font-size:11px;font-weight:600;color:#c81e1e;margin-top:4px;display:none}
+.cp-err.show{display:block}
+.cp-field{margin-bottom:16px}
+
+/* Price row: input + currency select side by side */
+.cp-price-row{display:flex;gap:10px}
+.cp-price-row .cp-input:first-child{flex:1;min-width:0}
+.cp-currency-select{padding:12px 10px;border:1.5px solid #e2e8f0;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;background:#fff;outline:none;cursor:pointer;transition:border-color .2s;-webkit-appearance:none;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.cp-currency-select:focus{border-color:#2d8a5e}
+
+/* Cover upload zone */
+.cp-upload-zone{border:2px dashed #e2e8f0;border-radius:16px;padding:28px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:border-color .2s,background .2s;background:#fafbfc;text-align:center;position:relative;overflow:hidden}
+.cp-upload-zone:hover,.cp-upload-zone.drag{border-color:#2d8a5e;background:#f0faf5}
+.cp-upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.cp-upload-preview{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;display:block}
+.cp-upload-replace{font-size:11px;font-weight:600;color:#2d8a5e;margin-top:6px;cursor:pointer}
+
+/* Delivery type cards — 2-col grid */
+.cp-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-type-card{border:2px solid #e2e8f0;border-radius:16px;padding:16px 14px;cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s;background:#fff;text-align:left;display:flex;flex-direction:column;gap:10px;-webkit-tap-highlight-color:transparent}
+.cp-type-card:hover{border-color:rgba(13,33,69,0.25);background:#fafbfc}
+.cp-type-card.selected{border-color:#2d8a5e;background:#f0faf5;box-shadow:0 0 0 3px rgba(45,138,94,0.10)}
+.cp-type-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(13,33,69,0.06);flex-shrink:0}
+.cp-type-card.selected .cp-type-icon{background:rgba(45,138,94,0.12)}
+.cp-type-name{font-size:13px;font-weight:700;color:#0d2145;margin:0 0 2px}
+.cp-type-desc{font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);line-height:1.45;margin:0}
+.cp-type-check{width:18px;height:18px;border-radius:50%;border:2px solid #e2e8f0;margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;align-self:flex-start}
+.cp-type-card.selected .cp-type-check{border-color:#2d8a5e;background:#2d8a5e}
+
+/* Footer nav */
+.cp-footer{padding:16px 20px 20px;flex-shrink:0;display:flex;gap:10px;border-top:1px solid #f0f2f6;margin-top:4px}
+.cp-footer .btn-green{flex:1}
+.cp-footer .cp-back{flex:0 0 auto;background:transparent;color:rgba(13,33,69,0.55);border:1.5px solid #e2e8f0;border-radius:50px;padding:11px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
+.cp-footer .cp-back:hover{border-color:#0d2145;color:#0d2145}
+
+/* Desktop overrides */
+@media(min-width:600px){
+  .cp-overlay{align-items:center}
+  .cp-sheet{max-width:600px;border-radius:24px;max-height:90vh;transform:scale(0.96) translateY(12px);transition:transform .28s cubic-bezier(.34,1.1,.64,1),opacity .25s}
+  .cp-overlay.open .cp-sheet{transform:scale(1) translateY(0)}
+  .cp-handle{display:none}
+  .cp-step-mobile{display:none}
+  .cp-step-desktop{display:flex;align-items:center;gap:0}
+  .cp-header{padding:22px 26px 0}
+  .cp-steps{padding:16px 26px 0}
+  .cp-body{padding:20px 26px 0}
+  .cp-footer{padding:16px 26px 22px}
+}
+
+/* ── Responsive ── */
+@media(min-width:1024px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+  .push-toast{left:calc(248px + ((100% - 248px) / 2));max-width:400px}
+  #products-grid{grid-template-columns:repeat(3,1fr)!important}
+}
+@media(min-width:768px){
+  #page-content{padding:32px!important}
+  .stat-val{font-size:38px}
+  #stats-grid{grid-template-columns:repeat(3,1fr)!important}
+  #products-grid{grid-template-columns:repeat(2,1fr)!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ LOADING OVERLAY ══ -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
+    <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
+  </div>
+</div>
+<style>
+@keyframes loaderSlide{0%{left:-100%}100%{left:100%}}
+#loader-bar{animation:loaderSlide 1.1s ease-in-out infinite}
+</style>
+
+<!-- ══ MOBILE BACKDROP ══ -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
+
+<!-- ══ MOBILE MENU (slide from right) ══ -->
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:36px;margin-top:2px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="mb-signout" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- ══ DESKTOP SIDEBAR ══ -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- ══ MAIN WRAPPER ══ -->
+<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOPBAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">My Products</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <!-- Bell -->
+      <button onclick="window.location.href='/notifications.html'" style="position:relative;width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <!-- Avatar -->
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;"></div>
+      <!-- Hamburger -->
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;">
+
+      <!-- ── SECTION A: Header row ── -->
+      <div class="fu fu-1" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:26px;flex-wrap:wrap;">
+        <div>
+          <p class="lbl" style="margin:0 0 4px;">FREELANCER</p>
+          <h2 style="font-size:24px;font-weight:800;color:#0d2145;letter-spacing:-0.6px;margin:0;line-height:1.2;">My Products</h2>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:4px 0 0;">Manage your digital products and track sales.</p>
+        </div>
+        <button class="btn-green" id="create-product-btn" onclick="openCreateModal()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Product
+        </button>
+      </div>
+
+      <!-- ── SECTION B: Stat cards ── -->
+      <div id="stats-grid" class="fu fu-2" style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:28px;">
+
+        <!-- Total Products -->
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(13,33,69,0.04),rgba(255,255,255,0.88));border:1px solid rgba(255,255,255,0.55);box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="width:38px;height:38px;background:rgba(13,33,69,0.07);border-radius:11px;display:flex;align-items:center;justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+            </div>
+            <span class="badge badge-navy">All time</span>
+          </div>
+          <!-- Skeleton → real value -->
+          <div id="stat-products-sk" class="sk" style="height:38px;width:60px;border-radius:8px;"></div>
+          <div id="stat-products-val" class="stat-val" style="display:none;">0</div>
+          <div class="stat-lbl">Total Products</div>
+          <div id="stat-products-sub" class="stat-sub">
+            <div class="sk" style="height:14px;width:90px;display:inline-block;"></div>
+          </div>
+        </div>
+
+        <!-- Total Sales -->
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(45,138,94,0.08),rgba(255,255,255,0.88));border:1px solid rgba(45,138,94,0.16);box-shadow:0 4px 24px rgba(45,138,94,0.08);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="width:38px;height:38px;background:rgba(45,138,94,0.12);border-radius:11px;display:flex;align-items:center;justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <span class="badge badge-green">All time</span>
+          </div>
+          <div id="stat-sales-sk" class="sk" style="height:38px;width:60px;border-radius:8px;"></div>
+          <div id="stat-sales-val" class="stat-val" style="display:none;color:#2d8a5e;">0</div>
+          <div class="stat-lbl">Total Sales</div>
+          <div id="stat-sales-sub" class="stat-sub">
+            <div class="sk" style="height:14px;width:100px;display:inline-block;"></div>
+          </div>
+        </div>
+
+        <!-- Revenue — spans full width on mobile, normal on desktop -->
+        <div id="stat-revenue-card" class="stat-card" style="grid-column:1/-1;background:linear-gradient(135deg,rgba(26,86,219,0.06),rgba(255,255,255,0.88));border:1px solid rgba(26,86,219,0.12);box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="width:38px;height:38px;background:rgba(26,86,219,0.10);border-radius:11px;display:flex;align-items:center;justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span class="badge" style="background:#e8f0fe;color:#1a56db;">Revenue</span>
+          </div>
+          <div id="stat-revenue-sk" class="sk" style="height:38px;width:100px;border-radius:8px;"></div>
+          <div id="stat-revenue-val" class="stat-val" style="display:none;color:#1a56db;">$0</div>
+          <div class="stat-lbl">Total Revenue</div>
+          <div id="stat-revenue-sub" class="stat-sub">
+            <div class="sk" style="height:14px;width:130px;display:inline-block;"></div>
+          </div>
+        </div>
+
+      </div>
+      <!-- End stats -->
+
+      <!-- ── SECTION C: Products grid ── -->
+      <div class="fu fu-3">
+
+        <!-- Grid skeleton (shown while loading) -->
+        <div id="products-grid-sk" style="display:grid;grid-template-columns:1fr;gap:16px;">
+          <div class="sk-card"><div class="sk-cover sk"></div><div class="sk-lines"><div class="sk" style="height:16px;width:70%;"></div><div class="sk" style="height:22px;width:40%;"></div><div style="height:1px;background:#f0f2f6;margin:4px 0;"></div><div class="sk" style="height:13px;width:55%;"></div><div style="display:flex;gap:8px;margin-top:4px;"><div class="sk" style="height:34px;width:64px;border-radius:50px;"></div><div class="sk" style="height:34px;width:80px;border-radius:50px;"></div></div></div></div>
+          <div class="sk-card"><div class="sk-cover sk"></div><div class="sk-lines"><div class="sk" style="height:16px;width:60%;"></div><div class="sk" style="height:22px;width:35%;"></div><div style="height:1px;background:#f0f2f6;margin:4px 0;"></div><div class="sk" style="height:13px;width:50%;"></div><div style="display:flex;gap:8px;margin-top:4px;"><div class="sk" style="height:34px;width:64px;border-radius:50px;"></div><div class="sk" style="height:34px;width:80px;border-radius:50px;"></div></div></div></div>
+          <div class="sk-card"><div class="sk-cover sk"></div><div class="sk-lines"><div class="sk" style="height:16px;width:75%;"></div><div class="sk" style="height:22px;width:30%;"></div><div style="height:1px;background:#f0f2f6;margin:4px 0;"></div><div class="sk" style="height:13px;width:45%;"></div><div style="display:flex;gap:8px;margin-top:4px;"><div class="sk" style="height:34px;width:64px;border-radius:50px;"></div><div class="sk" style="height:34px;width:80px;border-radius:50px;"></div></div></div></div>
+        </div>
+
+        <!-- Real grid (populated by JS) -->
+        <div id="products-grid" style="display:none;grid-template-columns:1fr;gap:16px;"></div>
+
+        <!-- Empty state -->
+        <div id="products-empty" style="display:none;">
+          <div class="glass empty-state">
+            <div style="width:64px;height:64px;background:rgba(13,33,69,0.06);border-radius:20px;display:flex;align-items:center;justify-content:center;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="1.8" stroke-linecap="round" opacity=".45"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+            </div>
+            <div>
+              <p style="font-size:17px;font-weight:700;color:#0d2145;margin:0 0 6px;">No products yet</p>
+              <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;max-width:280px;">Create your first digital product and start selling to buyers around the world.</p>
+            </div>
+            <button class="btn-green" onclick="openCreateModal()" style="margin-top:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create your first product
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /fu-3 -->
+
+    </div><!-- /relative z-1 -->
+  </main>
+
+</div><!-- /main-wrap -->
+
+<!-- ── TOAST ── -->
+<div id="toast" class="toast"></div>
+
+<!-- ══════════════════════════════════════
+     FIREBASE + AUTH + DATA
+══════════════════════════════════════ -->
+<script type="module">
+// ── Firebase SDK ──
+import { initializeApp }                           from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, query, where, getDocs,
+         orderBy, addDoc, doc, getDoc, setDoc,
+         serverTimestamp }                         from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── Config ──
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+  authDomain:        'kreddlo.firebaseapp.com',
+  projectId:         'kreddlo',
+  storageBucket:     'kreddlo.firebasestorage.app',
+  messagingSenderId: '764500458567',
+  appId:             '1:764500458567:web:2389d5cf8c688caafd0562'
+};
+
+const app  = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ── Nav definition (includes Products) ──
+const NAV = [
+  { label:'Dashboard',  href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Earnings',   href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+  { label:'Projects',   href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts',  href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Products',   href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+  { label:'Withdraw',   href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+  { label:'Settings',   href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+];
+
+// ── Build sidebar nav ──
+function buildNav() {
+  const cur  = window.location.pathname.split('/').pop() || 'dashboard.html';
+  const html = NAV.map(n => {
+    const active = cur === n.href.replace('/','') ? ' active' : '';
+    return `<a href="${n.href}" class="nav-link${active}">${n.icon}${n.label}</a>`;
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML  = html;
+  document.getElementById('desktop-nav').innerHTML = html;
+}
+
+// ── Avatar initials ──
+function setAvatar(name) {
+  const el = document.getElementById('user-avatar');
+  const initials = (name || 'U')
+    .split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+  el.textContent = initials;
+}
+
+// ── Toast helper ──
+function showToast(msg, duration) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration || 3000);
+}
+window.showToast = showToast;
+
+// ── Mobile menu ──
+window.openMobileMenu = function() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+window.closeMobileMenu = function() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+// ══════════════════════════════════════
+//  CREATE PRODUCT MODAL — Steps 1 & 2
+// ══════════════════════════════════════
+
+// State
+let _cpStep        = 1;
+const CP_TOTAL     = 5;
+let _cpCoverFile   = null;   // File object for cover image
+let _cpDeliveryFile = null;  // File object for downloadable delivery file (Pro)
+let _cpDeliveryVideo = null; // File object for delivery video (Pro)
+let _cpDeliveryFileUrl  = null; // existing uploaded delivery file URL (edit mode)
+let _cpDeliveryVideoUrl = null; // existing uploaded delivery video URL (edit mode)
+let _cpDelivery    = 'digital-download'; // default selected
+let _currentUser   = null;   // set by onAuthStateChanged
+let _currentUserPlan = 'free'; // 'free' | 'pro' — set by onAuthStateChanged
+let _cpEditId      = null;   // non-null when editing existing product
+let _cpPublishActive = true; // default active on publish
+
+const STEP_LABELS  = ['Basics','Delivery Type','Delivery Content','Integrations','Preview'];
+
+// ── Open / close ──
+window.openCreateModal = function() {
+  _cpStep      = 1;
+  _cpCoverFile = null;
+  _cpDeliveryFile = null;
+  _cpDeliveryVideo = null;
+  _cpDeliveryFileUrl  = null;
+  _cpDeliveryVideoUrl = null;
+  _cpDelivery  = 'digital-download';
+  _cpEditId    = null;
+  _cpPublishActive = true;
+  cpResetForm();
+  cpRenderStep(1);
+  document.getElementById('cp-title-text').textContent = 'Create Product';
+  const ov = document.getElementById('cp-overlay');
+  ov.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // focus first input after transition
+  setTimeout(() => { const el = document.getElementById('cp-title'); if (el) el.focus(); }, 340);
+};
+
+window.closeCreateModal = function() {
+  const ov = document.getElementById('cp-overlay');
+  ov.classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+// Close on backdrop click (but not on sheet click)
+document.getElementById('cp-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeCreateModal();
+});
+
+// Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const ov = document.getElementById('cp-overlay');
+    if (ov.classList.contains('open')) closeCreateModal();
+  }
+});
+
+// ── Render step state ──
+function cpRenderStep(step) {
+  _cpStep = step;
+  const pct = Math.round((step / CP_TOTAL) * 100);
+
+  // Mobile label + bar
+  document.getElementById('cp-step-label-mobile').textContent = `Step ${step} of ${CP_TOTAL} — ${STEP_LABELS[step-1]}`;
+  document.getElementById('cp-step-fill').style.width = pct + '%';
+
+  // Desktop dots
+  for (let i = 1; i <= CP_TOTAL; i++) {
+    const el = document.getElementById('ds-' + i);
+    if (!el) continue;
+    el.className = 'cp-step-item' + (i < step ? ' done' : i === step ? ' active' : '');
+    const dot = el.querySelector('.cp-dot');
+    if (i < step) {
+      // Replace dot with checkmark for done steps
+      dot.style.background = '#2d8a5e';
+    } else if (i === step) {
+      dot.style.background = '#0d2145';
+    } else {
+      dot.style.background = '#e2e8f0';
+    }
+  }
+
+  // Show/hide panels
+  document.querySelectorAll('.cp-step-panel').forEach((p, idx) => {
+    p.classList.toggle('active', idx + 1 === step);
+  });
+
+  // Render step 3 dynamic content when entering step 3
+  if (step === 3) cpRenderStep3();
+  // Render step 5 preview when entering step 5
+  if (step === 5) cpRenderStep5();
+
+  // Back button
+  const backBtn = document.getElementById('cp-back-btn');
+  backBtn.style.display = step > 1 ? 'inline-flex' : 'none';
+
+  // Next button label
+  const nextBtn = document.getElementById('cp-next-btn');
+  if (step === CP_TOTAL) {
+    const label = _cpEditId ? 'Save Changes' : 'Create Product';
+    nextBtn.innerHTML = `${label}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  } else if (step === CP_TOTAL - 1) {
+    nextBtn.innerHTML = `Preview<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  } else {
+    nextBtn.innerHTML = `Next<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  }
+
+  // Scroll body back to top
+  const body = document.getElementById('cp-body');
+  if (body) body.scrollTop = 0;
+}
+
+// ── Validate current step ──
+function cpValidate(step) {
+  let ok = true;
+
+  if (step === 1) {
+    const title = document.getElementById('cp-title').value.trim();
+    const desc  = document.getElementById('cp-desc').value.trim();
+    const price = parseFloat(document.getElementById('cp-price').value);
+
+    const titleErr = document.getElementById('cp-title-err');
+    const descErr  = document.getElementById('cp-desc-err');
+    const priceErr = document.getElementById('cp-price-err');
+    const titleInp = document.getElementById('cp-title');
+    const descInp  = document.getElementById('cp-desc');
+    const priceInp = document.getElementById('cp-price');
+
+    if (!title) {
+      titleInp.classList.add('err'); titleErr.classList.add('show'); ok = false;
+    } else {
+      titleInp.classList.remove('err'); titleErr.classList.remove('show');
+    }
+
+    if (!desc) {
+      descInp.classList.add('err'); descErr.classList.add('show'); ok = false;
+    } else {
+      descInp.classList.remove('err'); descErr.classList.remove('show');
+    }
+
+    if (isNaN(price) || price < 0) {
+      priceInp.classList.add('err'); priceErr.classList.add('show'); ok = false;
+    } else {
+      priceInp.classList.remove('err'); priceErr.classList.remove('show');
+    }
+  }
+
+  if (step === 2) {
+    if (!_cpDelivery) {
+      document.getElementById('cp-type-err').classList.add('show'); ok = false;
+    } else {
+      document.getElementById('cp-type-err').classList.remove('show');
+    }
+  }
+
+  if (step === 3) {
+    // Validate required fields per delivery type
+    const type = _cpDelivery;
+    if (type === 'digital-download' || type === 'template' || type === 'ebook') {
+      // file URL is optional (upload handled separately), no hard required
+    } else if (type === 'manual') {
+      // coaching links optional — no hard required
+    } else if (type === 'link') {
+      const courseUrl = document.getElementById('cp-course-url');
+      if (courseUrl) {
+        const val = courseUrl.value.trim();
+        const errEl = document.getElementById('cp-course-url-err');
+        if (!val) {
+          courseUrl.classList.add('err'); errEl && errEl.classList.add('show'); ok = false;
+        } else {
+          courseUrl.classList.remove('err'); errEl && errEl.classList.remove('show');
+        }
+      }
+    }
+  }
+
+  // Step 4 integrations — all optional, no validation needed
+  return ok;
+}
+
+// ── Navigation ──
+window.cpNext = function() {
+  if (!cpValidate(_cpStep)) return;
+  if (_cpStep < CP_TOTAL) {
+    cpRenderStep(_cpStep + 1);
+  } else {
+    cpSubmit();
+  }
+};
+
+window.cpBack = function() {
+  if (_cpStep > 1) cpRenderStep(_cpStep - 1);
+};
+
+// ── Delivery type selection ──
+window.selectDeliveryType = function(card) {
+  document.querySelectorAll('.cp-type-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  _cpDelivery = card.dataset.type;
+  document.getElementById('cp-type-err').classList.remove('show');
+};
+
+// ── Cover image upload ──
+document.getElementById('cp-cover-input').addEventListener('change', function(e) {
+  const file = e.target.files && e.target.files[0];
+  cpHandleCoverFile(file);
+});
+
+// Drag-and-drop
+const uploadZone = document.getElementById('cp-upload-zone');
+uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', function() { this.classList.remove('drag'); });
+uploadZone.addEventListener('drop', function(e) {
+  e.preventDefault();
+  this.classList.remove('drag');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  cpHandleCoverFile(file);
+});
+
+function cpHandleCoverFile(file) {
+  const errEl = document.getElementById('cp-cover-err');
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    errEl.classList.add('show'); return;
+  }
+  errEl.classList.remove('show');
+  _cpCoverFile = file;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('cp-upload-placeholder').style.display = 'none';
+    const wrap = document.getElementById('cp-upload-preview-wrap');
+    wrap.style.display = 'block';
+    document.getElementById('cp-upload-preview-img').src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Reset form ──
+function cpResetForm() {
+  ['cp-title','cp-desc','cp-price'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.classList.remove('err'); }
+  });
+  ['cp-title-err','cp-desc-err','cp-price-err','cp-cover-err','cp-type-err'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  });
+  // Reset cover
+  _cpCoverFile = null;
+  _cpDeliveryFile = null;
+  _cpDeliveryVideo = null;
+  _cpDeliveryFileUrl  = null;
+  _cpDeliveryVideoUrl = null;
+  document.getElementById('cp-upload-placeholder').style.display = '';
+  document.getElementById('cp-upload-preview-wrap').style.display = 'none';
+  document.getElementById('cp-upload-preview-img').src = '';
+  document.getElementById('cp-cover-input').value = '';
+  // Reset delivery type to default
+  _cpDelivery = 'digital-download';
+  document.querySelectorAll('.cp-type-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.type === 'digital-download');
+  });
+  // Reset currency
+  document.getElementById('cp-currency').value = 'USD';
+  // Reset step 3 dynamic panel
+  cpResetStep3();
+  // Reset step 4 integrations
+  ['cp-fb-pixel','cp-ga-id','cp-gtm-id'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  // Reset step 5 panel
+  const p5 = document.getElementById('cp-panel-5');
+  if (p5) p5.innerHTML = '';
+  // Reset edit metadata
+  window._cpEditData = null;
+}
+
+// ── Slug generator ──
+function makeSlug(title) {
+  return title.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60);
+}
+
+// ── Check slug uniqueness, append 4-digit suffix if taken ──
+async function resolveSlug(baseSlug, excludeId) {
+  const check = async (slug) => {
+    const q = query(collection(db, 'products'), where('slug', '==', slug));
+    const snap = await getDocs(q);
+    if (snap.empty) return true;
+    // If editing and the only match is our own doc, it's still unique
+    if (excludeId && snap.docs.length === 1 && snap.docs[0].id === excludeId) return true;
+    return false;
+  };
+  if (await check(baseSlug)) return baseSlug;
+  // Try with 4-digit suffix
+  for (let i = 0; i < 20; i++) {
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    const candidate = baseSlug.slice(0, 55) + '-' + suffix;
+    if (await check(candidate)) return candidate;
+  }
+  // Absolute fallback — timestamp suffix
+  return baseSlug.slice(0, 50) + '-' + Date.now().toString().slice(-6);
+}
+
+// ── Collect all step data into one object ──
+function cpCollectData() {
+  const title    = (document.getElementById('cp-title')?.value || '').trim();
+  const desc     = (document.getElementById('cp-desc')?.value  || '').trim();
+  const price    = parseFloat(document.getElementById('cp-price')?.value || '0') || 0;
+  const currency = document.getElementById('cp-currency')?.value || 'USD';
+
+  // Step 3 fields — conditional
+  const type = _cpDelivery;
+  let deliveryData = {};
+
+  if (type === 'digital-download' || type === 'template' || type === 'ebook') {
+    deliveryData.fileUrl = (document.getElementById('cp-file-url')?.value || '').trim();
+    // File object handled separately (_cpCoverFile pattern for delivery file too)
+  } else if (type === 'manual') {
+    deliveryData.coachingCalUrl  = (document.getElementById('cp-coaching-cal')?.value  || '').trim();
+    deliveryData.coachingMeetUrl = (document.getElementById('cp-coaching-meet')?.value || '').trim();
+    deliveryData.coachingNote    = (document.getElementById('cp-coaching-note')?.value || '').trim();
+  } else if (type === 'link') {
+    deliveryData.courseUrl = (document.getElementById('cp-course-url')?.value || '').trim();
+    const videoRows = document.querySelectorAll('#cp-video-list input[type=url]');
+    deliveryData.videoUrls = Array.from(videoRows)
+      .map(i => i.value.trim())
+      .filter(Boolean);
+  } else {
+    deliveryData.redirectUrl = (document.getElementById('cp-redirect-url')?.value || '').trim();
+  }
+
+  // Step 4 integrations
+  const fbPixel = (document.getElementById('cp-fb-pixel')?.value || '').trim();
+  const gaId    = (document.getElementById('cp-ga-id')?.value    || '').trim();
+  const gtmId   = (document.getElementById('cp-gtm-id')?.value   || '').trim();
+
+  return {
+    title, desc, price, currency,
+    deliveryType: type,
+    ...deliveryData,
+    integrations: {
+      ...(fbPixel ? { facebookPixel: fbPixel } : {}),
+      ...(gaId    ? { googleAnalytics: gaId }  : {}),
+      ...(gtmId   ? { googleTagManager: gtmId } : {}),
+    },
+    status: _cpPublishActive ? 'active' : 'inactive',
+  };
+}
+
+// ── Step 5 render: Publish preview ──
+function cpRenderStep5() {
+  const panel = document.getElementById('cp-panel-5');
+  if (!panel) return;
+
+  const data     = cpCollectData();
+  const title    = data.title || 'Untitled Product';
+  const price    = isNaN(data.price) ? '0.00' : data.price.toFixed(2);
+  const currency = data.currency || 'USD';
+  const desc     = data.desc || '';
+  const isEdit   = !!_cpEditId;
+
+  // Cover preview src
+  let coverHtml = '';
+  if (_cpCoverFile) {
+    // Use object URL so we can preview without re-reading
+    const objUrl = URL.createObjectURL(_cpCoverFile);
+    coverHtml = `<img src="${objUrl}" alt="Cover" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px 14px 0 0;display:block;background:#f0f2f6;">`;
+  } else {
+    coverHtml = `<div style="width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,rgba(13,33,69,0.05),rgba(45,138,94,0.08));border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:center;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.20)" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div>`;
+  }
+
+  // Delivery type badge label
+  const TYPE_LABELS = { 'digital-download':'Download','manual':'Manual','link':'Link / Access','template':'Template','ebook':'eBook' };
+  const typeLabel   = TYPE_LABELS[data.deliveryType] || data.deliveryType;
+
+  // Slug preview (just for display — real slug resolved on submit)
+  const slugPreview = makeSlug(title) || 'your-product';
+  const linkPreview = `kreddlo.com/p/${slugPreview}`;
+
+  panel.innerHTML = `
+    <!-- Section label -->
+    <p style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(13,33,69,0.38);margin:0 0 14px;">Product Preview</p>
+
+    <!-- Mini product card -->
+    <div style="border:1.5px solid #e8eaf0;border-radius:16px;overflow:hidden;margin-bottom:20px;background:#fff;box-shadow:0 2px 12px rgba(13,33,69,0.06);">
+      ${coverHtml}
+      <div style="padding:14px 16px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;">
+          <h3 style="font-size:14px;font-weight:700;color:#0d2145;margin:0;line-height:1.35;flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml5(title)}</h3>
+          <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:600;background:rgba(13,33,69,0.07);color:#0d2145;white-space:nowrap;flex-shrink:0;">${escHtml5(typeLabel)}</span>
+        </div>
+        ${desc ? `<p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml5(desc)}</p>` : ''}
+        <p style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;margin:0;">${escHtml5(currency)} ${price}</p>
+      </div>
+    </div>
+
+    <!-- Shareable link -->
+    <div style="margin-bottom:20px;">
+      <p style="font-size:12px;font-weight:700;color:#0d2145;letter-spacing:.2px;margin:0 0 8px;">Product link</p>
+      <div style="display:flex;align-items:center;gap:0;background:#f4f6f9;border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+        <span id="cp-link-preview" style="flex:1;min-width:0;padding:11px 14px;font-size:12px;font-weight:600;color:rgba(13,33,69,0.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml5(linkPreview)}</span>
+        <button onclick="cpCopyLink()" id="cp-copy-btn" style="flex-shrink:0;height:44px;padding:0 16px;background:#0d2145;border:none;border-radius:0 10px 10px 0;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .15s;white-space:nowrap;" onmouseover="this.style.background='#162f5e'" onmouseout="this.style.background='#0d2145'">
+          <svg id="cp-copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.38);margin-top:5px;">Final URL is confirmed after publishing.</p>
+    </div>
+
+    <!-- Active toggle -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f8f9fb;border:1.5px solid #e8eaf0;border-radius:12px;padding:14px 16px;margin-bottom:4px;">
+      <div style="min-width:0;">
+        <p style="font-size:13px;font-weight:700;color:#0d2145;margin:0 0 2px;">Make product active</p>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;line-height:1.45;">Active products are visible to buyers immediately after publishing.</p>
+      </div>
+      <button role="switch" aria-checked="${_cpPublishActive}" id="cp-active-toggle" onclick="cpToggleActive()" style="flex-shrink:0;width:46px;height:26px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:background .2s;background:${_cpPublishActive ? '#2d8a5e' : '#d1d5db'};">
+        <span style="position:absolute;top:3px;left:${_cpPublishActive ? '23px' : '3px'};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.18);transition:left .2s;display:block;"></span>
+      </button>
+    </div>`;
+}
+
+// ── Toggle active state on Step 5 ──
+window.cpToggleActive = function() {
+  _cpPublishActive = !_cpPublishActive;
+  const btn  = document.getElementById('cp-active-toggle');
+  const knob = btn?.querySelector('span');
+  if (!btn || !knob) return;
+  btn.style.background = _cpPublishActive ? '#2d8a5e' : '#d1d5db';
+  btn.setAttribute('aria-checked', String(_cpPublishActive));
+  knob.style.left = _cpPublishActive ? '23px' : '3px';
+};
+
+// ── Copy link button ──
+window.cpCopyLink = function() {
+  const txt = document.getElementById('cp-link-preview')?.textContent || '';
+  if (!txt) return;
+  navigator.clipboard.writeText('https://' + txt).then(() => {
+    const btn = document.getElementById('cp-copy-btn');
+    if (btn) {
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Copied!`;
+      btn.style.background = '#2d8a5e';
+      setTimeout(() => {
+        btn.innerHTML = `<svg id="cp-copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy`;
+        btn.style.background = '#0d2145';
+      }, 2000);
+    }
+  }).catch(() => showToast('Could not copy — try manually.'));
+};
+
+// escHtml already defined above; alias for step 5 inline use
+function escHtml5(s) { return escHtml(s); }
+
+// ── Upload a large file directly to Cloudinary using a signed signature ──
+// resourceType: 'raw' (downloadable files) or 'video'
+async function cpUploadToCloudinarySigned(file, resourceType) {
+  // 1. Get signed params from our Netlify function (also checks Pro plan)
+  const sigRes = await fetch('/.netlify/functions/sign-delivery-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uid: _currentUser.uid, resourceType }),
+  });
+  const sig = await sigRes.json();
+  if (!sigRes.ok) throw new Error(sig.error || 'Could not authorize upload');
+
+  // 2. Upload the file directly to Cloudinary
+  const form = new FormData();
+  form.append('file', file);
+  form.append('api_key', sig.apiKey);
+  form.append('timestamp', sig.timestamp);
+  form.append('signature', sig.signature);
+  form.append('folder', sig.folder);
+  form.append('public_id', sig.publicId);
+
+  const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const uploadData = await uploadRes.json();
+  if (!uploadRes.ok || !uploadData.secure_url) {
+    throw new Error(uploadData.error?.message || 'Upload to Cloudinary failed');
+  }
+  return uploadData.secure_url;
+}
+
+// ── Full Firestore submit ──
+async function cpSubmit() {
+  if (!_currentUser) { showToast('Not signed in. Please reload.'); return; }
+
+  const nextBtn = document.getElementById('cp-next-btn');
+  const backBtn = document.getElementById('cp-back-btn');
+  nextBtn.disabled = true;
+  backBtn.disabled = true;
+  nextBtn.style.opacity = '0.6';
+  nextBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Saving…`;
+
+  try {
+    const data = cpCollectData();
+    const baseSlug  = makeSlug(data.title) || 'product';
+    const slug      = await resolveSlug(baseSlug, _cpEditId);
+
+    // Upload cover image to Cloudinary if a new file was selected
+    let coverUrl = null;
+    if (_cpCoverFile) {
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Uploading cover...';
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const img = new Image();
+          const objUrl = URL.createObjectURL(_cpCoverFile);
+          img.onload = () => {
+            URL.revokeObjectURL(objUrl);
+            const MAX = 1200;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+              if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+              else { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+          };
+          img.onerror = () => reject(new Error('Failed to read cover image'));
+          img.src = objUrl;
+        });
+        const res = await fetch('/.netlify/functions/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64, folder: 'products', publicId: _currentUser.uid + '-' + Date.now() }),
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || 'Upload failed');
+        coverUrl = result.url;
+      } catch (uploadErr) {
+        showToast('Cover upload failed: ' + uploadErr.message);
+        nextBtn.disabled = false; backBtn.disabled = false;
+        nextBtn.style.opacity = '1'; nextBtn.innerHTML = 'Publish Product';
+        return;
+      }
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Saving...';
+    }
+
+    // Upload delivery file (Pro) if a new one was selected
+    let deliveryFileUrl = null;
+    if (_cpDeliveryFile) {
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Uploading file...';
+      try {
+        deliveryFileUrl = await cpUploadToCloudinarySigned(_cpDeliveryFile, 'raw');
+      } catch (uploadErr) {
+        showToast('File upload failed: ' + uploadErr.message);
+        nextBtn.disabled = false; backBtn.disabled = false;
+        nextBtn.style.opacity = '1'; nextBtn.innerHTML = 'Publish Product';
+        return;
+      }
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Saving...';
+    }
+
+    // Upload delivery video (Pro) if a new one was selected
+    let deliveryVideoUrl = null;
+    if (_cpDeliveryVideo) {
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Uploading video...';
+      try {
+        deliveryVideoUrl = await cpUploadToCloudinarySigned(_cpDeliveryVideo, 'video');
+      } catch (uploadErr) {
+        showToast('Video upload failed: ' + uploadErr.message);
+        nextBtn.disabled = false; backBtn.disabled = false;
+        nextBtn.style.opacity = '1'; nextBtn.innerHTML = 'Publish Product';
+        return;
+      }
+      nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Saving...';
+    }
+
+    const payload = {
+      uid:          _currentUser.uid,
+      title:        data.title,
+      description:  data.desc,
+      price:        data.price,
+      currency:     data.currency,
+      deliveryType: data.deliveryType,
+      slug,
+      status:       data.status,
+      integrations: data.integrations,
+      updatedAt:    serverTimestamp(),
+    };
+
+    if (coverUrl) payload.coverUrl = coverUrl;
+    if (deliveryFileUrl)  payload.deliveryFileUrl  = deliveryFileUrl;
+    else if (_cpDeliveryFileUrl) payload.deliveryFileUrl = _cpDeliveryFileUrl;
+    if (deliveryVideoUrl) payload.deliveryVideoUrl = deliveryVideoUrl;
+    else if (_cpDeliveryVideoUrl) payload.deliveryVideoUrl = _cpDeliveryVideoUrl;
+
+    // Delivery-type-specific fields
+    if (data.fileUrl)        payload.fileUrl        = data.fileUrl;
+    if (data.coachingCalUrl) payload.coachingCalUrl = data.coachingCalUrl;
+    if (data.coachingMeetUrl)payload.coachingMeetUrl= data.coachingMeetUrl;
+    if (data.coachingNote)   payload.coachingNote   = data.coachingNote;
+    if (data.courseUrl)      payload.courseUrl      = data.courseUrl;
+    if (data.videoUrls)      payload.videoUrls      = data.videoUrls;
+    if (data.redirectUrl)    payload.redirectUrl    = data.redirectUrl;
+
+    if (_cpEditId) {
+      // ── Edit: update existing doc ──
+      const { updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db, 'products', _cpEditId), payload);
+      closeCreateModal();
+      showToast('Product updated successfully.');
+    } else {
+      // ── Create: add new doc ──
+      payload.createdAt   = serverTimestamp();
+      payload.totalSales  = 0;
+      payload.totalRevenue= 0;
+      await addDoc(collection(db, 'products'), payload);
+      closeCreateModal();
+      showToast('Product created! Your listing is live.');
+    }
+
+    // Reload grid
+    reloadGrid(_currentUser.uid);
+
+  } catch (err) {
+    console.error('[dashboard-products] cpSubmit error:', err);
+    showToast('Could not save product. Please try again.');
+  } finally {
+    nextBtn.disabled = false;
+    nextBtn.style.opacity = '';
+    backBtn.disabled = false;
+    // Restore label
+    const label = _cpEditId ? 'Save Changes' : 'Create Product';
+    nextBtn.innerHTML = `${label}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+  }
+}
+
+// ── Reload grid without full page refresh ──
+async function reloadGrid(uid) {
+  const skEl    = document.getElementById('products-grid-sk');
+  const gridEl  = document.getElementById('products-grid');
+  const emptyEl = document.getElementById('products-empty');
+
+  gridEl.style.display   = 'none';
+  emptyEl.style.display  = 'none';
+  skEl.style.display     = 'grid';
+
+  await fetchStats(uid);
+}
+
+// ── openEditModal — pre-fill all steps from Firestore doc ──
+window.openEditModal = async function(productId) {
+  if (!_currentUser) return;
+
+  try {
+    const snap = await getDoc(doc(db, 'products', productId));
+    if (!snap.exists()) { showToast('Product not found.'); return; }
+
+    const d = snap.data();
+
+    // Reset modal to clean state first
+    _cpEditId = productId;
+    _cpDelivery = d.deliveryType || 'digital-download';
+    _cpCoverFile = null;
+    _cpPublishActive = d.status !== 'inactive';
+
+    cpResetForm();
+
+    // ── Pre-fill Step 1 ──
+    const titleEl = document.getElementById('cp-title');
+    const descEl  = document.getElementById('cp-desc');
+    const priceEl = document.getElementById('cp-price');
+    const curEl   = document.getElementById('cp-currency');
+    if (titleEl) titleEl.value = d.title || '';
+    if (descEl)  descEl.value  = d.description || '';
+    if (priceEl) priceEl.value = d.price != null ? d.price : '';
+    if (curEl)   curEl.value   = d.currency || 'USD';
+
+    // ── Pre-fill Step 2 delivery type ──
+    document.querySelectorAll('.cp-type-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.type === _cpDelivery);
+    });
+
+    // Open modal
+    document.getElementById('cp-title-text').textContent = 'Edit Product';
+    cpRenderStep(1);
+    const ov = document.getElementById('cp-overlay');
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    // Store delivery fields for step 3 pre-fill after it renders
+    window._cpEditData = d;
+
+    // ── Pre-fill Step 4 integrations ──
+    setTimeout(() => {
+      const integrations = d.integrations || {};
+      const fb  = document.getElementById('cp-fb-pixel');
+      const ga  = document.getElementById('cp-ga-id');
+      const gtm = document.getElementById('cp-gtm-id');
+      if (fb  && integrations.facebookPixel)    fb.value  = integrations.facebookPixel;
+      if (ga  && integrations.googleAnalytics)  ga.value  = integrations.googleAnalytics;
+      if (gtm && integrations.googleTagManager) gtm.value = integrations.googleTagManager;
+    }, 0);
+
+  } catch (err) {
+    console.error('[dashboard-products] openEditModal error:', err);
+    showToast('Could not load product data.');
+  }
+};
+
+// ── Step 3 panel: render conditional content based on delivery type ──
+function cpRenderStep3() {
+  const panel = document.getElementById('cp-panel-3');
+  if (!panel) return;
+  const type = _cpDelivery;
+
+  let html = '';
+
+  if (type === 'digital-download' || type === 'template' || type === 'ebook') {
+    const isPro = _currentUserPlan === 'pro';
+
+    html = `
+      <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 18px;line-height:1.5;">Upload the file buyers will receive, or provide a download URL.</p>
+      <div class="cp-field">
+        <label class="cp-label">Upload file <span style="color:rgba(13,33,69,0.35);font-weight:500">(ZIP, PDF, PSD, etc.)</span></label>
+        ${isPro ? `
+        <div class="cp-upload-zone" id="cp-file-zone" style="padding:20px 16px;">
+          <input type="file" id="cp-delivery-file" accept=".zip,.pdf,.psd,.ai,.fig,.sketch,.docx,.xlsx,.pptx,.epub" tabindex="-1" aria-label="Upload delivery file"/>
+          <div id="cp-file-placeholder">
+            <div style="width:40px;height:40px;background:rgba(45,138,94,0.10);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 2px;">Tap to upload file</p>
+            <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:0;">Max 100 MB</p>
+          </div>
+          <div id="cp-file-selected" style="display:none;width:100%;text-align:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="margin-bottom:6px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <p id="cp-file-name" style="font-size:12px;font-weight:600;color:#0d2145;margin:0 0 2px;word-break:break-all;"></p>
+            <p style="font-size:11px;color:rgba(13,33,69,0.42);margin:0;">Tap to replace</p>
+          </div>
+        </div>` : `
+        <div class="cp-upload-zone" style="padding:20px 16px;position:relative;opacity:0.6;cursor:default;border-style:dashed;">
+          <div style="width:40px;height:40px;background:rgba(13,33,69,0.06);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 2px;">File upload is a Pro feature</p>
+          <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:0 0 10px;">Upgrade to Pro to upload files directly. You can still use a download URL below.</p>
+          <a href="/pricing.html" style="display:inline-flex;align-items:center;gap:6px;background:#0d2145;color:#fff;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;">Upgrade to Pro</a>
+        </div>`}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0 16px;">
+        <div style="flex:1;height:1px;background:#e8eaf0;"></div>
+        <span style="font-size:11px;font-weight:600;color:rgba(13,33,69,0.35);text-transform:uppercase;letter-spacing:1px;">or</span>
+        <div style="flex:1;height:1px;background:#e8eaf0;"></div>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-file-url">File / download URL</label>
+        <input class="cp-input" id="cp-file-url" type="url" inputmode="url" placeholder="https://drive.google.com/file/..." autocomplete="off"/>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">Buyers will be sent this link after payment.</p>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin:20px 0 16px;">
+        <div style="flex:1;height:1px;background:#e8eaf0;"></div>
+        <span style="font-size:11px;font-weight:600;color:rgba(13,33,69,0.35);text-transform:uppercase;letter-spacing:1px;">Optional</span>
+        <div style="flex:1;height:1px;background:#e8eaf0;"></div>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label">Demo / walkthrough video <span style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);">Optional</span></label>
+        ${isPro ? `
+        <div class="cp-upload-zone" id="cp-video-zone" style="padding:20px 16px;">
+          <input type="file" id="cp-delivery-video" accept=".mp4,.mov,.webm" tabindex="-1" aria-label="Upload delivery video"/>
+          <div id="cp-video-placeholder">
+            <div style="width:40px;height:40px;background:rgba(45,138,94,0.10);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+            <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 2px;">Tap to upload video</p>
+            <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:0;">MP4, MOV or WEBM — Max 500 MB</p>
+          </div>
+          <div id="cp-video-selected" style="display:none;width:100%;text-align:center;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="margin-bottom:6px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <p id="cp-video-name" style="font-size:12px;font-weight:600;color:#0d2145;margin:0 0 2px;word-break:break-all;"></p>
+            <p style="font-size:11px;color:rgba(13,33,69,0.42);margin:0;">Tap to replace</p>
+          </div>
+        </div>` : `
+        <div class="cp-upload-zone" style="padding:20px 16px;position:relative;opacity:0.6;cursor:default;border-style:dashed;">
+          <div style="width:40px;height:40px;background:rgba(13,33,69,0.06);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2" stroke-linecap="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          </div>
+          <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 2px;">Video upload is a Pro feature</p>
+          <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:0 0 10px;">Upgrade to Pro to add a demo or walkthrough video to your product.</p>
+          <a href="/pricing.html" style="display:inline-flex;align-items:center;gap:6px;background:#0d2145;color:#fff;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;text-decoration:none;">Upgrade to Pro</a>
+        </div>`}
+      </div>`;
+
+  } else if (type === 'manual') {
+    html = `
+      <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 18px;line-height:1.5;">Add the booking or session links buyers will receive after payment.</p>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-coaching-cal">Booking / calendar link</label>
+        <input class="cp-input" id="cp-coaching-cal" type="url" inputmode="url" placeholder="https://calendly.com/your-link" autocomplete="off"/>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">e.g. Calendly, Cal.com, TidyCal</p>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-coaching-meet">Video call link <span style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);">Optional</span></label>
+        <input class="cp-input" id="cp-coaching-meet" type="url" inputmode="url" placeholder="https://meet.google.com/..." autocomplete="off"/>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">e.g. Google Meet, Zoom, Teams</p>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-coaching-note">Buyer instructions <span style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);">Optional</span></label>
+        <textarea class="cp-input cp-textarea" id="cp-coaching-note" placeholder="e.g. You'll receive a calendar invite within 24 hours. Sessions are 60 minutes via Google Meet." maxlength="600" style="min-height:80px;"></textarea>
+      </div>`;
+
+  } else if (type === 'link') {
+    html = `
+      <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 18px;line-height:1.5;">Provide the course or resource URL(s) buyers will receive after payment.</p>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-course-url">Course / access URL <span style="color:#c81e1e">*</span></label>
+        <input class="cp-input" id="cp-course-url" type="url" inputmode="url" placeholder="https://school.teachable.com/courses/..." autocomplete="off"/>
+        <p class="cp-err" id="cp-course-url-err">Please enter the course or access URL.</p>
+      </div>
+      <div class="cp-field">
+        <label class="cp-label" style="margin-bottom:10px;">Preview videos <span class="badge badge-navy" style="font-size:10px;margin-left:4px;">Optional</span></label>
+        <div id="cp-video-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <button type="button" onclick="cpAddVideoRow()" style="display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:transparent;border:1.5px dashed #e2e8f0;border-radius:10px;padding:9px 16px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#2d8a5e;cursor:pointer;transition:border-color .15s,background .15s;" onmouseover="this.style.borderColor='#2d8a5e';this.style.background='#f0faf5'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='transparent'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Video URL
+        </button>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:7px;">YouTube or Vimeo embed links shown as course preview.</p>
+      </div>`;
+
+  } else {
+    // fallback (redirect / other)
+    html = `
+      <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 18px;line-height:1.5;">Where should buyers be sent after a successful payment?</p>
+      <div class="cp-field">
+        <label class="cp-label" for="cp-redirect-url">Redirect URL <span style="color:#c81e1e">*</span></label>
+        <input class="cp-input" id="cp-redirect-url" type="url" inputmode="url" placeholder="https://yoursite.com/thank-you" autocomplete="off"/>
+        <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">Buyers land here immediately after payment is confirmed.</p>
+      </div>`;
+  }
+
+  panel.innerHTML = html;
+
+  // Bind file & video upload for download types (Pro only — inputs only exist if isPro)
+  if (type === 'digital-download' || type === 'template' || type === 'ebook') {
+    const fi = document.getElementById('cp-delivery-file');
+    if (fi) {
+      fi.addEventListener('change', function(e) {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        if (f.size > 100 * 1024 * 1024) {
+          showToast('File too large — max 100 MB.');
+          return;
+        }
+        _cpDeliveryFile = f;
+        document.getElementById('cp-file-placeholder').style.display = 'none';
+        const sel = document.getElementById('cp-file-selected');
+        sel.style.display = 'block';
+        document.getElementById('cp-file-name').textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+      });
+    }
+    // Drag-and-drop on file zone
+    const fz = document.getElementById('cp-file-zone');
+    if (fz) {
+      fz.addEventListener('dragover', e => { e.preventDefault(); fz.classList.add('drag'); });
+      fz.addEventListener('dragleave', () => fz.classList.remove('drag'));
+      fz.addEventListener('drop', e => {
+        e.preventDefault(); fz.classList.remove('drag');
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        if (f.size > 100 * 1024 * 1024) {
+          showToast('File too large — max 100 MB.');
+          return;
+        }
+        _cpDeliveryFile = f;
+        document.getElementById('cp-file-placeholder').style.display = 'none';
+        const sel = document.getElementById('cp-file-selected');
+        sel.style.display = 'block';
+        document.getElementById('cp-file-name').textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+      });
+    }
+
+    // Video upload
+    const vi = document.getElementById('cp-delivery-video');
+    if (vi) {
+      vi.addEventListener('change', function(e) {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        if (f.size > 500 * 1024 * 1024) {
+          showToast('Video too large — max 500 MB.');
+          return;
+        }
+        _cpDeliveryVideo = f;
+        document.getElementById('cp-video-placeholder').style.display = 'none';
+        const sel = document.getElementById('cp-video-selected');
+        sel.style.display = 'block';
+        document.getElementById('cp-video-name').textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+      });
+    }
+    const vz = document.getElementById('cp-video-zone');
+    if (vz) {
+      vz.addEventListener('dragover', e => { e.preventDefault(); vz.classList.add('drag'); });
+      vz.addEventListener('dragleave', () => vz.classList.remove('drag'));
+      vz.addEventListener('drop', e => {
+        e.preventDefault(); vz.classList.remove('drag');
+        const f = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!f) return;
+        if (f.size > 500 * 1024 * 1024) {
+          showToast('Video too large — max 500 MB.');
+          return;
+        }
+        _cpDeliveryVideo = f;
+        document.getElementById('cp-video-placeholder').style.display = 'none';
+        const sel = document.getElementById('cp-video-selected');
+        sel.style.display = 'block';
+        document.getElementById('cp-video-name').textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+      });
+    }
+  }
+
+  // Initialize video rows for link type
+  if (type === 'link') {
+    cpAddVideoRow(); // add one empty row by default
+  }
+
+  // ── Edit mode: pre-fill step 3 fields ──
+  if (_cpEditId && window._cpEditData) {
+    const d = window._cpEditData;
+    setTimeout(() => {
+      if (type === 'digital-download' || type === 'template' || type === 'ebook') {
+        const fu = document.getElementById('cp-file-url');
+        if (fu && d.fileUrl) fu.value = d.fileUrl;
+        if (d.deliveryFileUrl) {
+          _cpDeliveryFileUrl = d.deliveryFileUrl;
+          const ph = document.getElementById('cp-file-placeholder');
+          const sel = document.getElementById('cp-file-selected');
+          if (ph && sel) {
+            ph.style.display = 'none';
+            sel.style.display = 'block';
+            document.getElementById('cp-file-name').textContent = 'Uploaded file on record';
+          }
+        }
+        if (d.deliveryVideoUrl) {
+          _cpDeliveryVideoUrl = d.deliveryVideoUrl;
+          const ph = document.getElementById('cp-video-placeholder');
+          const sel = document.getElementById('cp-video-selected');
+          if (ph && sel) {
+            ph.style.display = 'none';
+            sel.style.display = 'block';
+            document.getElementById('cp-video-name').textContent = 'Uploaded video on record';
+          }
+        }
+      } else if (type === 'manual') {
+        const cal  = document.getElementById('cp-coaching-cal');
+        const meet = document.getElementById('cp-coaching-meet');
+        const note = document.getElementById('cp-coaching-note');
+        if (cal  && d.coachingCalUrl)  cal.value  = d.coachingCalUrl;
+        if (meet && d.coachingMeetUrl) meet.value = d.coachingMeetUrl;
+        if (note && d.coachingNote)    note.value = d.coachingNote;
+      } else if (type === 'link') {
+        const cu = document.getElementById('cp-course-url');
+        if (cu && d.courseUrl) cu.value = d.courseUrl;
+        if (d.videoUrls && d.videoUrls.length) {
+          const list = document.getElementById('cp-video-list');
+          if (list) list.innerHTML = '';
+          d.videoUrls.forEach(url => {
+            cpAddVideoRow();
+            const rows = document.querySelectorAll('#cp-video-list input[type=url]');
+            const last = rows[rows.length - 1];
+            if (last) last.value = url;
+          });
+        }
+      } else {
+        const ru = document.getElementById('cp-redirect-url');
+        if (ru && d.redirectUrl) ru.value = d.redirectUrl;
+      }
+    }, 0);
+  }
+}
+
+// ── Add a video URL row (link/course type) ──
+window.cpAddVideoRow = function() {
+  const list = document.getElementById('cp-video-list');
+  if (!list) return;
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+  row.innerHTML = `
+    <input class="cp-input" type="url" inputmode="url" placeholder="https://youtube.com/watch?v=..." style="flex:1;min-width:0;" autocomplete="off" aria-label="Video URL ${idx + 1}"/>
+    <button type="button" onclick="this.parentNode.remove()" style="width:34px;height:34px;flex-shrink:0;background:rgba(200,30,30,0.08);border:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" aria-label="Remove video" onmouseover="this.style.background='rgba(200,30,30,0.15)'" onmouseout="this.style.background='rgba(200,30,30,0.08)'">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c81e1e" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  list.appendChild(row);
+};
+
+// ── Reset step 3 panel (called from cpResetForm) ──
+function cpResetStep3() {
+  const panel = document.getElementById('cp-panel-3');
+  if (panel) panel.innerHTML = '';
+}
+
+// ── Dismiss loading overlay ──
+function hideOverlay() {
+  const ov = document.getElementById('loading-overlay');
+  ov.style.transition = 'opacity .35s';
+  ov.style.opacity    = '0';
+  setTimeout(() => ov.remove(), 380);
+}
+
+// ── Delivery type label ──
+const TYPE_LABELS = {
+  'digital-download': 'Download',
+  'manual':           'Manual',
+  'link':             'Link',
+  'template':         'Template',
+  'ebook':            'eBook',
+};
+function typeLabel(t) { return TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Digital'); }
+
+// ── Build one product card HTML ──
+function buildCard(id, d) {
+  const isActive = d.status !== 'inactive' && d.status !== 'draft';
+  const sales    = d.totalSales || d.salesCount || 0;
+  const price    = typeof d.price === 'number' ? '$' + d.price.toFixed(2) : (d.price ? '$' + d.price : '—');
+  const type     = typeLabel(d.deliveryType || d.type);
+
+  const coverHtml = d.coverUrl
+    ? `<img class="prod-cover" src="${escHtml(d.coverUrl)}" alt="${escHtml(d.title || '')}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\'prod-cover-placeholder\'>${coverIcon()}</div>'">`
+    : `<div class="prod-cover-placeholder">${coverIcon()}</div>`;
+
+  const toggleClass = isActive ? 'btn-toggle-active' : 'btn-toggle-inactive';
+  const toggleLabel = isActive ? 'Active' : 'Inactive';
+  const toggleDot   = isActive
+    ? `<span style="width:7px;height:7px;border-radius:50%;background:#2d8a5e;flex-shrink:0;"></span>`
+    : `<span style="width:7px;height:7px;border-radius:50%;background:#856404;flex-shrink:0;"></span>`;
+
+  return `
+<div class="prod-card" id="card-${escHtml(id)}">
+  ${coverHtml}
+  <div class="prod-body">
+    <h3 class="prod-title">${escHtml(d.title || 'Untitled product')}</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+      <span class="prod-price">${price}</span>
+      <span class="badge badge-navy">${escHtml(type)}</span>
+    </div>
+    <div class="prod-divider"></div>
+    <div class="prod-meta">
+      <span class="prod-sales">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:3px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        ${sales} sale${sales !== 1 ? 's' : ''}
+      </span>
+    </div>
+    <div class="prod-actions">
+      <button class="btn-sm btn-edit" onclick="openEditModal('${escHtml(id)}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit
+      </button>
+      <button id="toggle-${escHtml(id)}" class="btn-sm ${toggleClass}" style="display:inline-flex;align-items:center;gap:5px;" onclick="toggleStatus('${escHtml(id)}', ${isActive})">
+        ${toggleDot}
+        ${toggleLabel}
+      </button>
+    </div>
+  </div>
+</div>`;
+}
+
+function coverIcon() {
+  return `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.22)" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>`;
+}
+
+function escHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Toggle active / inactive in Firestore ──
+async function toggleStatus(productId, currentlyActive) {
+  const btn = document.getElementById('toggle-' + productId);
+  if (!btn) return;
+  btn.classList.add('btn-toggle-spinning');
+
+  const newStatus = currentlyActive ? 'inactive' : 'active';
+  try {
+    const { doc: fsDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(fsDoc(db, 'products', productId), { status: newStatus });
+
+    // Update button in place
+    const isNowActive = newStatus === 'active';
+    btn.className = 'btn-sm ' + (isNowActive ? 'btn-toggle-active' : 'btn-toggle-inactive');
+    btn.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:${isNowActive ? '#2d8a5e' : '#856404'};flex-shrink:0;"></span>${isNowActive ? 'Active' : 'Inactive'}`;
+    btn.setAttribute('onclick', `toggleStatus('${productId}', ${isNowActive})`);
+    showToast(`Product ${isNowActive ? 'set to active' : 'set to inactive'}`);
+  } catch (err) {
+    console.error('[dashboard-products] toggleStatus error:', err);
+    showToast('Could not update status. Please try again.');
+  } finally {
+    btn.classList.remove('btn-toggle-spinning');
+  }
+}
+window.toggleStatus = toggleStatus;
+
+// ── Fetch all data — stats + grid in one query ──
+async function fetchStats(uid) {
+  try {
+    const productsQ    = query(collection(db, 'products'), where('uid', '==', uid));
+    const productsSnap = await getDocs(productsQ);
+
+    let totalProducts = 0;
+    let totalSales    = 0;
+    let totalRevenue  = 0;
+    let activeCount   = 0;
+    const items = [];
+
+    productsSnap.forEach(docSnap => {
+      const d = docSnap.data();
+      totalProducts++;
+      totalSales   += (d.totalSales   || d.salesCount || 0);
+      totalRevenue += (d.totalRevenue || 0);
+      if (d.status !== 'inactive' && d.status !== 'draft') activeCount++;
+      items.push({ id: docSnap.id, data: d });
+    });
+
+    // ── Stats ──
+    swapSk('stat-products', totalProducts.toString(),
+      activeCount > 0
+        ? `${activeCount} active listing${activeCount !== 1 ? 's' : ''}`
+        : 'No listings yet');
+
+    swapSk('stat-sales', totalSales.toString(),
+      totalSales > 0
+        ? `Across ${totalProducts} product${totalProducts !== 1 ? 's' : ''}`
+        : 'No sales yet');
+
+    const fmtRevenue = totalRevenue >= 1000
+      ? '$' + (totalRevenue / 1000).toFixed(1) + 'k'
+      : '$' + totalRevenue.toFixed(2);
+    swapSk('stat-revenue', fmtRevenue,
+      totalRevenue > 0 ? 'Lifetime earnings from products' : 'Sales will appear here');
+
+    // ── Grid ──
+    const skEl    = document.getElementById('products-grid-sk');
+    const gridEl  = document.getElementById('products-grid');
+    const emptyEl = document.getElementById('products-empty');
+
+    skEl.style.display = 'none';
+
+    if (items.length === 0) {
+      emptyEl.style.display = 'block';
+    } else {
+      gridEl.innerHTML = items.map(p => buildCard(p.id, p.data)).join('');
+      gridEl.style.display = 'grid';
+    }
+
+  } catch (err) {
+    console.error('[dashboard-products] fetchStats error:', err);
+    swapSk('stat-products', '—', 'Could not load');
+    swapSk('stat-sales',    '—', 'Could not load');
+    swapSk('stat-revenue',  '—', 'Could not load');
+    document.getElementById('products-grid-sk').style.display = 'none';
+    document.getElementById('products-empty').style.display   = 'block';
+    showToast('Could not load product data. Please refresh.');
+  }
+}
+
+// ── Swap skeleton → real value ──
+function swapSk(id, val, sub) {
+  const skEl  = document.getElementById(id + '-sk');
+  const valEl = document.getElementById(id + '-val');
+  const subEl = document.getElementById(id + '-sub');
+  if (skEl)  skEl.style.display  = 'none';
+  if (valEl) { valEl.textContent = val; valEl.style.display = 'block'; }
+  if (subEl) subEl.innerHTML     = `<span style="color:rgba(13,33,69,0.45)">${sub}</span>`;
+}
+
+// ══════════════════════════
+//  AUTH GATE — freelancer only
+// ══════════════════════════
+onAuthStateChanged(auth, async user => {
+  if (!user) {
+    window.location.replace('/login.html');
+    return;
+  }
+  _currentUser = user;
+
+  // Fetch Firestore profile to confirm role
+  try {
+    const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDoc(fsDoc(db, 'users', user.uid));
+    const profile = snap.exists() ? snap.data() : {};
+
+    if (profile.role && profile.role !== 'freelancer') {
+      // Buyers / admins → redirect
+      window.location.replace('/login.html');
+      return;
+    }
+
+    _currentUserPlan = profile.plan === 'pro' ? 'pro' : 'free';
+
+    // ── Authenticated freelancer: boot UI ──
+    buildNav();
+    setAvatar(profile.displayName || user.displayName || user.email);
+    hideOverlay();
+    fetchStats(user.uid);
+
+    // Sign-out buttons
+    const signOutHandler = async () => {
+      try { await signOut(auth); } catch (_) {}
+      window.location.replace('/login.html');
+    };
+    document.getElementById('mb-signout').onclick = signOutHandler;
+    document.getElementById('dt-signout').onclick = signOutHandler;
+
+  } catch (err) {
+    console.error('[dashboard-products] profile fetch error:', err);
+    // Graceful fallback — still show page
+    _currentUserPlan = 'free';
+    buildNav();
+    setAvatar(user.displayName || user.email);
+    hideOverlay();
+    fetchStats(user.uid);
+  }
+});
+</script>
+
+<!-- ══════════════════════════════════════
+     CREATE PRODUCT MODAL
+══════════════════════════════════════ -->
+<div id="cp-overlay" class="cp-overlay" role="dialog" aria-modal="true" aria-labelledby="cp-title-text">
+
+  <div class="cp-sheet" id="cp-sheet">
+
+    <!-- Drag handle (mobile) -->
+    <div class="cp-handle" aria-hidden="true"></div>
+
+    <!-- Header -->
+    <div class="cp-header">
+      <h2 class="cp-title" id="cp-title-text">Create Product</h2>
+      <button class="cp-close" onclick="closeCreateModal()" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="cp-steps">
+      <!-- Mobile: "Step X of 5" + progress bar -->
+      <div class="cp-step-mobile">
+        <span class="cp-step-mobile-label" id="cp-step-label-mobile">Step 1 of 5</span>
+        <div class="cp-step-mobile-bar"><div class="cp-step-mobile-fill" id="cp-step-fill" style="width:20%"></div></div>
+      </div>
+      <!-- Desktop: labelled dots -->
+      <div class="cp-step-desktop" id="cp-step-desktop">
+        <div class="cp-step-item active" id="ds-1">
+          <span class="cp-dot"></span>Basics
+        </div>
+        <div class="cp-connector"></div>
+        <div class="cp-step-item" id="ds-2">
+          <span class="cp-dot"></span>Type
+        </div>
+        <div class="cp-connector"></div>
+        <div class="cp-step-item" id="ds-3">
+          <span class="cp-dot"></span>Content
+        </div>
+        <div class="cp-connector"></div>
+        <div class="cp-step-item" id="ds-4">
+          <span class="cp-dot"></span>Integrations
+        </div>
+        <div class="cp-connector"></div>
+        <div class="cp-step-item" id="ds-5">
+          <span class="cp-dot"></span>Preview
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="cp-body" id="cp-body">
+
+      <!-- ── STEP 1: Basics ── -->
+      <div class="cp-step-panel active" id="cp-panel-1">
+
+        <div class="cp-field">
+          <label class="cp-label" for="cp-title">Product title <span style="color:#c81e1e">*</span></label>
+          <input class="cp-input" id="cp-title" type="text" placeholder="e.g. Complete Brand Identity Kit" maxlength="120" autocomplete="off"/>
+          <p class="cp-err" id="cp-title-err">Please enter a product title.</p>
+        </div>
+
+        <div class="cp-field">
+          <label class="cp-label" for="cp-desc">Description <span style="color:#c81e1e">*</span></label>
+          <textarea class="cp-input cp-textarea" id="cp-desc" placeholder="Describe what buyers receive — be specific about what's included, formats, and any requirements." maxlength="1200"></textarea>
+          <p class="cp-err" id="cp-desc-err">Please add a description.</p>
+        </div>
+
+        <div class="cp-field">
+          <label class="cp-label">Cover image <span style="color:rgba(13,33,69,0.35);font-weight:500">(recommended 1280 × 720)</span></label>
+          <div class="cp-upload-zone" id="cp-upload-zone">
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" id="cp-cover-input" tabindex="-1" aria-label="Upload cover image"/>
+            <div id="cp-upload-placeholder">
+              <div style="width:44px;height:44px;background:rgba(45,138,94,0.10);border-radius:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 3px;">Upload cover image</p>
+              <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:0;">JPG, PNG or WebP · max 5 MB</p>
+            </div>
+            <div id="cp-upload-preview-wrap" style="display:none;width:100%;">
+              <img id="cp-upload-preview-img" class="cp-upload-preview" src="" alt="Cover preview"/>
+              <p class="cp-upload-replace">Tap to replace</p>
+            </div>
+          </div>
+          <p class="cp-err" id="cp-cover-err">File too large. Max 5 MB.</p>
+        </div>
+
+        <div class="cp-field">
+          <label class="cp-label" for="cp-price">Price <span style="color:#c81e1e">*</span></label>
+          <div class="cp-price-row">
+            <input class="cp-input" id="cp-price" type="number" inputmode="decimal" placeholder="0.00" min="0" step="0.01"/>
+            <select class="cp-currency-select" id="cp-currency" aria-label="Currency">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="NGN">NGN</option>
+              <option value="GHS">GHS</option>
+              <option value="KES">KES</option>
+              <option value="ZAR">ZAR</option>
+              <option value="EGP">EGP</option>
+            </select>
+          </div>
+          <p class="cp-err" id="cp-price-err">Please enter a valid price.</p>
+        </div>
+
+      </div><!-- /panel-1 -->
+
+      <!-- ── STEP 2: Delivery type ── -->
+      <div class="cp-step-panel" id="cp-panel-2">
+
+        <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 16px;line-height:1.5;">How will buyers receive this product after payment?</p>
+
+        <div class="cp-type-grid" id="cp-type-grid">
+
+          <!-- Digital download -->
+          <div class="cp-type-card selected" data-type="digital-download" onclick="selectDeliveryType(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div class="cp-type-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div class="cp-type-check">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div>
+              <p class="cp-type-name">Download</p>
+              <p class="cp-type-desc">Buyer gets an instant download link — ZIP, PDF, PSD, etc.</p>
+            </div>
+          </div>
+
+          <!-- Manual delivery -->
+          <div class="cp-type-card" data-type="manual" onclick="selectDeliveryType(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div class="cp-type-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="cp-type-check">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div>
+              <p class="cp-type-name">Manual</p>
+              <p class="cp-type-desc">You deliver directly — custom work, coaching, reviews.</p>
+            </div>
+          </div>
+
+          <!-- Link / access -->
+          <div class="cp-type-card" data-type="link" onclick="selectDeliveryType(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div class="cp-type-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </div>
+              <div class="cp-type-check">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div>
+              <p class="cp-type-name">Link / Access</p>
+              <p class="cp-type-desc">Share a private URL — course, tool, invite, or resource.</p>
+            </div>
+          </div>
+
+          <!-- Template -->
+          <div class="cp-type-card" data-type="template" onclick="selectDeliveryType(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div class="cp-type-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              </div>
+              <div class="cp-type-check">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div>
+              <p class="cp-type-name">Template</p>
+              <p class="cp-type-desc">Notion, Figma, Sheets, or any reusable document.</p>
+            </div>
+          </div>
+
+        </div><!-- /cp-type-grid -->
+        <p class="cp-err" id="cp-type-err" style="margin-top:10px;">Please select a delivery type.</p>
+
+      </div><!-- /panel-2 -->
+
+      <!-- ── STEP 3: Delivery Content (rendered dynamically by JS) ── -->
+      <div class="cp-step-panel" id="cp-panel-3"></div>
+
+      <!-- ── STEP 4: Integrations ── -->
+      <div class="cp-step-panel" id="cp-panel-4">
+
+        <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 4px;line-height:1.5;">Connect analytics and pixel tracking to your product page. All fields are optional.</p>
+        <p style="font-size:11px;font-weight:600;color:rgba(13,33,69,0.35);margin:0 0 20px;letter-spacing:.3px;">IDs are stored securely and used only on your product's checkout page.</p>
+
+        <!-- Facebook Pixel -->
+        <div class="cp-field">
+          <label class="cp-label" for="cp-fb-pixel" style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#1877f2" style="flex-shrink:0;"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Facebook Pixel ID
+            <span class="badge badge-navy" style="font-size:10px;padding:2px 8px;">Optional</span>
+          </label>
+          <input class="cp-input" id="cp-fb-pixel" type="text" inputmode="numeric" placeholder="e.g. 1234567890123456" maxlength="20" autocomplete="off"/>
+          <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">Find it in Meta Events Manager → Data Sources.</p>
+        </div>
+
+        <!-- Google Analytics -->
+        <div class="cp-field">
+          <label class="cp-label" for="cp-ga-id" style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 192 192" fill="none" style="flex-shrink:0;"><path d="M24 136c0 13.255 10.745 24 24 24s24-10.745 24-24V72c0-13.255-10.745-24-24-24S24 58.745 24 72v64z" fill="#F9AB00"/><path d="M144 160c13.255 0 24-10.745 24-24V24c0-13.255-10.745-24-24-24S120 10.745 120 24v112c0 13.255 10.745 24 24 24z" fill="#E37400"/><circle cx="48" cy="160" r="24" fill="#F9AB00"/></svg>
+            Google Analytics ID
+            <span class="badge badge-navy" style="font-size:10px;padding:2px 8px;">Optional</span>
+          </label>
+          <input class="cp-input" id="cp-ga-id" type="text" placeholder="e.g. G-XXXXXXXXXX or UA-XXXXXX-X" maxlength="24" autocomplete="off"/>
+          <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">GA4 Measurement ID or Universal Analytics tracking ID.</p>
+        </div>
+
+        <!-- Google Tag Manager -->
+        <div class="cp-field" style="margin-bottom:8px;">
+          <label class="cp-label" for="cp-gtm-id" style="display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 192 192" fill="none" style="flex-shrink:0;"><rect width="192" height="192" rx="8" fill="#8AB4F8"/><path d="M96 32L32 96l64 64 64-64-64-64zm0 22.627L151.373 96 96 151.373 40.627 96 96 54.627z" fill="#4285F4"/><path d="M96 54.627L151.373 96l-19.8 19.8L96 80.427l-35.573 35.373L40.627 96 96 54.627z" fill="#1967D2"/></svg>
+            Google Tag Manager ID
+            <span class="badge badge-navy" style="font-size:10px;padding:2px 8px;">Optional</span>
+          </label>
+          <input class="cp-input" id="cp-gtm-id" type="text" placeholder="e.g. GTM-XXXXXXX" maxlength="16" autocomplete="off"/>
+          <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:5px;">Container ID from your GTM workspace settings.</p>
+        </div>
+
+        <!-- Info notice -->
+        <div style="background:#f0faf5;border:1px solid rgba(45,138,94,0.18);border-radius:12px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;margin-top:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <p style="font-size:12px;font-weight:500;color:#2d8a5e;margin:0;line-height:1.55;">These IDs are only fired on your product's checkout and confirmation pages — not shared with any third party by Kreddlo.</p>
+        </div>
+
+      </div><!-- /panel-4 -->
+
+      <!-- ── STEP 5: Publish (rendered by cpRenderStep5) ── -->
+      <div class="cp-step-panel" id="cp-panel-5"></div>
+
+    </div><!-- /cp-body -->
+
+    <!-- Footer nav -->
+    <div class="cp-footer" id="cp-footer">
+      <button class="cp-back" id="cp-back-btn" onclick="cpBack()" style="display:none;">Back</button>
+      <button class="btn-green" id="cp-next-btn" onclick="cpNext()">
+        Next
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+  </div><!-- /cp-sheet -->
+</div><!-- /cp-overlay -->
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>�// Safety: force-hide loading overlay after 10s if auth/boot stalls�(function() {�  var _safetyTimer = setTimeout(function() {�    var ov = document.getElementById("loading-overlay");�    if (ov) { ov.style.display = "none"; }�  }, 10000);�  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };�})();�</script>�
+</body>
+</html>

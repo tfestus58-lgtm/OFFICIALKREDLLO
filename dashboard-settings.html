@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>Settings â€” Kreddlo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+/* Glass */
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+/* Buttons */
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.30);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.38)}
+.btn-green:active{transform:translateY(0)}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0d2145;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(13,33,69,0.20);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-primary:hover{background:#162f5e;transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:rgba(13,33,69,0.06);color:#0d2145;border:1px solid transparent;border-radius:50px;padding:10px 20px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .15s,transform .15s,box-shadow .15s;white-space:nowrap}
+.btn-secondary:hover{background:rgba(13,33,69,0.10);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,33,69,0.10)}
+.btn-secondary:active{transform:translateY(0)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:transparent;color:rgba(13,33,69,0.55);border:1.5px solid #e2e8f0;border-radius:50px;padding:10px 20px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.btn-ghost:hover{border-color:#0d2145;color:#0d2145;background:rgba(13,33,69,0.04)}
+
+/* Input */
+.input-field{width:100%;padding:12px 16px;background:rgba(255,255,255,0.85);border:1.5px solid #e2e8f0;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;color:#0d2145;outline:none;transition:border-color .2s,box-shadow .2s}
+.input-field:focus{border-color:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.11)}
+.input-field::placeholder{color:rgba(13,33,69,0.35)}
+textarea.input-field{resize:vertical;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.6}
+
+/* Read-only display */
+.ro-field{width:100%;padding:13px 16px;background:rgba(13,33,69,0.03);border:1.5px solid #e2e8f0;border-radius:12px;font-size:14px;font-weight:500;color:rgba(13,33,69,0.55)}
+
+/* Label */
+.label{display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-amber{background:#fff3cd;color:#856404}
+
+/* Pills (skills preview) */
+.skill-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:50px;background:rgba(45,138,94,0.10);color:#2d8a5e;font-size:12px;font-weight:600}
+.skill-pill button{background:none;border:none;color:#2d8a5e;cursor:pointer;display:flex;padding:0;line-height:0}
+
+/* Tabs */
+.tab-btn{border-radius:50px;padding:10px 20px;font-weight:600;font-size:13px;cursor:pointer;border:none;font-family:'Plus Jakarta Sans',sans-serif;transition:background .15s,color .15s,transform .15s;white-space:nowrap}
+.tab-btn.active{background:#0d2145;color:#fff;box-shadow:0 4px 16px rgba(13,33,69,0.20)}
+.tab-btn:not(.active){background:rgba(13,33,69,0.06);color:#0d2145}
+.tab-btn:not(.active):hover{background:rgba(13,33,69,0.12);transform:translateY(-1px)}
+.tab-btn:focus-visible{outline:2px solid #2d8a5e;outline-offset:2px}
+
+/* Toggle switch */
+.toggle{position:relative;width:48px;height:28px;border-radius:50px;border:none;cursor:pointer;flex-shrink:0;transition:background .2s;padding:0;background:#e2e8f0}
+.toggle.on{background:#2d8a5e}
+.toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(13,33,69,0.25);transition:transform .2s}
+.toggle.on .knob{transform:translateX(20px)}
+.toggle.disabled{opacity:0.55;cursor:not-allowed}
+.toggle:focus-visible{outline:2px solid #2d8a5e;outline-offset:2px}
+
+/* Settings row */
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid #e2e8f0;gap:16px}
+.settings-row:last-child{border-bottom:none}
+
+/* Char counter */
+.char-count{font-size:12px;font-weight:500;color:rgba(13,33,69,0.40);text-align:right;margin-top:4px}
+.char-count.over{color:#c81e1e}
+
+/* Nav */
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+/* Mobile menu */
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#091830;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:3000;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* Blobs */
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+
+/* Fade up */
+.fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
+@keyframes fu{to{opacity:1;transform:translateY(0)}}
+.fu-1{animation-delay:.05s}.fu-2{animation-delay:.12s}
+
+/* Section panels */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Error text */
+.field-error{font-size:12px;font-weight:600;color:#c81e1e;margin-top:6px;display:none}
+.field-error.show{display:block}
+
+/* Banner color circles */
+.color-circle{width:36px;height:36px;border-radius:50%;cursor:pointer;border:none;padding:0;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;flex-shrink:0}
+.color-circle:hover{transform:scale(1.08)}
+.color-circle.selected{box-shadow:0 0 0 2px #f8f9fb,0 0 0 4px rgba(13,33,69,0.30)}
+.color-circle .check{display:none;line-height:0}
+.color-circle.selected .check{display:flex}
+.color-circle:focus-visible{outline:2px solid #2d8a5e;outline-offset:2px}
+
+/* Responsive */
+@media(min-width:1024px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+}
+@media(min-width:768px){
+  #page-content{padding:32px!important}
+  .settings-card{padding:32px!important}
+  .save-btn-row{justify-content:flex-end!important}
+  .save-btn-row .btn-green{width:auto!important}
+}
+</style>
+
+<!-- Firebase CDN -->
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
+    <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
+  </div>
+</div>
+<style>
+@keyframes loaderSlide{0%{left:-100%}100%{left:100%}}
+#loader-bar{animation:loaderSlide 1.1s ease-in-out infinite}
+</style>
+
+<!-- MOBILE BACKDROP -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
+
+<!-- MOBILE MENU -->
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;margin-bottom:36px;margin-top:2px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="mb-signout" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- MAIN WRAPPER -->
+<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOPBAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">Settings</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="window.location.href='/notifications.html'" style="position:relative;width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;">U</div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;">
+
+      <!-- TAB NAV -->
+      <div class="fu fu-1" style="display:flex;gap:4px;margin-bottom:32px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
+        <button class="tab-btn active" data-tab="profile" onclick="selectTab('profile')">Profile</button>
+        <button class="tab-btn" data-tab="security" onclick="selectTab('security')">Security</button>
+        <button class="tab-btn" data-tab="wallet" onclick="selectTab('wallet')">Wallet</button>
+        <button class="tab-btn" data-tab="notifications" onclick="selectTab('notifications')">Notifications</button>
+        <button class="tab-btn" data-tab="store" onclick="selectTab('store')">Store</button>
+        <button class="tab-btn" data-tab="integrations" onclick="selectTab('integrations')">Integrations</button>
+      </div>
+
+      <div class="fu fu-2">
+
+        <!-- ===================== PROFILE TAB ===================== -->
+        <div id="tab-profile" class="tab-panel active">
+          <div class="glass settings-card" style="padding:24px;">
+
+            <!-- Photo row -->
+            <div style="display:flex;gap:20px;align-items:center;margin-bottom:28px;flex-wrap:wrap;">
+              <div style="position:relative;flex-shrink:0;">
+                <div id="photo-circle" style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;overflow:hidden;">
+                  <img id="photo-img" style="width:100%;height:100%;object-fit:cover;display:none;" alt="Profile photo"/>
+                  <span id="photo-initials">U</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:0;">
+                <h2 style="font-size:18px;font-weight:800;color:#0d2145;margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span id="profile-display-name">My Profile</span>
+                  <span id="verified-badge" class="badge badge-green" style="display:none;align-items:center;gap:4px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Pro
+                  </span>
+                </h2>
+                <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;" id="profile-handle"></p>
+                <div>
+                  <input type="file" id="photo-input" accept="image/*" style="display:none;" onchange="handlePhotoChange(event)"/>
+                  <button type="button" onclick="document.getElementById('photo-input').click()" style="background:none;border:none;color:#2d8a5e;font-size:13px;font-weight:600;cursor:pointer;padding:0;font-family:'Plus Jakarta Sans',sans-serif;">Change Photo</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form -->
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div>
+                <label class="label" for="f-name">Full Name</label>
+                <input type="text" id="f-name" class="input-field" value=""/>
+              </div>
+              <div>
+                <label class="label" for="f-title">Professional Title</label>
+                <input type="text" id="f-title" class="input-field" value="" placeholder="e.g. Full Stack Developer &amp; UI Designer"/>
+              </div>
+              <div>
+                <label class="label" for="f-skills">Skills</label>
+                <input type="text" id="f-skills" class="input-field" placeholder="Type a skill and press Enter" onkeydown="handleSkillKeydown(event)"/>
+                <div id="skills-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+              </div>
+              <div>
+                <label class="label" for="f-desc">Service Description</label>
+                <textarea id="f-desc" class="input-field" rows="4" maxlength="600" oninput="updateCharCount()" placeholder="Describe the services you offer to buyers..."></textarea>
+                <div class="char-count" id="char-count">0 / 600</div>
+              </div>
+              <div>
+                <label class="label" for="f-price">Starting Price (USD)</label>
+                <input type="number" id="f-price" class="input-field" value="" min="0" placeholder="0"/>
+              </div>
+            </div>
+
+            <div class="save-btn-row" style="display:flex;margin-top:28px;">
+              <button class="btn-green" style="width:100%;" onclick="saveProfile()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== SECURITY TAB ===================== -->
+        <div id="tab-security" class="tab-panel">
+          <div class="glass settings-card" style="padding:24px;">
+
+            <!-- Email -->
+            <div>
+              <label class="label">Email Address</label>
+              <div class="ro-field">marco.ricci@example.com</div>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.45);margin:6px 0 0;">Email cannot be changed once set.</p>
+            </div>
+
+            <!-- Change password -->
+            <div style="margin-top:28px;">
+              <h3 style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 16px;">Change Password</h3>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div>
+                  <label class="label" for="cur-pass">Current Password</label>
+                  <input type="password" id="cur-pass" class="input-field" placeholder="Enter current password"/>
+                </div>
+                <div>
+                  <label class="label" for="new-pass">New Password</label>
+                  <input type="password" id="new-pass" class="input-field" placeholder="At least 8 characters"/>
+                </div>
+                <div>
+                  <label class="label" for="confirm-pass">Confirm New Password</label>
+                  <input type="password" id="confirm-pass" class="input-field" placeholder="Re-enter new password"/>
+                </div>
+                <p id="pass-error" class="field-error"></p>
+                <div style="display:flex;">
+                  <button class="btn-primary" onclick="updatePasswordHandler()">Update Password</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2FA -->
+            <div class="settings-row" style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:24px;">
+              <div style="min-width:0;">
+                <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 4px;">Two Factor Authentication</h3>
+                <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Add an extra layer of security to your account using an authenticator app.</p>
+              </div>
+              <button class="toggle" id="toggle-2fa" onclick="toggle2FA()" role="switch" aria-checked="false">
+                <div class="knob"></div>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ===================== WALLET TAB ===================== -->
+        <div id="tab-wallet" class="tab-panel">
+          <div class="glass settings-card" style="padding:24px;">
+            <h2 style="font-size:18px;font-weight:700;color:#0d2145;margin:0 0 8px;">Your Withdrawal Wallet</h2>
+            <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 20px;">Funds are sent here when you withdraw.</p>
+
+            <!-- Display view -->
+            <div id="wallet-display-view">
+              <label class="label">Wallet Address</label>
+              <div style="display:flex;gap:10px;align-items:stretch;">
+                <div class="ro-field" id="wallet-address-display" style="flex:1;font-weight:500;font-size:14px;color:#0d2145;overflow-wrap:anywhere;word-break:break-all;">Not set</div>
+                <button class="btn-secondary" onclick="copyWalletAddress()" title="Copy address" style="flex-shrink:0;padding:0 16px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
+              <div style="margin-top:14px;">
+                <button class="btn-secondary" onclick="editWallet()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Wallet Address
+                </button>
+              </div>
+            </div>
+
+            <!-- Edit view -->
+            <div id="wallet-edit-view" style="display:none;">
+              <label class="label" for="wallet-edit-input">Wallet Address</label>
+              <input type="text" id="wallet-edit-input" class="input-field"/>
+              <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+                <button class="btn-green" onclick="saveWallet()">Save</button>
+                <button class="btn-ghost" onclick="cancelEditWallet()">Cancel</button>
+              </div>
+            </div>
+
+            <!-- Warning -->
+            <div style="background:#fff3cd;border-radius:12px;padding:16px;margin-top:20px;">
+              <p style="color:#856404;font-size:13px;font-weight:600;margin:0;line-height:1.6;">Changing your wallet address applies to future withdrawals only. Any payouts already initiated will be sent to your previous address.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== NOTIFICATIONS TAB ===================== -->
+        <div id="tab-notifications" class="tab-panel">
+          <div class="glass settings-card" style="padding:24px;">
+            <h2 style="font-size:18px;font-weight:700;color:#0d2145;margin:0 0 24px;">Notification Preferences</h2>
+            <div id="notif-rows"></div>
+          </div>
+        </div>
+
+        <!-- ===================== STORE TAB ===================== -->
+        <div id="tab-store" class="tab-panel">
+          <div class="glass settings-card" style="padding:24px;">
+
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+              <!-- Store URL slug -->
+              <div>
+                <label class="label" for="f-store-slug">Your Store URL</label>
+                <div style="display:flex;align-items:stretch;border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.85);">
+                  <span style="display:flex;align-items:center;padding-left:16px;font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);white-space:nowrap;">kreddlo.com/store/</span>
+                  <input type="text" id="f-store-slug" class="input-field" style="border:none;border-radius:0;background:transparent;padding-left:2px;" placeholder="your-name" autocomplete="off" oninput="handleStoreSlugInput()"/>
+                </div>
+                <div id="store-slug-status" style="font-size:12px;font-weight:600;margin-top:6px;min-height:16px;"></div>
+              </div>
+
+              <!-- Store Bio -->
+              <div>
+                <label class="label" for="f-store-bio">Store Bio</label>
+                <textarea id="f-store-bio" class="input-field" style="min-height:80px;" maxlength="200" oninput="updateStoreBioCount()" placeholder="Tell buyers what your store is about"></textarea>
+                <div class="char-count" id="store-bio-count">0 / 200</div>
+              </div>
+
+              <!-- Store Banner Color -->
+              <div>
+                <label class="label">Store Banner Color</label>
+                <div id="banner-color-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;"></div>
+              </div>
+
+            </div>
+
+            <div class="save-btn-row" style="display:flex;margin-top:28px;">
+              <button class="btn-green" style="width:100%;" onclick="saveStoreSettings()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Store Settings
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== INTEGRATIONS TAB ===================== -->
+        <div id="tab-integrations" class="tab-panel">
+          <div class="glass settings-card" style="padding:24px;">
+
+            <!-- Global Tracking -->
+            <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 4px;">Global Tracking</h3>
+            <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 18px;">These fire on every product purchase across your entire store.</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label class="label" for="f-fb-pixel">Facebook Pixel ID</label>
+                <input type="text" id="f-fb-pixel" class="input-field" placeholder="e.g. 1234567890123456" autocomplete="off"/>
+                <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.45);margin:6px 0 0;">Your Meta Pixel ID from Events Manager.</p>
+              </div>
+              <div>
+                <label class="label" for="f-ga-id">Google Analytics ID</label>
+                <input type="text" id="f-ga-id" class="input-field" placeholder="G-XXXXXXXXXX" autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-gtm-id">Google Tag Manager ID</label>
+                <input type="text" id="f-gtm-id" class="input-field" placeholder="GTM-XXXXXXX" autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-tiktok-pixel">TikTok Pixel ID</label>
+                <input type="text" id="f-tiktok-pixel" class="input-field" placeholder="e.g. C4A1B2C3D4E5F6G7H8I9" autocomplete="off"/>
+              </div>
+            </div>
+
+            <!-- Connected Links -->
+            <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:28px 0 4px;">Connected Links</h3>
+            <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 18px;">These pre-fill your product delivery forms automatically.</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label class="label" for="f-calendly">Calendly URL</label>
+                <input type="url" id="f-calendly" class="input-field" placeholder="https://calendly.com/your-name" autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-zoom">Zoom Personal Meeting Link</label>
+                <input type="url" id="f-zoom" class="input-field" placeholder="https://zoom.us/j/..." autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-telegram">Telegram Group Invite Link</label>
+                <input type="url" id="f-telegram" class="input-field" placeholder="https://t.me/..." autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-youtube">YouTube Channel Link</label>
+                <input type="url" id="f-youtube" class="input-field" placeholder="https://youtube.com/@..." autocomplete="off"/>
+              </div>
+              <div>
+                <label class="label" for="f-drive">Google Drive Shared Folder Link</label>
+                <input type="url" id="f-drive" class="input-field" placeholder="https://drive.google.com/drive/folders/..." autocomplete="off"/>
+              </div>
+            </div>
+
+            <div class="save-btn-row" style="display:flex;margin-top:28px;">
+              <button class="btn-green" style="width:100%;" onclick="saveIntegrations()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Integrations
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ============ USER STATE ============
+var DEMO = { name: '', role: 'freelancer', uid: '' };
+
+var SKILLS = [];
+
+var TWO_FA_ENABLED = false;
+
+var WALLET_ADDRESS = '';
+
+// ============ STORE / INTEGRATIONS ============
+var BANNER_COLORS = [
+  { key:'navy',   hex:'#0d2145' },
+  { key:'green',  hex:'#2d8a5e' },
+  { key:'purple', hex:'#6b46c1' },
+  { key:'blue',   hex:'#1a56db' },
+  { key:'orange', hex:'#c85a1a' },
+  { key:'pink',   hex:'#c81e6b' }
+];
+var SELECTED_BANNER_COLOR = 'navy';
+var CURRENT_STORE_SLUG = '';
+var storeSlugTimer = null;
+
+var NOTIF_PREFS = {
+  paymentReceived: true,
+  contractSigned: true,
+  payoutSent: true,
+  disputeUpdate: true,
+  newMessage: true,
+  platformAnnouncements: false
+};
+
+var NOTIF_TYPES = [
+  { key:'paymentReceived',        label:'Payment Received',       desc:'When a client funds escrow for your project.',           locked:true  },
+  { key:'contractSigned',         label:'Contract Signed',        desc:'When a service agreement is signed by both parties.',    locked:false },
+  { key:'payoutSent',             label:'Payout Sent',            desc:'When a withdrawal has been processed and sent.',         locked:true  },
+  { key:'disputeUpdate',          label:'Dispute Update',         desc:'When there is an update on a dispute you are part of.',  locked:false },
+  { key:'newMessage',             label:'New Message',            desc:'When you receive a new message from a client.',          locked:false },
+  { key:'platformAnnouncements',  label:'Platform Announcements', desc:'News, feature updates and important platform notices.',  locked:false }
+];
+
+// ============ NAV ============
+var NAV = [
+  { label:'Dashboard',     href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Earnings',      href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+  { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+  { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+];
+
+function buildNav() {
+  var cur = (window.location.pathname.split('/').pop() || 'dashboard-settings.html');
+  var html = NAV.map(function(n) {
+    var active = cur === n.href.replace('/','') ? ' active' : '';
+    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML = html;
+  document.getElementById('desktop-nav').innerHTML = html;
+}
+
+// ============ MOBILE MENU ============
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ============ LOGOUT ============
+function handleLogout() { showToast('Signed out (demo mode)'); }
+document.getElementById('mb-signout').onclick = handleLogout;
+document.getElementById('dt-signout').onclick = handleLogout;
+
+// ============ TABS ============
+function selectTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(p) {
+    p.classList.toggle('active', p.id === 'tab-'+tab);
+  });
+}
+
+// ============ PHOTO ============
+function handlePhotoChange(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    var img = document.getElementById('photo-img');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('photo-initials').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+  showToast('Photo selected. Save Changes to apply.');
+}
+
+// ============ SKILLS ============
+function renderSkills() {
+  document.getElementById('skills-preview').innerHTML = SKILLS.map(function(s, i) {
+    return '<span class="skill-pill">'+s
+      +'<button type="button" onclick="removeSkill('+i+')" aria-label="Remove '+s+'">'
+        +'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+      +'</button>'
+    +'</span>';
+  }).join('');
+}
+function handleSkillKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  var input = document.getElementById('f-skills');
+  var val = input.value.trim();
+  if (!val) return;
+  if (SKILLS.map(function(s){return s.toLowerCase();}).indexOf(val.toLowerCase()) !== -1) {
+    input.value = '';
+    return;
+  }
+  SKILLS.push(val);
+  input.value = '';
+  renderSkills();
+}
+function removeSkill(i) {
+  SKILLS.splice(i, 1);
+  renderSkills();
+}
+
+// ============ CHAR COUNT ============
+function updateCharCount() {
+  var ta = document.getElementById('f-desc');
+  var count = ta.value.length;
+  var el = document.getElementById('char-count');
+  el.textContent = count + ' / 600';
+  el.classList.toggle('over', count > 600);
+}
+
+// ============ PROFILE SAVE ============
+async function saveProfile() {
+  var name = document.getElementById('f-name').value.trim();
+  var title = document.getElementById('f-title').value.trim();
+  var price = document.getElementById('f-price').value;
+  var desc = document.getElementById('f-desc').value.trim();
+  if (!name) { showToast('Full name is required'); return; }
+  if (!title) { showToast('Professional title is required'); return; }
+  if (SKILLS.length === 0) { showToast('Add at least one skill'); return; }
+  if (price === '' || Number(price) < 0) { showToast('Enter a valid starting price'); return; }
+
+  var ready = await waitForFirestore();
+  if (!ready || !DEMO.uid) { showToast('Could not connect â€” try again.'); return; }
+
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), {
+      name: name,
+      title: title,
+      description: desc,
+      startingPrice: Number(price),
+      skills: SKILLS
+    }, { merge: true });
+
+    document.getElementById('profile-display-name').textContent = name;
+    showToast('Profile updated successfully');
+  } catch (e) {
+    console.warn('[Settings] Could not save profile:', e);
+    showToast('Could not save profile â€” try again.');
+  }
+}
+
+// ============ SECURITY ============
+function updatePasswordHandler() {
+  var cur = document.getElementById('cur-pass').value;
+  var pass = document.getElementById('new-pass').value;
+  var confirm = document.getElementById('confirm-pass').value;
+  var errEl = document.getElementById('pass-error');
+  errEl.classList.remove('show');
+
+  if (!cur) { errEl.textContent = 'Enter your current password.'; errEl.classList.add('show'); return; }
+  if (pass.length < 8) { errEl.textContent = 'New password must be at least 8 characters.'; errEl.classList.add('show'); return; }
+  if (pass !== confirm) { errEl.textContent = 'New password and confirmation do not match.'; errEl.classList.add('show'); return; }
+
+  // Demo mode: would call Firebase Auth updatePassword here
+  document.getElementById('cur-pass').value = '';
+  document.getElementById('new-pass').value = '';
+  document.getElementById('confirm-pass').value = '';
+  showToast('Password updated successfully');
+}
+
+function toggle2FA() {
+  TWO_FA_ENABLED = !TWO_FA_ENABLED;
+  var btn = document.getElementById('toggle-2fa');
+  btn.classList.toggle('on', TWO_FA_ENABLED);
+  btn.setAttribute('aria-checked', TWO_FA_ENABLED ? 'true' : 'false');
+  showToast(TWO_FA_ENABLED ? 'Two factor authentication enabled' : 'Two factor authentication disabled');
+}
+
+// ============ WALLET ============
+function copyWalletAddress() {
+  if (!WALLET_ADDRESS) { showToast('No wallet address set'); return; }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(WALLET_ADDRESS).then(function() { showToast('Copied'); });
+  } else {
+    showToast(WALLET_ADDRESS);
+  }
+}
+function editWallet() {
+  document.getElementById('wallet-edit-input').value = WALLET_ADDRESS;
+  document.getElementById('wallet-display-view').style.display = 'none';
+  document.getElementById('wallet-edit-view').style.display = 'block';
+}
+function cancelEditWallet() {
+  document.getElementById('wallet-edit-view').style.display = 'none';
+  document.getElementById('wallet-display-view').style.display = 'block';
+}
+async function saveWallet() {
+  var val = document.getElementById('wallet-edit-input').value.trim();
+  if (!val) { showToast('Wallet address cannot be empty'); return; }
+  WALLET_ADDRESS = val;
+  document.getElementById('wallet-address-display').textContent = WALLET_ADDRESS;
+  document.getElementById('wallet-edit-view').style.display = 'none';
+  document.getElementById('wallet-display-view').style.display = 'block';
+
+  var ready = await waitForFirestore();
+  if (ready && DEMO.uid) {
+    try {
+      var { doc, setDoc } = window._fsSettings;
+      await setDoc(doc(window.db, 'users', DEMO.uid), { walletAddress: WALLET_ADDRESS }, { merge: true });
+    } catch (e) {
+      console.warn('[Settings] Could not save wallet address:', e);
+    }
+  }
+  showToast('Wallet address updated');
+}
+
+// ============ NOTIFICATIONS ============
+var lockIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+
+function renderNotifPrefs() {
+  document.getElementById('notif-rows').innerHTML = NOTIF_TYPES.map(function(n) {
+    var isOn = !!NOTIF_PREFS[n.key];
+    var lockedAttrs = n.locked ? ' disabled' : '';
+    var toggleCls = 'toggle' + (isOn ? ' on' : '') + (n.locked ? ' disabled' : '');
+    var onclick = n.locked ? '' : ' onclick="toggleNotif(\''+n.key+'\')"';
+    return '<div class="settings-row">'
+      +'<div style="min-width:0;">'
+        +'<div style="font-size:14px;font-weight:600;color:#0d2145;">'+n.label+'</div>'
+        +'<div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin-top:2px;">'+n.desc+'</div>'
+      +'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">'
+        +(n.locked ? lockIcon : '')
+        +'<button class="'+toggleCls+'"'+lockedAttrs+onclick+' role="switch" aria-checked="'+isOn+'"><div class="knob"></div></button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+function toggleNotif(key) {
+  NOTIF_PREFS[key] = !NOTIF_PREFS[key];
+  renderNotifPrefs();
+  showToast('Preference updated');
+}
+
+// ============ STORE TAB ============
+function renderBannerColors() {
+  var checkSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  document.getElementById('banner-color-row').innerHTML = BANNER_COLORS.map(function(c) {
+    var sel = c.key === SELECTED_BANNER_COLOR;
+    return '<button type="button" class="color-circle'+(sel ? ' selected' : '')+'" style="background:'+c.hex+';" onclick="selectBannerColor(\''+c.key+'\')" aria-label="'+c.key+' banner color" title="'+c.key+'">'
+      +'<span class="check">'+checkSvg+'</span>'
+    +'</button>';
+  }).join('');
+}
+function selectBannerColor(key) {
+  SELECTED_BANNER_COLOR = key;
+  renderBannerColors();
+}
+
+function updateStoreBioCount() {
+  var ta = document.getElementById('f-store-bio');
+  var count = ta.value.length;
+  var el = document.getElementById('store-bio-count');
+  el.textContent = count + ' / 200';
+  el.classList.toggle('over', count > 200);
+}
+
+function waitForFirestore() {
+  return new Promise(function(resolve) {
+    var waited = 0;
+    (function check() {
+      if (window.db && window._fsSettings) { resolve(true); return; }
+      if (waited >= 5000) { resolve(false); return; }
+      waited += 100;
+      setTimeout(check, 100);
+    })();
+  });
+}
+
+function handleStoreSlugInput() {
+  var input = document.getElementById('f-store-slug');
+  var statusEl = document.getElementById('store-slug-status');
+  var val = input.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (val !== input.value) input.value = val;
+
+  clearTimeout(storeSlugTimer);
+
+  if (!val) { statusEl.textContent = ''; return; }
+  if (val.length < 3) {
+    statusEl.textContent = 'Must be at least 3 characters';
+    statusEl.style.color = '#c81e1e';
+    return;
+  }
+  statusEl.textContent = 'Checking availability...';
+  statusEl.style.color = 'rgba(13,33,69,0.45)';
+  storeSlugTimer = setTimeout(function() { checkStoreSlugAvailability(val); }, 500);
+}
+
+async function checkStoreSlugAvailability(val) {
+  var statusEl = document.getElementById('store-slug-status');
+
+  if (val === CURRENT_STORE_SLUG) {
+    statusEl.textContent = 'This is your current store URL';
+    statusEl.style.color = 'rgba(13,33,69,0.45)';
+    return;
+  }
+
+  var ready = await waitForFirestore();
+  if (!ready) { statusEl.textContent = ''; return; }
+
+  try {
+    var { collection, query, where, getDocs } = window._fsSettings;
+    var q = query(
+      collection(window.db, 'users'),
+      where('storeSettings.storeSlug', '==', val)
+    );
+    var snap = await getDocs(q);
+
+    if (snap.empty) {
+      statusEl.textContent = 'Available';
+      statusEl.style.color = '#2d8a5e';
+    } else {
+      statusEl.textContent = 'This URL is already taken';
+      statusEl.style.color = '#c81e1e';
+    }
+  } catch (e) {
+    console.warn('[Settings] Could not check store slug:', e);
+    statusEl.textContent = '';
+  }
+}
+
+async function saveStoreSettings() {
+  var slug = document.getElementById('f-store-slug').value.trim().toLowerCase();
+  var bio = document.getElementById('f-store-bio').value.trim();
+
+  if (slug && slug.length < 3) { showToast('Store URL must be at least 3 characters'); return; }
+
+  var ready = await waitForFirestore();
+  if (!ready) { showToast('Could not connect. Please try again.'); return; }
+
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), {
+      storeSettings: {
+        storeSlug: slug,
+        storeBio: bio,
+        bannerColor: SELECTED_BANNER_COLOR
+      }
+    }, { merge: true });
+    CURRENT_STORE_SLUG = slug;
+    showToast('Store settings saved');
+  } catch (e) {
+    console.warn('[Settings] Could not save store settings:', e);
+    showToast('Could not save store settings');
+  }
+}
+
+// ============ INTEGRATIONS TAB ============
+async function saveIntegrations() {
+  var data = {
+    facebookPixelId:    document.getElementById('f-fb-pixel').value.trim(),
+    googleAnalyticsId:  document.getElementById('f-ga-id').value.trim(),
+    googleTagManagerId: document.getElementById('f-gtm-id').value.trim(),
+    tiktokPixelId:      document.getElementById('f-tiktok-pixel').value.trim(),
+    calendlyUrl:        document.getElementById('f-calendly').value.trim(),
+    zoomLink:           document.getElementById('f-zoom').value.trim(),
+    telegramLink:       document.getElementById('f-telegram').value.trim(),
+    youtubeLink:        document.getElementById('f-youtube').value.trim(),
+    driveLink:          document.getElementById('f-drive').value.trim()
+  };
+
+  var ready = await waitForFirestore();
+  if (!ready) { showToast('Could not connect. Please try again.'); return; }
+
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), { integrations: data }, { merge: true });
+    showToast('Integration settings saved');
+  } catch (e) {
+    console.warn('[Settings] Could not save integrations:', e);
+    showToast('Could not save integrations');
+  }
+}
+
+// ============ LOAD STORE / INTEGRATIONS DATA ============
+async function loadStoreAndIntegrationSettings() {
+  var ready = await waitForFirestore();
+  if (!ready) return;
+
+  try {
+    var { doc, getDoc } = window._fsSettings;
+    var snap = await getDoc(doc(window.db, 'users', DEMO.uid));
+    if (!snap.exists()) return;
+
+    var data = snap.data() || {};
+    var store = data.storeSettings || {};
+    var integ = data.integrations || {};
+
+    if (store.storeSlug) {
+      document.getElementById('f-store-slug').value = store.storeSlug;
+      CURRENT_STORE_SLUG = store.storeSlug;
+    }
+    if (typeof store.storeBio === 'string') {
+      document.getElementById('f-store-bio').value = store.storeBio;
+      updateStoreBioCount();
+    }
+    if (store.bannerColor) {
+      SELECTED_BANNER_COLOR = store.bannerColor;
+      renderBannerColors();
+    }
+
+    var integFields = {
+      'f-fb-pixel':    integ.facebookPixelId,
+      'f-ga-id':       integ.googleAnalyticsId,
+      'f-gtm-id':      integ.googleTagManagerId,
+      'f-tiktok-pixel':integ.tiktokPixelId,
+      'f-calendly':    integ.calendlyUrl,
+      'f-zoom':        integ.zoomLink,
+      'f-telegram':    integ.telegramLink,
+      'f-youtube':     integ.youtubeLink,
+      'f-drive':       integ.driveLink
+    };
+    Object.keys(integFields).forEach(function(id) {
+      if (typeof integFields[id] === 'string') document.getElementById(id).value = integFields[id];
+    });
+  } catch (e) {
+    console.warn('[Settings] Could not load store/integration settings:', e);
+  }
+}
+
+// ============ TOAST ============
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+// ============ ESCAPE KEY ============
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  closeMobileMenu();
+});
+
+// ============ BOOT ============
+window._boot = function(user) {
+  DEMO.uid  = user.uid;
+  DEMO.name = user.displayName || user.email || 'User';
+
+  var parts    = DEMO.name.trim().split(' ');
+  var initials = parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : DEMO.name.slice(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent    = initials;
+  document.getElementById('photo-initials').textContent = initials;
+
+  // Fallback display while profile loads
+  document.getElementById('profile-display-name').textContent = DEMO.name;
+  document.getElementById('f-name').value = DEMO.name;
+
+  buildNav();
+  renderSkills();
+  updateCharCount();
+  renderNotifPrefs();
+  renderBannerColors();
+  updateStoreBioCount();
+  document.getElementById('wallet-address-display').textContent = WALLET_ADDRESS || 'Not set';
+  document.getElementById('bell-dot').style.display = 'block';
+
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  loadProfile();
+  loadStoreAndIntegrationSettings();
+};
+
+// ============ LOAD PROFILE ============
+async function loadProfile() {
+  var ready = await waitForFirestore();
+  if (!ready || !DEMO.uid) return;
+
+  try {
+    var { doc, getDoc } = window._fsSettings;
+    var snap = await getDoc(doc(window.db, 'users', DEMO.uid));
+    if (!snap.exists()) return;
+
+    var data = snap.data() || {};
+
+    var displayName = data.name || data.displayName || DEMO.name;
+    document.getElementById('profile-display-name').textContent = displayName;
+    document.getElementById('f-name').value = displayName;
+
+    var handle = (data.username || data.storeSettings?.storeSlug || '').trim();
+    document.getElementById('profile-handle').textContent = handle ? '@' + handle : '';
+
+    if (typeof data.title === 'string')       document.getElementById('f-title').value = data.title;
+    if (typeof data.description === 'string') { document.getElementById('f-desc').value = data.description; updateCharCount(); }
+    if (data.startingPrice != null)            document.getElementById('f-price').value = data.startingPrice;
+    if (Array.isArray(data.skills)) { SKILLS = data.skills.slice(); renderSkills(); }
+
+    if (data.photoUrl) {
+      var img = document.getElementById('photo-img');
+      img.src = data.photoUrl;
+      img.style.display = 'block';
+      document.getElementById('photo-initials').style.display = 'none';
+    }
+
+    // Pro badge
+    var badge = document.getElementById('verified-badge');
+    if (data.plan === 'pro') {
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    // Wallet
+    if (typeof data.walletAddress === 'string' && data.walletAddress) {
+      WALLET_ADDRESS = data.walletAddress;
+      document.getElementById('wallet-address-display').textContent = WALLET_ADDRESS;
+    }
+  } catch (e) {
+    console.warn('[Settings] Could not load profile:', e);
+  }
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>Â// Safety: force-hide loading overlay after 10s if auth/boot stallsÂ(function() {Â  var _safetyTimer = setTimeout(function() {Â    var ov = document.getElementById("loading-overlay");Â    if (ov) { ov.style.display = "none"; }Â  }, 10000);Â  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };Â})();Â</script>Â
+
+<script type="module">
+  import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged }                            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs }
+                                                                    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const FIREBASE_CONFIG = {
+    apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+    authDomain:        'kreddlo.firebaseapp.com',
+    projectId:         'kreddlo',
+    storageBucket:     'kreddlo.firebasestorage.app',
+    messagingSenderId: '764500458567',
+    appId:             '1:764500458567:web:2389d5cf8c688caafd0562',
+  };
+
+  const app = initializeApp(FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  window.db = getFirestore(app);
+  window._fsSettings = { doc, getDoc, setDoc, collection, query, where, getDocs };
+
+  onAuthStateChanged(auth, function(user) {
+    if (!user) { window.location.href = '/login.html'; return; }
+    if (typeof window._boot === 'function') window._boot(user);
+  });
+</script>
+</body>
+</html>

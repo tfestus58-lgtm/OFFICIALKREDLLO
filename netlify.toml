@@ -1,0 +1,170 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions."kyc-submit"]
+  included_files = []
+
+
+[functions."scheduled-subscriptions"]
+  schedule = "0 0 * * *"
+
+[functions."process-email-queue"]
+  schedule = "*/5 * * * *"
+
+# ── Clean URL redirects ──────────────────────────────────────────────────────
+[[redirects]]
+  from = "/dashboard"
+  to   = "/dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-earnings"
+  to   = "/dashboard-earnings.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-projects"
+  to   = "/dashboard-projects.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-withdraw"
+  to   = "/dashboard-withdraw.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-contracts"
+  to   = "/dashboard-contracts.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-settings"
+  to   = "/dashboard-settings.html"
+  status = 200
+
+[[redirects]]
+  from = "/buyer-dashboard"
+  to   = "/buyer-dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/buyer-projects"
+  to   = "/buyer-projects.html"
+  status = 200
+
+[[redirects]]
+  from = "/buyer-payments"
+  to   = "/buyer-payments.html"
+  status = 200
+
+[[redirects]]
+  from = "/notifications"
+  to   = "/notifications.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile-setup"
+  to   = "/profile-setup.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
+  to   = "/profile.html"
+  status = 200
+
+[[redirects]]
+  from = "/browse"
+  to   = "/browse.html"
+  status = 200
+
+[[redirects]]
+  from = "/pricing"
+  to   = "/pricing.html"
+  status = 200
+
+[[redirects]]
+  from = "/how-it-works"
+  to   = "/how-it-works.html"
+  status = 200
+
+[[redirects]]
+  from = "/about"
+  to   = "/about.html"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to   = "/privacy.html"
+  status = 200
+
+[[redirects]]
+  from = "/terms"
+  to   = "/terms.html"
+  status = 200
+
+[[redirects]]
+  from = "/signup"
+  to   = "/signup.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to   = "/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/verify"
+  to   = "/verify.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to   = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/stripe-webhook"
+  to   = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/paystack-webhook"
+  to   = "/.netlify/functions/paystack-webhook"
+  status = 200
+
+[[redirects]]
+  from = "/p"
+  to   = "/p.html"
+  status = 200
+
+[[redirects]]
+  from = "/p/:slug"
+  to   = "/p.html"
+  status = 200
+
+[[redirects]]
+  from = "/store"
+  to   = "/store.html"
+  status = 200
+
+[[redirects]]
+  from = "/store/:slug"
+  to   = "/store.html"
+  status = 200
+
+[[redirects]]
+  from = "/review"
+  to   = "/review.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard-products"
+  to   = "/dashboard-products.html"
+  status = 200

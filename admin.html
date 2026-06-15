@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>Admin Panel - Kreddlo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy: '#0d2145',
+        'navy-deep': '#091830',
+        'navy-mid': '#162f5e',
+        green: '#2d8a5e',
+        'green-light': '#3dbd7a',
+        'green-pale': '#e8f5ef',
+        cream: '#f8f9fb',
+        border: '#e2e8f0',
+        error: '#c81e1e',
+        'error-pale': '#fde8e8',
+        warning: '#856404',
+        'warning-pale': '#fff3cd',
+        info: '#1a56db',
+        'info-pale': '#e8f0fe'
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif']
+      },
+      borderRadius: {
+        card: '20px',
+        btn: '50px',
+        input: '12px',
+        badge: '50px',
+        modal: '24px'
+      }
+    }
+  }
+}
+</script>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: #f8f9fb;
+  color: #0d2145;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Section visibility */
+.admin-section { display: none; }
+.section-active { display: block; }
+
+/* Glass */
+.glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.35); border-radius: 20px; box-shadow: 0 8px 32px rgba(13,33,69,0.08); }
+
+/* Nav links */
+.nav-link { display: flex; align-items: center; gap: 11px; padding: 10px 13px; border-radius: 11px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.52); text-decoration: none; transition: background .15s, color .15s; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; }
+.nav-link:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.88); }
+.nav-link.active { background: rgba(45,138,94,0.22); color: #fff; border-left: 3px solid #3dbd7a; padding-left: 10px; }
+.nav-link svg { flex-shrink: 0; }
+
+/* Stat cards */
+.stat-card { border-radius: 20px; padding: 22px; transition: box-shadow .2s, transform .2s; }
+.stat-card:hover { box-shadow: 0 10px 40px rgba(13,33,69,0.13); transform: translateY(-2px); }
+.stat-val { font-size: 34px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; }
+.stat-lbl { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(13,33,69,0.48); margin-top: 5px; }
+.stat-sub { font-size: 12px; font-weight: 500; margin-top: 8px; color: rgba(13,33,69,0.45); display: flex; align-items: center; gap: 4px; }
+.stat-icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* Buttons */
+.btn-navy { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #0d2145; color: #fff; border: none; border-radius: 50px; padding: 11px 24px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; box-shadow: 0 4px 16px rgba(13,33,69,0.20); transition: transform .15s, box-shadow .15s, background .15s; }
+.btn-navy:hover { background: #162f5e; transform: translateY(-1px); }
+.btn-navy:focus-visible { outline: 2px solid #2d8a5e; outline-offset: 3px; }
+.btn-navy:active { transform: translateY(0); }
+
+.btn-green { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #2d8a5e; color: #fff; border: none; border-radius: 50px; padding: 11px 24px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; box-shadow: 0 4px 16px rgba(45,138,94,0.30); transition: transform .15s, box-shadow .15s, background .15s; }
+.btn-green:hover { background: #236b49; transform: translateY(-1px); }
+.btn-green:focus-visible { outline: 2px solid #3dbd7a; outline-offset: 3px; }
+.btn-green:active { transform: translateY(0); }
+
+.btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: transparent; color: #0d2145; border: 1.5px solid #e2e8f0; border-radius: 50px; padding: 10px 22px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: transform .15s, border-color .15s, background .15s; }
+.btn-secondary:hover { border-color: #0d2145; background: rgba(13,33,69,0.04); transform: translateY(-1px); }
+.btn-secondary:focus-visible { outline: 2px solid #2d8a5e; outline-offset: 3px; }
+.btn-secondary:active { transform: translateY(0); }
+
+/* Input */
+.input-field { width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.85); border: 1.5px solid #e2e8f0; border-radius: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500; color: #0d2145; outline: none; transition: border-color .2s, box-shadow .2s; }
+.input-field:focus { border-color: #2d8a5e; box-shadow: 0 0 0 3px rgba(45,138,94,0.11); }
+.input-field::placeholder { color: rgba(13,33,69,0.35); }
+
+/* Label */
+.lbl { font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; color: rgba(13,33,69,0.48); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 50px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
+.badge-green  { background: #e8f5ef; color: #2d8a5e; }
+.badge-navy   { background: rgba(13,33,69,0.08); color: #0d2145; }
+.badge-amber  { background: #fff3cd; color: #856404; }
+.badge-blue   { background: #e8f0fe; color: #1a56db; }
+.badge-red    { background: #fde8e8; color: #c81e1e; }
+.badge-grey   { background: rgba(13,33,69,0.07); color: rgba(13,33,69,0.55); }
+
+/* Skeleton */
+.sk { background: linear-gradient(90deg, #f0f2f6 25%, #e8eaf0 50%, #f0f2f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite linear; border-radius: 8px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Mobile menu animation */
+.slide-in { transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1); }
+.slide-in.open { transform: translateX(0); }
+.dim { opacity: 0; pointer-events: none; transition: opacity .28s; }
+.dim.open { opacity: 1; pointer-events: all; }
+
+/* Fade-up animation */
+.fu { opacity: 0; transform: translateY(18px); animation: fu .45s ease forwards; }
+@keyframes fu { to { opacity: 1; transform: translateY(0); } }
+.fu-1 { animation-delay: .05s; } .fu-2 { animation-delay: .12s; } .fu-3 { animation-delay: .19s; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: #091830; color: #fff; border-radius: 50px; padding: 11px 22px; font-size: 13px; font-weight: 600; z-index: 3000; opacity: 0; pointer-events: none; transition: transform .25s, opacity .25s; white-space: nowrap; max-width: 90vw; text-align: center; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Modal */
+.modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(9,24,48,0.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 20px; }
+.modal.open { display: flex; }
+.modal-box { background: #fff; border-radius: 24px; box-shadow: 0 24px 80px rgba(13,33,69,0.20); width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 28px; }
+
+/* Loading overlay */
+#loading-overlay {
+  position: fixed; inset: 0; z-index: 9999; background: #f8f9fb;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+}
+.load-bar { width: 44px; height: 3px; border-radius: 2px; overflow: hidden; background: #e8eaf0; position: relative; }
+.load-bar-inner { position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(to right, #2d8a5e, #3dbd7a); animation: loadSlide 1.1s infinite linear; }
+@keyframes loadSlide { 0% { left: -100%; } 100% { left: 100%; } }
+
+/* Sidebar / mobile menu */
+#mobile-menu, #sidebar { background: #091830; }
+#mobile-menu { position: fixed; top: 0; right: 0; width: 272px; height: 100%; z-index: 500; padding: 30px 22px; display: flex; flex-direction: column; overflow-y: auto; }
+#mobile-backdrop { position: fixed; inset: 0; z-index: 400; background: rgba(9,24,48,0.58); }
+#sidebar { position: fixed; top: 0; left: 0; width: 248px; height: 100%; z-index: 300; padding: 30px 18px; display: none; flex-direction: column; overflow-y: auto; }
+
+#main-wrap { min-height: 100vh; display: flex; flex-direction: column; }
+
+#topbar {
+  position: sticky; top: 0; z-index: 200; height: 64px;
+  background: rgba(248,249,251,0.92); backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+}
+
+#page-content { flex: 1; padding: 22px 18px; max-width: 1200px; width: 100%; margin: 0 auto; position: relative; }
+
+/* Overview grid â€” mobile-first: 1 col on phones */
+#overview-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
+@media(min-width: 480px) {
+  #overview-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Pills */
+.filter-pill { padding: 9px 20px; border-radius: 50px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: background .15s, color .15s, box-shadow .15s; }
+.filter-pill.active { background: #0d2145; color: #fff; box-shadow: 0 4px 16px rgba(13,33,69,0.20); }
+.filter-pill:not(.active) { background: rgba(13,33,69,0.06); color: #0d2145; }
+.filter-pill:not(.active):hover { background: rgba(13,33,69,0.10); }
+
+/* Table action buttons */
+.action-btn { font-size: 12px; border-radius: 8px; padding: 6px 12px; font-weight: 600; border: none; cursor: pointer; transition: transform .12s, background .15s; }
+.action-btn:hover { transform: translateY(-1px); }
+.action-btn:active { transform: translateY(0); }
+.action-view { background: rgba(13,33,69,0.07); color: #0d2145; }
+.action-view:hover { background: rgba(13,33,69,0.12); }
+.action-suspend { background: rgba(133,100,4,0.10); color: #856404; }
+.action-suspend:hover { background: rgba(133,100,4,0.18); }
+.action-suspend.unsuspend { background: rgba(45,138,94,0.10); color: #2d8a5e; }
+.action-suspend.unsuspend:hover { background: rgba(45,138,94,0.18); }
+.action-ban { background: rgba(200,30,30,0.10); color: #c81e1e; }
+.action-ban:hover { background: rgba(200,30,30,0.18); }
+.action-banned { background: rgba(13,33,69,0.07); color: rgba(13,33,69,0.55); opacity: 0.5; cursor: default; }
+.action-banned:hover { transform: none; }
+
+/* Users table */
+#users-table-desktop .users-row { display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
+#users-table-desktop .users-row:last-child { border-bottom: none; }
+#users-table-desktop .users-row:hover { background: rgba(13,33,69,0.02); }
+#users-table-desktop .users-header { display: flex; align-items: center; padding: 12px 20px; background: rgba(13,33,69,0.02); }
+.col-name { flex: 2; min-width: 0; }
+.col-role { flex: 1; }
+.col-kyc { flex: 1; }
+.col-joined { flex: 1; }
+.col-actions { flex: 1.4; }
+
+.mobile-user-card { padding: 16px 20px; border-bottom: 1px solid #f0f2f6; }
+.mobile-user-card:last-child { border-bottom: none; }
+
+/* Transactions table */
+#tx-table-desktop .tx-header,
+#tx-table-desktop .tx-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.2fr 90px 80px 80px 90px 110px 100px;
+  gap: 10px;
+  align-items: center;
+}
+#tx-table-desktop .tx-header { padding: 12px 20px; background: rgba(13,33,69,0.02); }
+#tx-table-desktop .tx-row { padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
+#tx-table-desktop .tx-row:last-child { border-bottom: none; }
+#tx-table-desktop .tx-row:hover { background: rgba(13,33,69,0.02); }
+.tx-project-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 14px; color: #0d2145; }
+
+/* Mobile transaction cards */
+.tx-card { margin-bottom: 12px; }
+.tx-card:last-child { margin-bottom: 0; }
+
+/* Contracts table */
+#contracts-table-desktop .contracts-header,
+#contracts-table-desktop .contracts-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 100px 100px;
+  gap: 12px;
+  align-items: center;
+}
+#contracts-table-desktop .contracts-header { padding: 12px 20px; background: rgba(13,33,69,0.02); }
+#contracts-table-desktop .contracts-row { padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
+#contracts-table-desktop .contracts-row:last-child { border-bottom: none; }
+#contracts-table-desktop .contracts-row:hover { background: rgba(13,33,69,0.02); }
+
+/* Disputes table */
+#disputes-table-desktop .disputes-header,
+#disputes-table-desktop .disputes-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 90px 100px;
+  gap: 12px;
+  align-items: center;
+}
+#disputes-table-desktop .disputes-header { padding: 12px 20px; background: rgba(13,33,69,0.02); }
+#disputes-table-desktop .disputes-row { padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
+#disputes-table-desktop .disputes-row:last-child { border-bottom: none; }
+#disputes-table-desktop .disputes-row:hover { background: rgba(13,33,69,0.02); }
+
+/* Small table action buttons */
+.tbl-btn { font-size: 12px; border-radius: 8px; padding: 6px 12px; font-weight: 600; border: none; cursor: pointer; transition: transform .12s, background .15s; }
+.tbl-btn:hover { transform: translateY(-1px); }
+.tbl-btn:active { transform: translateY(0); }
+.tbl-btn-view { background: rgba(13,33,69,0.07); color: #0d2145; }
+.tbl-btn-view:hover { background: rgba(13,33,69,0.12); }
+.tbl-btn-review { background: rgba(45,138,94,0.12); color: #2d8a5e; }
+.tbl-btn-review:hover { background: rgba(45,138,94,0.20); }
+
+/* Dispute review panel */
+#dispute-panel {
+  position: fixed;
+  top: 0;
+  right: -600px;
+  width: 100%;
+  max-width: 580px;
+  height: 100%;
+  background: #fff;
+  z-index: 600;
+  box-shadow: -8px 0 40px rgba(13,33,69,0.16);
+  overflow-y: auto;
+  transition: right .32s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 32px 28px;
+}
+#dispute-panel.open { right: 0; }
+#dispute-backdrop { z-index: 590; }
+
+.dp-panel-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+.dp-mini-card { background: rgba(13,33,69,0.03); border-radius: 12px; padding: 12px 14px; }
+.dp-evidence-box { background: rgba(13,33,69,0.03); border-radius: 12px; padding: 14px 16px; font-size: 14px; font-weight: 500; line-height: 1.6; color: #0d2145; }
+
+/* Split slider */
+#split-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+#split-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2d8a5e;
+  box-shadow: 0 2px 8px rgba(45,138,94,0.40);
+  border: 2px solid #fff;
+}
+#split-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2d8a5e;
+  box-shadow: 0 2px 8px rgba(45,138,94,0.40);
+  border: 2px solid #fff;
+}
+
+/* Payouts table */
+#payouts-table-desktop .payouts-header,
+#payouts-table-desktop .payouts-row {
+  display: grid;
+  grid-template-columns: 1.5fr 90px 100px 100px 1.5fr 110px 90px;
+  gap: 12px;
+  align-items: center;
+}
+#payouts-table-desktop .payouts-header { padding: 12px 20px; background: rgba(13,33,69,0.02); }
+#payouts-table-desktop .payouts-row { padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
+#payouts-table-desktop .payouts-row:last-child { border-bottom: none; }
+#payouts-table-desktop .payouts-row:hover { background: rgba(13,33,69,0.02); }
+
+/* KYC cards */
+.kyc-info-row { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid #f0f2f6; margin-top: 16px; }
+
+/* KYC rejection reveal */
+.kyc-reject-area { display: none; margin-top: 12px; }
+.kyc-reject-area.open { display: block; }
+
+/* Save button spinner */
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Range slider (global override for input[type=range]) */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2d8a5e;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(45,138,94,0.35);
+  transition: box-shadow .15s;
+  border: 2px solid #fff;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  box-shadow: 0 4px 14px rgba(45,138,94,0.50);
+}
+input[type=range]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2d8a5e;
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media(min-width: 1024px) {
+  #sidebar { display: flex !important; }
+  #hamburger { display: none !important; }
+  #main-wrap { margin-left: 248px; }
+  #dispute-panel { max-width: 580px; }
+}
+@media(max-width: 1023px) {
+  #dispute-panel { max-width: 100%; }
+}
+@media(min-width: 768px) {
+  #page-content { padding: 32px !important; }
+  .stat-val { font-size: 40px; }
+  #overview-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  #users-search-wrap { width: auto !important; max-width: 260px !important; }
+  .mobile-user-card { display: none !important; }
+  #users-table-desktop { display: block !important; }
+  #tx-mobile { display: none !important; }
+  #tx-table-desktop { display: block !important; }
+  #contracts-mobile { display: none !important; }
+  #contracts-table-desktop { display: block !important; }
+  #disputes-mobile { display: none !important; }
+  #disputes-table-desktop { display: block !important; }
+  #payouts-mobile { display: none !important; }
+  #payouts-table-desktop { display: block !important; }
+  #kyc-grid { grid-template-columns: 1fr 1fr !important; }
+  #settings-grid { grid-template-columns: 1fr 1fr !important; }
+}
+@media(max-width: 767px) {
+  #users-table-desktop { display: none !important; }
+  #tx-table-desktop { display: none !important; }
+  #contracts-table-desktop { display: none !important; }
+  #disputes-table-desktop { display: none !important; }
+  #payouts-table-desktop { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ELEMENT 1: Loading Overlay -->
+<div id="loading-overlay">
+  <div style="font-size:30px;font-weight:800;color:#0d2145;">Kredd<span style="color:#2d8a5e;">lo</span></div>
+  <div class="load-bar"><div class="load-bar-inner"></div></div>
+</div>
+
+<!-- ELEMENT 2: Mobile Menu Backdrop -->
+<div id="mobile-backdrop" class="dim" onclick="closeMobileMenu()"></div>
+
+<!-- ELEMENT 3: Mobile Slide-In Menu -->
+<div id="mobile-menu" class="slide-in">
+  <button onclick="closeMobileMenu()" style="position:absolute;top:24px;right:22px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:32px;">Kredd<span style="color:#3dbd7a;">lo</span></div>
+  <nav id="mobile-nav" style="display:flex;flex-direction:column;gap:4px;"></nav>
+  <button onclick="handleLogout()" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:12px 16px;color:rgba(255,255,255,0.60);font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .15s;">Sign out</button>
+</div>
+
+<!-- ELEMENT 4: Desktop Sidebar -->
+<div id="sidebar">
+  <a href="admin.html" style="font-size:20px;font-weight:800;color:#fff;margin-bottom:44px;text-decoration:none;">Kredd<span style="color:#3dbd7a;">lo</span></a>
+  <nav id="desktop-nav" style="display:flex;flex-direction:column;gap:4px;flex:1;"></nav>
+  <button onclick="handleLogout()" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:12px 16px;color:rgba(255,255,255,0.60);font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .15s;">Sign out</button>
+</div>
+
+<!-- ELEMENT 5: Main Wrapper -->
+<div id="main-wrap">
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <h1 id="page-title" style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">Overview</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button style="position:relative;width:38px;height:38px;border-radius:10px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:8px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;border-radius:50%;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">AD</div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;border-radius:10px;border:none;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Page Content -->
+  <div id="page-content">
+
+    <!-- OVERVIEW SECTION -->
+    <div id="section-overview" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Overview</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">A snapshot of platform activity and performance.</p>
+      </div>
+
+      <div id="overview-grid">
+
+        <!-- Card 1: Platform Earnings -->
+        <div class="stat-card fu fu-1" style="background:linear-gradient(135deg, rgba(13,33,69,0.04), rgba(255,255,255,0.85)); border:1px solid rgba(255,255,255,0.55); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(13,33,69,0.07);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <span class="badge badge-navy">All time</span>
+          </div>
+          <div class="stat-val" id="stat-earnings">â‚¬0.00</div>
+          <div class="stat-lbl">Platform Earnings</div>
+          <div class="stat-sub">Total fees collected</div>
+        </div>
+
+        <!-- Card 2: Total Transactions -->
+        <div class="stat-card fu fu-1" style="background:linear-gradient(135deg, rgba(26,86,219,0.06), rgba(255,255,255,0.85)); border:1px solid rgba(26,86,219,0.12); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(26,86,219,0.10);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <span class="badge badge-blue">Lifetime</span>
+          </div>
+          <div class="stat-val" id="stat-transactions">0</div>
+          <div class="stat-lbl">Total Transactions</div>
+          <div class="stat-sub">All platform payments</div>
+        </div>
+
+        <!-- Card 3: Active Freelancers -->
+        <div class="stat-card fu fu-2" style="background:linear-gradient(135deg, rgba(45,138,94,0.08), rgba(255,255,255,0.85)); border:1px solid rgba(45,138,94,0.16); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(45,138,94,0.12);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span class="badge badge-green">Verified</span>
+          </div>
+          <div class="stat-val" id="stat-freelancers">0</div>
+          <div class="stat-lbl">Active Freelancers</div>
+          <div class="stat-sub">KYC verified and live</div>
+        </div>
+
+        <!-- Card 4: Active Buyers -->
+        <div class="stat-card fu fu-2" style="background:linear-gradient(135deg, rgba(133,100,4,0.05), rgba(255,255,255,0.85)); border:1px solid rgba(133,100,4,0.12); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(133,100,4,0.10);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <span class="badge badge-amber">Active</span>
+          </div>
+          <div class="stat-val" id="stat-buyers">0</div>
+          <div class="stat-lbl">Active Buyers</div>
+          <div class="stat-sub">Posted at least one project</div>
+        </div>
+
+        <!-- Card 5: Open Disputes -->
+        <div class="stat-card fu fu-3" style="background:linear-gradient(135deg, rgba(200,30,30,0.05), rgba(255,255,255,0.85)); border:1px solid rgba(200,30,30,0.12); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(200,30,30,0.10);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c81e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <span class="badge badge-red">Needs Review</span>
+          </div>
+          <div class="stat-val" id="stat-disputes">0</div>
+          <div class="stat-lbl">Open Disputes</div>
+          <div class="stat-sub">Awaiting admin ruling</div>
+        </div>
+
+        <!-- Card 6: Total Payouts Sent -->
+        <div class="stat-card fu fu-3" style="background:linear-gradient(135deg, rgba(45,138,94,0.08), rgba(255,255,255,0.85)); border:1px solid rgba(45,138,94,0.16); box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
+            <div class="stat-icon" style="background:rgba(45,138,94,0.12);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
+            <span class="badge badge-green">Processed</span>
+          </div>
+          <div class="stat-val" id="stat-payouts">â‚¬0.00</div>
+          <div class="stat-lbl">Total Payouts Sent</div>
+          <div class="stat-sub">Released to freelancers</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- USERS SECTION -->
+    <div id="section-users" class="admin-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">Users</h2>
+        <div id="users-search-wrap" style="width:100%;">
+          <input type="text" id="user-search" class="input-field" placeholder="Search by name or email" oninput="filterUsers()">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="filter-pill active" data-filter="all" onclick="setUserFilter('all', this)">All</button>
+        <button class="filter-pill" data-filter="freelancers" onclick="setUserFilter('freelancers', this)">Freelancers</button>
+        <button class="filter-pill" data-filter="buyers" onclick="setUserFilter('buyers', this)">Buyers</button>
+        <button class="filter-pill" data-filter="pending" onclick="setUserFilter('pending', this)">Pending KYC</button>
+        <button class="filter-pill" data-filter="suspended" onclick="setUserFilter('suspended', this)">Suspended</button>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <!-- Desktop table -->
+        <div id="users-table-desktop" style="display:none;">
+          <div class="users-header">
+            <div class="col-name lbl">Name</div>
+            <div class="col-role lbl">Role</div>
+            <div class="col-kyc lbl">KYC Status</div>
+            <div class="col-joined lbl">Joined</div>
+            <div class="col-actions lbl">Actions</div>
+          </div>
+          <div id="users-rows"></div>
+        </div>
+
+        <!-- Mobile cards -->
+        <div id="users-mobile"></div>
+
+        <!-- Empty state -->
+        <div id="users-empty" style="display:none;padding:60px 24px;text-align:center;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" y1="11" x2="16" y2="17"/><line x1="16" y1="11" x2="22" y2="17"/></svg>
+          <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No users found</p>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Try adjusting your search or filter</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS SECTION -->
+    <div id="section-transactions" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Transactions</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">All platform payments and escrow activity.</p>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="filter-pill active" data-tx-filter="all" onclick="setTxFilter('all', this)">All</button>
+        <button class="filter-pill" data-tx-filter="funded" onclick="setTxFilter('funded', this)">Funded</button>
+        <button class="filter-pill" data-tx-filter="released" onclick="setTxFilter('released', this)">Released</button>
+        <button class="filter-pill" data-tx-filter="disputed" onclick="setTxFilter('disputed', this)">Disputed</button>
+        <button class="filter-pill" data-tx-filter="pending" onclick="setTxFilter('pending', this)">Pending</button>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <!-- Desktop table -->
+        <div id="tx-table-desktop" style="display:none;">
+          <div class="tx-header">
+            <div class="lbl">Project Title</div>
+            <div class="lbl">Buyer</div>
+            <div class="lbl">Freelancer</div>
+            <div class="lbl">Gross</div>
+            <div class="lbl">Fee</div>
+            <div class="lbl">Net</div>
+            <div class="lbl">Method</div>
+            <div class="lbl">Date</div>
+            <div class="lbl">Escrow Status</div>
+          </div>
+          <div id="tx-rows"></div>
+        </div>
+
+        <!-- Mobile cards -->
+        <div id="tx-mobile" style="padding:14px;"></div>
+
+        <!-- Empty state -->
+        <div id="tx-empty" style="display:none;padding:60px 24px;text-align:center;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No transactions found</p>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Try adjusting the filter</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTRACTS SECTION -->
+    <div id="section-contracts" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Contracts</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Signed service agreements between buyers and freelancers.</p>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <!-- Desktop table -->
+        <div id="contracts-table-desktop" style="display:none;">
+          <div class="contracts-header">
+            <div class="lbl">Project</div>
+            <div class="lbl">Parties</div>
+            <div class="lbl">Date Signed</div>
+            <div class="lbl">Amount</div>
+            <div class="lbl">Actions</div>
+          </div>
+          <div id="contracts-rows"></div>
+        </div>
+
+        <!-- Mobile cards -->
+        <div id="contracts-mobile" style="padding:14px;"></div>
+      </div>
+    </div>
+
+    <!-- DISPUTES SECTION -->
+    <div id="section-disputes" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Disputes</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Open cases awaiting review and resolution.</p>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <!-- Desktop table -->
+        <div id="disputes-table-desktop" style="display:none;">
+          <div class="disputes-header">
+            <div class="lbl">Project</div>
+            <div class="lbl">Parties</div>
+            <div class="lbl">Date Raised</div>
+            <div class="lbl">Status</div>
+            <div class="lbl">Actions</div>
+          </div>
+          <div id="disputes-rows"></div>
+        </div>
+
+        <!-- Mobile cards -->
+        <div id="disputes-mobile" style="padding:14px;"></div>
+      </div>
+    </div>
+
+    <!-- PAYOUTS SECTION -->
+    <div id="section-payouts" class="admin-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Payouts</h2>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Withdrawals released to freelancer wallets.</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="lbl">Total Paid Out</div>
+          <div id="payouts-total" style="font-size:18px;font-weight:800;color:#2d8a5e;margin-top:2px;">â‚¬0.00</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="filter-pill active" data-payout-filter="all" onclick="setPayoutFilter('all', this)">All</button>
+        <button class="filter-pill" data-payout-filter="sent" onclick="setPayoutFilter('sent', this)">Sent</button>
+        <button class="filter-pill" data-payout-filter="processing" onclick="setPayoutFilter('processing', this)">Processing</button>
+        <button class="filter-pill" data-payout-filter="failed" onclick="setPayoutFilter('failed', this)">Failed</button>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <!-- Desktop table -->
+        <div id="payouts-table-desktop" style="display:none;">
+          <div class="payouts-header">
+            <div class="lbl">Freelancer</div>
+            <div class="lbl">Amount (USD)</div>
+            <div class="lbl">Amount Crypto</div>
+            <div class="lbl">Currency</div>
+            <div class="lbl">Wallet Address</div>
+            <div class="lbl">Date</div>
+            <div class="lbl">Status</div>
+          </div>
+          <div id="payouts-rows"></div>
+        </div>
+
+        <!-- Mobile cards -->
+        <div id="payouts-mobile" style="padding:14px;"></div>
+
+        <!-- Empty state -->
+        <div id="payouts-empty" style="display:none;padding:60px 24px;text-align:center;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No payouts found</p>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Try adjusting the filter</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- KYC REVIEW SECTION -->
+    <div id="section-kyc" class="admin-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">KYC Review</h2>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Verify freelancer identity documents.</p>
+        </div>
+        <span class="badge badge-amber" id="kyc-pending-count">0 Pending</span>
+      </div>
+
+      <div id="kyc-grid" style="display:grid;grid-template-columns:1fr;gap:16px;"></div>
+
+      <!-- Empty state -->
+      <div id="kyc-empty" class="glass" style="display:none;padding:60px 24px;text-align:center;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(45,138,94,0.40)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+        <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">All caught up</p>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">No pending KYC submissions right now.</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS SECTION -->
+    <div id="section-settings" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">Platform Settings</h2>
+      </div>
+
+      <div class="glass" style="padding:24px;">
+        <h3 style="font-size:17px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">Fee Configuration</h3>
+        <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 20px 0;">Changes take effect immediately for all new projects.</p>
+
+        <div id="settings-grid" style="display:grid;grid-template-columns:1fr;gap:20px;">
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Platform Fee (%)</label>
+            <input type="number" id="set-platform-fee" class="input-field" value="2.5" min="0" max="100" step="0.1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Project Protection Fee (%)</label>
+            <input type="number" id="set-protection-fee" class="input-field" value="1.0" min="0" max="100" step="0.1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Withdrawal Fee (%)</label>
+            <input type="number" id="set-withdrawal-fee" class="input-field" value="1.5" min="0" max="100" step="0.1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Early Payout Fee (%)</label>
+            <input type="number" id="set-early-payout-fee" class="input-field" value="2.0" min="0" max="100" step="0.1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">24-Hour Boost Price (â‚¬)</label>
+            <input type="number" id="set-boost-24h" class="input-field" value="4.99" min="0" step="0.01"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">3-Day Boost Price (â‚¬)</label>
+            <input type="number" id="set-boost-3d" class="input-field" value="9.99" min="0" step="0.01"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">7-Day Boost Price (â‚¬)</label>
+            <input type="number" id="set-boost-7d" class="input-field" value="17.99" min="0" step="0.01"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Payout Holding Period (days)</label>
+            <input type="number" id="set-holding-days" class="input-field" value="3" min="0" max="30" step="1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Referral Credit Amount (â‚¬)</label>
+            <input type="number" id="set-referral-credit" class="input-field" value="5.00" min="0" step="0.01"/>
+          </div>
+
+          <!-- Stripe toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:4px;">Stripe Payments</label>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;line-height:1.5;">Enables card payments via Stripe. Accepts Visa, Mastercard, Amex, iDEAL, Giropay and 20+ payment methods globally.</p>
+            </div>
+            <div id="toggle-stripe"
+              onclick="toggleGateway('stripe')"
+              role="switch"
+              tabindex="0"
+              onkeydown="if(event.key==='Enter'||event.key===' ')toggleGateway('stripe')"
+              style="width:48px;height:28px;border-radius:50px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+              <div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform .2s;"></div>
+            </div>
+          </div>
+
+          <!-- Paystack toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:4px;">Paystack Payments</label>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;line-height:1.5;">Enables card, mobile money, bank transfer and USSD payments. Supports USD, GBP, EUR, GHS, ZAR, KES and more across Africa and globally.</p>
+            </div>
+            <div id="toggle-paystack"
+              onclick="toggleGateway('paystack')"
+              role="switch"
+              tabindex="0"
+              onkeydown="if(event.key==='Enter'||event.key===' ')toggleGateway('paystack')"
+              style="width:48px;height:28px;border-radius:50px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
+              <div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform .2s;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Social Links -->
+        <div class="mt-6" style="margin-top:24px;">
+          <p class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3" style="font-size:12px;font-weight:700;color:rgba(13,33,69,0.45);letter-spacing:1.2px;text-transform:uppercase;margin:0 0 12px 0;">Social Links</p>
+          <div class="space-y-3" style="display:grid;gap:12px;">
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">Twitter / X URL</label>
+              <input id="twitterUrl" type="url" placeholder="https://x.com/yourhandle"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">LinkedIn URL</label>
+              <input id="linkedinUrl" type="url" placeholder="https://linkedin.com/company/kreddlo"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">Instagram URL</label>
+              <input id="instagramUrl" type="url" placeholder="https://instagram.com/kreddlo"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;max-width:420px;line-height:1.6;">These values are read by all Netlify functions at runtime via the Firestore settings document at config/platform.</p>
+          <button class="btn-green" id="save-settings-btn" style="padding:12px 32px;flex-shrink:0;" onclick="saveSettings()">Save All Settings</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- USER DETAIL MODAL -->
+<div class="modal" id="user-modal" onclick="if(event.target===this) closeUserModal()">
+  <div class="modal-box" id="user-modal-box"></div>
+</div>
+
+<!-- DISPUTE REVIEW PANEL -->
+<div id="dispute-backdrop" class="dim" onclick="closeDisputePanel()" style="position:fixed;inset:0;background:rgba(9,24,48,0.55);"></div>
+<div id="dispute-panel">
+  <div id="dispute-panel-content"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ NAV ============ */
+var ADMIN_NAV = [
+  { id: 'overview', label: 'Overview', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { id: 'users', label: 'Users', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
+  { id: 'transactions', label: 'Transactions', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { id: 'contracts', label: 'Contracts', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+  { id: 'disputes', label: 'Disputes', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  { id: 'payouts', label: 'Payouts', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' },
+  { id: 'kyc', label: 'KYC Review', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  { id: 'settings', label: 'Settings', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
+];
+
+var currentSection = 'overview';
+
+function buildNav() {
+  var html = ADMIN_NAV.map(function(n) {
+    var active = n.id === currentSection ? ' active' : '';
+    return '<button class="nav-link' + active + '" data-section="' + n.id + '" onclick="showSection(\'' + n.id + '\')">' + n.icon + '<span>' + n.label + '</span></button>';
+  }).join('');
+  document.getElementById('desktop-nav').innerHTML = html;
+  document.getElementById('mobile-nav').innerHTML = html;
+}
+
+function showSection(id) {
+  document.querySelectorAll('.admin-section').forEach(function(s) {
+    s.classList.remove('section-active');
+  });
+  document.getElementById('section-' + id).classList.add('section-active');
+
+  var nav = ADMIN_NAV.find(function(n){ return n.id === id; });
+  document.getElementById('page-title').textContent = nav ? nav.label : 'Admin';
+
+  document.querySelectorAll('.nav-link').forEach(function(link) {
+    if (link.dataset.section === id) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
+
+  currentSection = id;
+  closeMobileMenu();
+
+  if (id === 'overview') {
+    animateStats();
+  }
+}
+
+/* ============ MOBILE MENU ============ */
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleLogout() {
+  if (window._signOut && window.auth) {
+    window._signOut(window.auth).then(function() {
+      window.location.href = '/login.html';
+    }).catch(function() {
+      window.location.href = '/login.html';
+    });
+  } else {
+    window.location.href = '/login.html';
+  }
+}
+
+/* ============ OVERVIEW STATS ============ */
+var STATS = {
+  earnings: 0,
+  transactions: 0,
+  freelancers: 0,
+  buyers: 0,
+  disputes: 0,
+  payouts: 0
+};
+var statsAnimated = false;
+
+function animateStats() {
+  if (statsAnimated) return;
+  statsAnimated = true;
+  var configs = [
+    { id: 'stat-earnings', target: STATS.earnings, currency: true },
+    { id: 'stat-transactions', target: STATS.transactions, currency: false },
+    { id: 'stat-freelancers', target: STATS.freelancers, currency: false },
+    { id: 'stat-buyers', target: STATS.buyers, currency: false },
+    { id: 'stat-disputes', target: STATS.disputes, currency: false },
+    { id: 'stat-payouts', target: STATS.payouts, currency: true }
+  ];
+  var duration = 600;
+  var start = null;
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    var elapsed = timestamp - start;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = easeOutCubic(progress);
+
+    configs.forEach(function(c) {
+      var el = document.getElementById(c.id);
+      if (!el) return;
+      var value = c.target * eased;
+      if (c.currency) {
+        el.textContent = '\u20AC' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        el.textContent = Math.round(value).toLocaleString('en-US');
+      }
+    });
+
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============ USERS DATA ============ */
+var USERS = [];
+
+var activeUserFilter = 'all';
+
+function setUserFilter(filter, btn) {
+  activeUserFilter = filter;
+  document.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  filterUsers();
+}
+
+function filterUsers() {
+  var search = document.getElementById('user-search').value.trim().toLowerCase();
+  var filtered = USERS.filter(function(u) {
+    var matchSearch = !search || u.name.toLowerCase().indexOf(search) !== -1 || u.email.toLowerCase().indexOf(search) !== -1;
+    var matchFilter = true;
+    if (activeUserFilter === 'freelancers') matchFilter = u.role === 'freelancer';
+    if (activeUserFilter === 'buyers') matchFilter = u.role === 'buyer';
+    if (activeUserFilter === 'pending') matchFilter = u.kycStatus === 'pending';
+    if (activeUserFilter === 'suspended') matchFilter = u.suspended === true;
+    return matchSearch && matchFilter;
+  });
+  renderUsersTable(filtered);
+}
+
+function kycBadge(status) {
+  switch (status) {
+    case 'verified': return '<span class="badge badge-green">Verified</span>';
+    case 'pending': return '<span class="badge badge-amber">Pending</span>';
+    case 'declined': return '<span class="badge badge-red">Declined</span>';
+    default: return '<span class="badge badge-grey">Not Started</span>';
+  }
+}
+
+function roleBadge(role) {
+  return role === 'freelancer'
+    ? '<span class="badge badge-navy">Freelancer</span>'
+    : '<span class="badge badge-blue">Buyer</span>';
+}
+
+function actionButtons(u) {
+  var suspendLabel = u.suspended ? 'Unsuspend' : 'Suspend';
+  var suspendClass = u.suspended ? 'action-suspend unsuspend' : 'action-suspend';
+  var banBtn = u.banned
+    ? '<button class="action-btn action-banned" disabled>Banned</button>'
+    : '<button class="action-btn action-ban" onclick="banUser(\'' + u.uid + '\')">Ban</button>';
+  return '<button class="action-btn action-view" onclick="openUserModal(\'' + u.uid + '\')">View</button>' +
+    '<button class="action-btn ' + suspendClass + '" onclick="toggleSuspend(\'' + u.uid + '\')">' + suspendLabel + '</button>' +
+    banBtn;
+}
+
+function renderUsersTable(list) {
+  var rowsEl = document.getElementById('users-rows');
+  var mobileEl = document.getElementById('users-mobile');
+  var emptyEl = document.getElementById('users-empty');
+  var tableEl = document.getElementById('users-table-desktop');
+
+  if (list.length === 0) {
+    emptyEl.style.display = 'block';
+    rowsEl.innerHTML = '';
+    mobileEl.innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  rowsEl.innerHTML = list.map(function(u) {
+    return '<div class="users-row">' +
+      '<div class="col-name"><div style="font-weight:700;font-size:14px;color:#0d2145;">' + u.name + '</div><div style="font-size:12px;color:rgba(13,33,69,0.48);margin-top:2px;">' + u.email + '</div></div>' +
+      '<div class="col-role">' + roleBadge(u.role) + '</div>' +
+      '<div class="col-kyc">' + kycBadge(u.kycStatus) + '</div>' +
+      '<div class="col-joined" style="font-size:13px;font-weight:600;color:#0d2145;">' + u.joined + '</div>' +
+      '<div class="col-actions" style="display:flex;gap:8px;flex-wrap:wrap;">' + actionButtons(u) + '</div>' +
+      '</div>';
+  }).join('');
+
+  mobileEl.innerHTML = list.map(function(u) {
+    return '<div class="mobile-user-card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+      '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + u.name + '</div>' +
+      roleBadge(u.role) +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">' +
+      '<div style="font-size:12px;color:rgba(13,33,69,0.48);">' + u.email + '</div>' +
+      kycBadge(u.kycStatus) +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">' + actionButtons(u) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+/* ============ USER MODAL ============ */
+function getInitials(name) {
+  var parts = name.trim().split(/\s+/);
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
+function accountStatus(u) {
+  if (u.banned) return '<span class="badge badge-red">Banned</span>';
+  if (u.suspended) return '<span class="badge badge-amber">Suspended</span>';
+  return '<span class="badge badge-green">Active</span>';
+}
+
+function openUserModal(uid) {
+  var u = USERS.find(function(x) { return x.uid === uid; });
+  if (!u) return;
+
+  var moneyLabel = u.role === 'freelancer' ? 'Total Earnings' : 'Total Spent';
+  var moneyValue = u.role === 'freelancer' ? u.totalEarnings : u.totalSpent;
+  var suspendLabel = u.suspended ? 'Unsuspend User' : 'Suspend User';
+
+  var html =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">' +
+      '<h3 style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">' + u.name + '</h3>' +
+      '<button onclick="closeUserModal()" style="width:36px;height:36px;border-radius:50%;background:rgba(13,33,69,0.06);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+      '</button>' +
+    '</div>' +
+    '<div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;">' + getInitials(u.name) + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">' +
+      '<div><div class="lbl">Email</div><div style="font-weight:700;font-size:14px;margin-top:4px;word-break:break-all;">' + u.email + '</div></div>' +
+      '<div><div class="lbl">Role</div><div style="margin-top:4px;">' + roleBadge(u.role) + '</div></div>' +
+      '<div><div class="lbl">KYC Status</div><div style="margin-top:4px;">' + kycBadge(u.kycStatus) + '</div></div>' +
+      '<div><div class="lbl">Joined</div><div style="font-weight:700;font-size:14px;margin-top:4px;">' + u.joined + '</div></div>' +
+      '<div><div class="lbl">' + moneyLabel + '</div><div style="font-weight:700;font-size:14px;margin-top:4px;">\u20AC' + (moneyValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div></div>' +
+      '<div><div class="lbl">Projects</div><div style="font-weight:700;font-size:14px;margin-top:4px;">' + u.projectCount + '</div></div>' +
+      '<div><div class="lbl">Account Status</div><div style="margin-top:4px;">' + accountStatus(u) + '</div></div>' +
+    '</div>' +
+    '<div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px;" class="modal-actions">' +
+      '<button class="btn-secondary" style="width:100%;" onclick="toggleSuspend(\'' + u.uid + '\'); closeUserModal();">' + suspendLabel + '</button>' +
+      '<button class="btn-navy" style="width:100%;" onclick="closeUserModal()">Close</button>' +
+    '</div>';
+
+  document.getElementById('user-modal-box').innerHTML = html;
+  document.getElementById('user-modal').classList.add('open');
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeUserModal();
+  }
+});
+
+/* ============ SUSPEND / BAN ============ */
+function toggleSuspend(uid) {
+  var u = USERS.find(function(x) { return x.uid === uid; });
+  if (!u) return;
+
+  if (u.suspended) {
+    // Unsuspend does not require confirmation
+    u.suspended = false;
+    showToast('User unsuspended');
+  } else {
+    var ok = confirm('Suspend ' + u.name + '? They will not be able to log in until reinstated.');
+    if (!ok) return;
+    u.suspended = true;
+    showToast('User suspended');
+  }
+  // In production: updateDoc(doc(window.db, 'users', u.uid), { suspended: u.suspended });
+  filterUsers();
+}
+
+function banUser(uid) {
+  var u = USERS.find(function(x) { return x.uid === uid; });
+  if (!u) return;
+
+  var ok = confirm('Permanently ban ' + u.name + '? This cannot be undone.');
+  if (!ok) return;
+
+  u.banned = true;
+  // In production: updateDoc(doc(window.db, 'users', u.uid), { banned: true });
+  showToast('User banned');
+  filterUsers();
+}
+
+/* ============ TOAST ============ */
+var toastTimeout;
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(function() {
+    toast.classList.remove('show');
+  }, 2600);
+}
+
+/* Pops up the real Firebase error code + message so it can be read
+   without opening DevTools (works on mobile too). */
+function showError(err) {
+  var code = (err && err.code) ? err.code : 'unknown';
+  var msg  = (err && err.message) ? err.message : String(err);
+  alert('Error (' + code + '): ' + msg);
+}
+
+/* ============ TRANSACTIONS DATA ============ */
+var TRANSACTIONS = [];
+
+var activeTxFilter = 'all';
+
+function setTxFilter(filter, btn) {
+  activeTxFilter = filter;
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  filterTransactions();
+}
+
+function filterTransactions() {
+  var filtered = TRANSACTIONS.filter(function(t) {
+    if (activeTxFilter === 'all') return true;
+    return t.escrowStatus === activeTxFilter;
+  });
+  renderTransactionsTable(filtered);
+}
+
+function escrowBadge(status) {
+  switch (status) {
+    case 'funded': return '<span class="badge badge-amber">Funded</span>';
+    case 'released': return '<span class="badge badge-green">Released</span>';
+    case 'disputed': return '<span class="badge badge-red">Disputed</span>';
+    default: return '<span class="badge badge-grey">Pending</span>';
+  }
+}
+
+function fmtMoney(n) {
+  return '\u20AC' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderTransactionsTable(list) {
+  var rowsEl = document.getElementById('tx-rows');
+  var mobileEl = document.getElementById('tx-mobile');
+  var emptyEl = document.getElementById('tx-empty');
+
+  if (list.length === 0) {
+    emptyEl.style.display = 'block';
+    rowsEl.innerHTML = '';
+    mobileEl.innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  rowsEl.innerHTML = list.map(function(t) {
+    return '<div class="tx-row">' +
+      '<div class="tx-project-title" title="' + t.project + '">' + t.project + '</div>' +
+      '<div style="font-size:13px;font-weight:600;">' + t.buyer + '</div>' +
+      '<div style="font-size:13px;font-weight:600;">' + t.freelancer + '</div>' +
+      '<div style="font-weight:700;font-size:13px;">' + fmtMoney(t.gross) + '</div>' +
+      '<div style="font-size:13px;color:rgba(13,33,69,0.55);">' + fmtMoney(t.fee) + '</div>' +
+      '<div style="font-weight:800;font-size:13px;">' + fmtMoney(t.net) + '</div>' +
+      '<div style="font-size:12px;">' + t.method + '</div>' +
+      '<div style="font-size:12px;">' + t.date + '</div>' +
+      '<div>' + escrowBadge(t.escrowStatus) + '</div>' +
+      '</div>';
+  }).join('');
+
+  mobileEl.innerHTML = list.map(function(t) {
+    return '<div class="tx-card glass" style="padding:18px;border-radius:16px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">' +
+        '<div style="font-weight:700;font-size:14px;color:#0d2145;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;" title="' + t.project + '">' + t.project + '</div>' +
+        escrowBadge(t.escrowStatus) +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:rgba(13,33,69,0.50);">' +
+        '<span>' + t.buyer + '</span>' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' +
+        '<span>' + t.freelancer + '</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:12px;">' +
+        '<div style="font-size:20px;font-weight:800;color:#0d2145;">' + fmtMoney(t.gross) + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.45);">' + t.date + '</div>' +
+      '</div>' +
+      '<div style="height:1px;background:#f0f2f6;margin:12px 0;"></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+        '<div><div class="lbl">Fee</div><div style="font-weight:700;font-size:13px;margin-top:2px;">' + fmtMoney(t.fee) + '</div></div>' +
+        '<div><div class="lbl">Net</div><div style="font-weight:800;font-size:13px;margin-top:2px;">' + fmtMoney(t.net) + '</div></div>' +
+      '</div>' +
+      '<div style="margin-top:8px;font-size:12px;color:rgba(13,33,69,0.45);">' + t.method + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+/* ============ CONTRACTS DATA ============ */
+var CONTRACTS = [];
+
+function renderContractsTable() {
+  var rowsEl = document.getElementById('contracts-rows');
+  var mobileEl = document.getElementById('contracts-mobile');
+
+  rowsEl.innerHTML = CONTRACTS.map(function(c) {
+    return '<div class="contracts-row">' +
+      '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + c.project + '</div>' +
+      '<div style="font-size:13px;">' + c.buyer + ' / ' + c.freelancer + '</div>' +
+      '<div style="font-size:13px;font-weight:600;">' + c.dateSigned + '</div>' +
+      '<div style="font-weight:700;font-size:13px;">' + fmtMoney(c.amount) + '</div>' +
+      '<div><button class="tbl-btn tbl-btn-view" onclick="window.open(\'' + c.pdfUrl + '\', \'_blank\')">View Contract</button></div>' +
+      '</div>';
+  }).join('');
+
+  mobileEl.innerHTML = CONTRACTS.map(function(c) {
+    return '<div class="tx-card glass" style="padding:18px;border-radius:16px;">' +
+      '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + c.project + '</div>' +
+      '<div style="font-size:12px;color:rgba(13,33,69,0.50);margin-top:4px;">' + c.buyer + ' / ' + c.freelancer + '</div>' +
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:10px;">' +
+        '<div style="font-size:13px;font-weight:600;">' + c.dateSigned + '</div>' +
+        '<div style="font-size:18px;font-weight:800;">' + fmtMoney(c.amount) + '</div>' +
+      '</div>' +
+      '<button class="btn-secondary" style="width:100%;margin-top:12px;" onclick="window.open(\'' + c.pdfUrl + '\', \'_blank\')">View Contract</button>' +
+      '</div>';
+  }).join('');
+}
+
+/* ============ DISPUTES DATA ============ */
+var DISPUTES = [];
+
+var activePanelDisputeId = null;
+
+function disputeStatusBadge(status) {
+  switch (status) {
+    case 'open': return '<span class="badge badge-red">Open</span>';
+    case 'under_review': return '<span class="badge badge-amber">Under Review</span>';
+    default: return '<span class="badge badge-green">Resolved</span>';
+  }
+}
+
+function renderDisputesTable() {
+  var rowsEl = document.getElementById('disputes-rows');
+  var mobileEl = document.getElementById('disputes-mobile');
+
+  rowsEl.innerHTML = DISPUTES.map(function(d) {
+    return '<div class="disputes-row">' +
+      '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + d.project + '</div>' +
+      '<div style="font-size:13px;">' + d.buyer + ' / ' + d.freelancer + '</div>' +
+      '<div style="font-size:13px;font-weight:600;">' + d.dateRaised + '</div>' +
+      '<div>' + disputeStatusBadge(d.status) + '</div>' +
+      '<div><button class="tbl-btn tbl-btn-review" onclick="openDisputePanel(\'' + d.id + '\')">Review</button></div>' +
+      '</div>';
+  }).join('');
+
+  mobileEl.innerHTML = DISPUTES.map(function(d) {
+    return '<div class="tx-card glass" style="padding:18px;border-radius:16px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">' +
+        '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + d.project + '</div>' +
+        disputeStatusBadge(d.status) +
+      '</div>' +
+      '<div style="font-size:12px;color:rgba(13,33,69,0.50);margin-top:6px;">' +
+        '<div>Buyer: ' + d.buyer + '</div>' +
+        '<div>Freelancer: ' + d.freelancer + '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:600;margin-top:6px;">' + d.dateRaised + '</div>' +
+      '<button class="btn-secondary" style="width:100%;margin-top:12px;" onclick="openDisputePanel(\'' + d.id + '\')">Review</button>' +
+      '</div>';
+  }).join('');
+}
+
+/* ============ DISPUTE PANEL ============ */
+function externalLinkIcon() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+}
+
+function closeIconSmall() {
+  return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+}
+
+function openDisputePanel(disputeId) {
+  var d = DISPUTES.find(function(x) { return x.id === disputeId; });
+  if (!d) return;
+  activePanelDisputeId = disputeId;
+
+  var freelancerEvidenceHtml = d.freelancerEvidence
+    ? '<div class="dp-evidence-box">' + d.freelancerEvidence + '</div>'
+    : '<div class="dp-evidence-box" style="color:rgba(13,33,69,0.40);font-style:italic;">No evidence submitted</div>';
+
+  var buyerEvidenceHtml = d.buyerEvidence
+    ? '<div class="dp-evidence-box">' + d.buyerEvidence + '</div>'
+    : '<div class="dp-evidence-box" style="color:rgba(13,33,69,0.40);font-style:italic;">No evidence submitted</div>';
+
+  var html =
+    '<div class="dp-panel-header">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+        '<h3 style="font-size:18px;font-weight:800;color:#0d2145;margin:0;">' + d.project + '</h3>' +
+        '<button onclick="closeDisputePanel()" style="width:36px;height:36px;flex-shrink:0;background:rgba(13,33,69,0.06);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">' + closeIconSmall() + '</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;">' +
+        disputeStatusBadge(d.status) +
+        '<span style="font-size:12px;color:rgba(13,33,69,0.50);">Raised ' + d.dateRaised + '</span>' +
+      '</div>' +
+    '</div>' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">' +
+      '<div class="dp-mini-card"><div class="lbl">Buyer</div><div style="font-weight:700;font-size:14px;margin-top:4px;">' + d.buyer + '</div></div>' +
+      '<div class="dp-mini-card"><div class="lbl">Freelancer</div><div style="font-weight:700;font-size:14px;margin-top:4px;">' + d.freelancer + '</div></div>' +
+    '</div>' +
+
+    '<div style="margin-bottom:20px;">' +
+      '<div class="lbl" style="margin-bottom:8px;">Signed Contract</div>' +
+      '<a href="' + d.contractPdfUrl + '" target="_blank" class="btn-secondary" style="width:100%;display:flex;align-items:center;justify-content:space-between;">View Contract PDF ' + externalLinkIcon() + '</a>' +
+    '</div>' +
+
+    '<div style="margin-bottom:20px;">' +
+      '<div class="lbl" style="margin-bottom:8px;">Freelancer Evidence</div>' +
+      freelancerEvidenceHtml +
+    '</div>' +
+
+    '<div style="margin-bottom:20px;">' +
+      '<div class="lbl" style="margin-bottom:8px;">Buyer Evidence</div>' +
+      buyerEvidenceHtml +
+    '</div>' +
+
+    '<div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>' +
+
+    '<div>' +
+      '<h4 style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">Issue a Ruling</h4>' +
+      '<p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 16px 0;">This action is permanent and will notify both parties immediately.</p>' +
+      '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<button class="btn-green" style="width:100%;" onclick="confirmRuling(\'freelancer\')">Rule Freelancer Wins</button>' +
+        '<button class="btn-navy" style="width:100%;" onclick="confirmRuling(\'buyer\')">Rule Buyer Wins</button>' +
+        '<button class="btn-secondary" style="width:100%;" onclick="toggleSplitControls()">Custom Split</button>' +
+      '</div>' +
+
+      '<div id="split-controls" style="display:none;margin-top:20px;">' +
+        '<input type="range" id="split-slider" min="0" max="100" value="50" oninput="updateSplitPreview(this.value)" style="background: linear-gradient(to right, #2d8a5e 50%, #e2e8f0 50%);">' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">' +
+          '<div><div class="lbl">Freelancer Gets</div><div id="split-freelancer-amount" style="font-size:20px;font-weight:800;color:#2d8a5e;margin-top:4px;">' + fmtMoney(d.amount * 0.5) + '</div></div>' +
+          '<div><div class="lbl">Buyer Gets</div><div id="split-buyer-amount" style="font-size:20px;font-weight:800;color:#0d2145;margin-top:4px;">' + fmtMoney(d.amount * 0.5) + '</div></div>' +
+        '</div>' +
+        '<button class="btn-green" style="width:100%;margin-top:16px;" onclick="confirmSplitRuling()">Confirm Split Ruling</button>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('dispute-panel-content').innerHTML = html;
+  document.getElementById('dispute-panel').classList.add('open');
+  document.getElementById('dispute-backdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDisputePanel() {
+  document.getElementById('dispute-panel').classList.remove('open');
+  document.getElementById('dispute-backdrop').classList.remove('open');
+  document.body.style.overflow = '';
+  activePanelDisputeId = null;
+}
+
+function toggleSplitControls() {
+  var el = document.getElementById('split-controls');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateSplitPreview(value) {
+  var d = DISPUTES.find(function(x) { return x.id === activePanelDisputeId; });
+  if (!d) return;
+  var pct = parseInt(value, 10);
+  var freelancerAmount = d.amount * (pct / 100);
+  var buyerAmount = d.amount * ((100 - pct) / 100);
+
+  document.getElementById('split-freelancer-amount').textContent = fmtMoney(freelancerAmount);
+  document.getElementById('split-buyer-amount').textContent = fmtMoney(buyerAmount);
+  document.getElementById('split-slider').style.background = 'linear-gradient(to right, #2d8a5e ' + pct + '%, #e2e8f0 ' + pct + '%)';
+}
+
+function confirmRuling(winner) {
+  var d = DISPUTES.find(function(x) { return x.id === activePanelDisputeId; });
+  if (!d) return;
+
+  var msg;
+  if (winner === 'freelancer') {
+    msg = 'Rule in favour of ' + d.freelancer + '? The full net amount will be released to them.';
+  } else {
+    msg = 'Rule in favour of ' + d.buyer + '? The full escrow will be returned to them.';
+  }
+
+  var ok = confirm(msg);
+  if (!ok) return;
+
+  issueRuling(winner, winner === 'freelancer' ? 100 : 0);
+}
+
+function confirmSplitRuling() {
+  var d = DISPUTES.find(function(x) { return x.id === activePanelDisputeId; });
+  if (!d) return;
+
+  var slider = document.getElementById('split-slider');
+  var pct = parseInt(slider.value, 10);
+  var freelancerAmount = d.amount * (pct / 100);
+  var buyerAmount = d.amount * ((100 - pct) / 100);
+
+  var ok = confirm('Confirm custom split? Freelancer: ' + fmtMoney(freelancerAmount) + ', Buyer: ' + fmtMoney(buyerAmount) + '. This cannot be undone.');
+  if (!ok) return;
+
+  issueRuling('split', pct);
+}
+
+function issueRuling(winner, freelancerPercent) {
+  // In production:
+  // POST to /.netlify/functions/resolve-dispute with:
+  // { disputeId, winner, freelancerPercent, buyerPercent: 100 - freelancerPercent }
+  // That function updates Firestore balances on both user documents,
+  // sets the dispute document status to 'resolved',
+  // calls send-push-notification for both parties,
+  // calls send-email with template 'dispute-resolved' for both parties.
+
+  var d = DISPUTES.find(function(x){ return x.id === activePanelDisputeId; });
+  if (d) d.status = 'resolved';
+  closeDisputePanel();
+  renderDisputesTable();
+  showToast('Ruling issued. Both parties have been notified.');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeDisputePanel();
+  }
+});
+
+/* ============ PAYOUTS DATA ============ */
+var PAYOUTS = [];
+
+PAYOUTS.forEach(function(p) {
+  var rate = p.currency === 'BTC' ? 65000 : p.currency === 'ETH' ? 2500 : 1;
+  p.amountCrypto = p.amountUsd / rate;
+});
+
+var activePayoutFilter = 'all';
+
+function setPayoutFilter(filter, btn) {
+  activePayoutFilter = filter;
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  filterPayouts();
+}
+
+function filterPayouts() {
+  var filtered = PAYOUTS.filter(function(p) {
+    if (activePayoutFilter === 'all') return true;
+    return p.status === activePayoutFilter;
+  });
+  renderPayoutsTable(filtered);
+  updatePayoutsTotal();
+}
+
+function updatePayoutsTotal() {
+  var total = PAYOUTS.reduce(function(sum, p) { return sum + p.amountUsd; }, 0);
+  document.getElementById('payouts-total').textContent = fmtMoney(total);
+}
+
+function payoutStatusBadge(status) {
+  switch (status) {
+    case 'sent': return '<span class="badge badge-green">Sent</span>';
+    case 'processing': return '<span class="badge badge-amber">Processing</span>';
+    default: return '<span class="badge badge-red">Failed</span>';
+  }
+}
+
+function truncateWallet(wallet) {
+  return wallet.length > 14 ? wallet.substring(0, 14) + '...' : wallet;
+}
+
+function fmtCrypto(amount, currency) {
+  var decimals = currency === 'BTC' ? 8 : currency === 'ETH' ? 5 : 2;
+  return amount.toFixed(decimals) + ' ' + currency;
+}
+
+function renderPayoutsTable(list) {
+  var rowsEl = document.getElementById('payouts-rows');
+  var mobileEl = document.getElementById('payouts-mobile');
+  var emptyEl = document.getElementById('payouts-empty');
+
+  if (list.length === 0) {
+    emptyEl.style.display = 'block';
+    rowsEl.innerHTML = '';
+    mobileEl.innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  rowsEl.innerHTML = list.map(function(p) {
+    return '<div class="payouts-row">' +
+      '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + p.freelancer + '</div><div style="font-size:11px;color:rgba(13,33,69,0.48);margin-top:2px;">' + p.email + '</div></div>' +
+      '<div style="font-weight:700;font-size:13px;">' + fmtMoney(p.amountUsd) + '</div>' +
+      '<div style="font-size:12px;">' + fmtCrypto(p.amountCrypto, p.currency) + '</div>' +
+      '<div><span class="badge badge-grey">' + p.currency + '</span></div>' +
+      '<div style="font-size:12px;font-family:monospace;" title="' + p.wallet + '">' + truncateWallet(p.wallet) + '</div>' +
+      '<div style="font-size:12px;">' + p.date + '</div>' +
+      '<div>' + payoutStatusBadge(p.status) + '</div>' +
+      '</div>';
+  }).join('');
+
+  mobileEl.innerHTML = list.map(function(p) {
+    return '<div class="tx-card glass" style="padding:18px;border-radius:16px;">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">' +
+        '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + p.freelancer + '</div>' +
+        payoutStatusBadge(p.status) +
+      '</div>' +
+      '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;">' +
+        '<div style="font-size:20px;font-weight:800;color:#0d2145;">' + fmtMoney(p.amountUsd) + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.45);">' + p.date + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">' +
+        '<span style="font-size:12px;">' + fmtCrypto(p.amountCrypto, p.currency) + '</span>' +
+        '<span class="badge badge-grey">' + p.currency + '</span>' +
+      '</div>' +
+      '<div style="font-size:11px;color:rgba(13,33,69,0.45);margin-top:8px;font-family:monospace;" title="' + p.wallet + '">' + truncateWallet(p.wallet) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+/* ============ KYC DATA ============ */
+var KYC_PENDING = [];
+
+function renderKycCards() {
+  var grid = document.getElementById('kyc-grid');
+  var empty = document.getElementById('kyc-empty');
+  var countBadge = document.getElementById('kyc-pending-count');
+
+  countBadge.textContent = KYC_PENDING.length + ' Pending';
+
+  if (KYC_PENDING.length === 0) {
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  grid.style.display = 'grid';
+  empty.style.display = 'none';
+
+  grid.innerHTML = KYC_PENDING.map(function(k) {
+    var imgs = k.kycImages || {};
+    function imgCell(url, label) {
+      if (!url) return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div><div style="background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);">No image</div></div>';
+      return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div><a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="' + label + '" style="width:100%;height:90px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block;" onerror="this.parentElement.innerHTML=\'<div style=&quot;background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);&quot;>Load failed</div>\'"/></a></div>';
+    }
+    return '<div class="glass" style="padding:24px;" id="kyc-card-' + k.uid + '">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">' +
+        '<div style="display:flex;align-items:center;gap:12px;">' +
+          '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;">' + getInitials(k.name) + '</div>' +
+          '<div>' +
+            '<div style="font-size:16px;font-weight:700;color:#0d2145;">' + k.name + '</div>' +
+            '<div style="font-size:12px;color:rgba(13,33,69,0.48);margin-top:2px;">' + k.email + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<span class="badge badge-amber">Under Review</span>' +
+      '</div>' +
+      '<div class="kyc-info-row">' +
+        '<div><div class="lbl">Submitted</div><div style="font-weight:700;font-size:13px;margin-top:4px;">' + k.submittedDate + '</div></div>' +
+        '<div><div class="lbl">Document</div><div style="font-weight:700;font-size:13px;margin-top:4px;">' + k.documentType + '</div></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;margin-top:16px;">' +
+        imgCell(imgs.frontUrl, 'NIN Front') +
+        imgCell(imgs.backUrl,  'NIN Back') +
+        imgCell(imgs.selfieUrl,'Selfie') +
+      '</div>' +
+      '<div style="display:flex;gap:10px;margin-top:18px;">' +
+        '<button class="btn-green" style="flex:1;" onclick="approveKyc(\'' + k.uid + '\')">Approve</button>' +
+        '<button class="btn-secondary" style="flex:1;" onclick="toggleKycReject(\'' + k.uid + '\')">Reject</button>' +
+      '</div>' +
+      '<div class="kyc-reject-area" id="kyc-reject-' + k.uid + '">' +
+        '<textarea class="input-field" id="kyc-reject-reason-' + k.uid + '" rows="3" placeholder="Enter rejection reason (sent to user in email)" style="resize:vertical;margin-top:12px;"></textarea>' +
+        '<button style="width:100%;margin-top:10px;background:#c81e1e;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:transform .15s;" onmouseover="this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.transform=\'translateY(0)\'" onclick="confirmKycReject(\'' + k.uid + '\')">Confirm Rejection</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function toggleKycReject(uid) {
+  var el = document.getElementById('kyc-reject-' + uid);
+  el.classList.toggle('open');
+}
+
+function approveKyc(uid) {
+  var k = KYC_PENDING.find(function(x) { return x.uid === uid; });
+  if (!k) return;
+  var ok = confirm('Approve KYC for ' + k.name + '?');
+  if (!ok) return;
+
+  var btn = document.querySelector('#kyc-card-' + uid + ' .btn-green');
+  if (btn) { btn.disabled = true; btn.textContent = 'Approvingâ€¦'; }
+
+  fetch('/.netlify/functions/kyc-approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'approve', uid: uid, adminSecret: window.ADMIN_SECRET || '' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      KYC_PENDING = KYC_PENDING.filter(function(x) { return x.uid !== uid; });
+      renderKycCards();
+      showToast('KYC approved. User notified by email.');
+    } else {
+      showToast('Error: ' + (data.error || 'Unknown error'));
+      if (btn) { btn.disabled = false; btn.textContent = 'Approve'; }
+    }
+  })
+  .catch(function(err) {
+    showToast('Network error. Please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Approve'; }
+  });
+}
+
+function confirmKycReject(uid) {
+  var k = KYC_PENDING.find(function(x) { return x.uid === uid; });
+  if (!k) return;
+
+  var textarea = document.getElementById('kyc-reject-reason-' + uid);
+  var reason = textarea.value.trim();
+  if (!reason) { showToast('Please enter a rejection reason.'); return; }
+
+  var btn = document.querySelector('#kyc-card-' + uid + ' [onclick*="confirmKycReject"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Rejectingâ€¦'; }
+
+  fetch('/.netlify/functions/kyc-approve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'reject', uid: uid, reason: reason, adminSecret: window.ADMIN_SECRET || '' })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      KYC_PENDING = KYC_PENDING.filter(function(x) { return x.uid !== uid; });
+      renderKycCards();
+      showToast('KYC declined. User notified by email.');
+    } else {
+      showToast('Error: ' + (data.error || 'Unknown error'));
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirm Rejection'; }
+    }
+  })
+  .catch(function(err) {
+    showToast('Network error. Please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm Rejection'; }
+  });
+}
+
+/* ============ SETTINGS ============ */
+var SETTINGS_FIELDS = [
+  { id: 'set-platform-fee',    min: 0, max: 100, key: 'platformFeePercent',       parse: parseFloat },
+  { id: 'set-protection-fee',  min: 0, max: 100, key: 'projectProtectionPercent', parse: parseFloat },
+  { id: 'set-withdrawal-fee',  min: 0, max: 100, key: 'withdrawalFeePercent',     parse: parseFloat },
+  { id: 'set-early-payout-fee',min: 0, max: 100, key: 'earlyPayoutFeePercent',    parse: parseFloat },
+  { id: 'set-boost-24h',       min: 0, max: null, key: 'boostPrice24h',           parse: parseFloat },
+  { id: 'set-boost-3d',        min: 0, max: null, key: 'boostPrice3d',            parse: parseFloat },
+  { id: 'set-boost-7d',        min: 0, max: null, key: 'boostPrice7d',            parse: parseFloat },
+  { id: 'set-holding-days',    min: 0, max: 30,   key: 'holdingPeriodDays',       parse: parseInt   },
+  { id: 'set-referral-credit', min: 0, max: null, key: 'referralCreditAmount',    parse: parseFloat }
+];
+
+/* -- Toggle visual helper -- */
+var GATEWAY_STATE = { stripe: false, paystack: false };
+
+function setToggleVisual(gateway, enabled) {
+  var el = document.getElementById('toggle-' + gateway);
+  if (!el) return;
+  el.style.background = enabled ? '#2d8a5e' : '#e2e8f0';
+  el.querySelector('div').style.transform = enabled ? 'translateX(20px)' : 'translateX(0)';
+  GATEWAY_STATE[gateway] = enabled;
+}
+
+/* Change 3: toggleGateway */
+function toggleGateway(gateway) {
+  var newState = !GATEWAY_STATE[gateway];
+  setToggleVisual(gateway, newState);
+
+  if (window.firestore && window.db) {
+    var _f = window.firestore;
+    var payload = {};
+    payload[gateway === 'stripe' ? 'stripeEnabled' : 'paystackEnabled'] = newState;
+    _f.setDoc(_f.doc(window.db, 'config', 'platform'), payload, { merge: true })
+      .then(function() {
+        showToast((gateway === 'stripe' ? 'Stripe' : 'Paystack') + ' payments ' + (newState ? 'enabled' : 'disabled') + '.');
+      })
+      .catch(function(err) {
+        console.error('toggleGateway error:', err);
+        // Revert visual on failure
+        setToggleVisual(gateway, !newState);
+        showToast('Failed to update gateway setting.');
+        showError(err);
+      });
+  } else {
+    showToast((gateway === 'stripe' ? 'Stripe' : 'Paystack') + ' payments ' + (newState ? 'enabled' : 'disabled') + ' (demo mode).');
+  }
+}
+
+/* Change 4: loadSettings â€” reads Firestore and pre-fills all fields */
+function loadSettings() {
+  if (!window.firestore || !window.db) return;
+  var _f = window.firestore;
+  _f.getDoc(_f.doc(window.db, 'config', 'platform')).then(function(snap) {
+    if (!snap.exists()) return;
+    var d = snap.data();
+    SETTINGS_FIELDS.forEach(function(f) {
+      var el = document.getElementById(f.id);
+      if (el && d[f.key] !== undefined) el.value = d[f.key];
+    });
+    if (d.stripeEnabled  !== undefined) setToggleVisual('stripe',   !!d.stripeEnabled);
+    if (d.paystackEnabled !== undefined) setToggleVisual('paystack', !!d.paystackEnabled);
+    var twEl = document.getElementById('twitterUrl');  if (twEl) twEl.value  = d.twitterUrl  || '';
+    var liEl = document.getElementById('linkedinUrl'); if (liEl) liEl.value  = d.linkedinUrl || '';
+    var igEl = document.getElementById('instagramUrl');if (igEl) igEl.value  = d.instagramUrl|| '';
+  }).catch(function(err) {
+    console.warn('loadSettings error:', err);
+  });
+}
+
+/* Change 4 updated: saveSettings also writes stripeEnabled and paystackEnabled */
+function saveSettings() {
+  var valid = true;
+
+  SETTINGS_FIELDS.forEach(function(f) {
+    var input = document.getElementById(f.id);
+    var value = f.parse(input.value);
+    var fieldValid = !isNaN(value) && value >= f.min && (f.max === null || value <= f.max);
+    input.style.borderColor = fieldValid ? '#e2e8f0' : '#c81e1e';
+    if (!fieldValid) valid = false;
+  });
+
+  if (!valid) {
+    showToast('Please enter valid values for all fields');
+    return;
+  }
+
+  var btn = document.getElementById('save-settings-btn');
+  var originalText = btn.innerHTML;
+  btn.innerHTML = '<span class="btn-spinner"></span> Saving...';
+  btn.disabled = true;
+
+  var payload = {};
+  SETTINGS_FIELDS.forEach(function(f) {
+    payload[f.key] = f.parse(document.getElementById(f.id).value);
+  });
+  payload.stripeEnabled  = GATEWAY_STATE.stripe;
+  payload.paystackEnabled = GATEWAY_STATE.paystack;
+  payload.twitterUrl  = (document.getElementById('twitterUrl')  || {}).value ? document.getElementById('twitterUrl').value.trim()  : '';
+  payload.linkedinUrl = (document.getElementById('linkedinUrl') || {}).value ? document.getElementById('linkedinUrl').value.trim() : '';
+  payload.instagramUrl= (document.getElementById('instagramUrl')|| {}).value ? document.getElementById('instagramUrl').value.trim(): '';
+
+  function finish(ok) {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    showToast(ok ? 'Settings saved successfully.' : 'Save failed. Check console.');
+  }
+
+  if (window.firestore && window.db) {
+    var _f = window.firestore;
+    _f.setDoc(_f.doc(window.db, 'config', 'platform'), payload, { merge: true })
+      .then(function() { finish(true); })
+      .catch(function(err) { console.error('saveSettings error:', err); showError(err); finish(false); });
+  } else {
+    setTimeout(function() { finish(true); }, 800);
+  }
+}
+
+/* ============ FIRESTORE DATA LOADERS (Change 5) ============ */
+
+/* -- Overview stats from Firestore -- */
+function loadOverviewStats() {
+  if (!window.firestore || !window.db) { animateStats(); return; }
+  var _f = window.firestore;
+  var db = window.db;
+
+  Promise.all([
+    _f.getDocs(_f.collection(db, 'users')),
+    _f.getDocs(_f.query(_f.collection(db, 'projects'))),
+    _f.getDocs(_f.query(_f.collection(db, 'disputes'), _f.where('status', '==', 'open'))),
+    _f.getDocs(_f.collection(db, 'payouts'))
+  ]).then(function(results) {
+    var usersSnap = results[0], projectsSnap = results[1],
+        disputesSnap = results[2], payoutsSnap = results[3];
+
+    var freelancers = 0, buyers = 0, platformFees = 0, totalPayouts = 0;
+    usersSnap.forEach(function(d) {
+      var u = d.data();
+      if (u.role === 'freelancer' && u.kycStatus === 'verified') freelancers++;
+      if (u.role === 'buyer') buyers++;
+    });
+    projectsSnap.forEach(function(d) {
+      var p = d.data();
+      platformFees += (p.platformFeeAmount || 0);
+    });
+    payoutsSnap.forEach(function(d) {
+      var p = d.data();
+      totalPayouts += (p.amountUsd || 0);
+    });
+
+    STATS.earnings = platformFees;
+    STATS.transactions = projectsSnap.size;
+    STATS.freelancers = freelancers;
+    STATS.buyers = buyers;
+    STATS.disputes = disputesSnap.size;
+    STATS.payouts = totalPayouts;
+    statsAnimated = false;
+    animateStats();
+  }).catch(function(err) {
+    console.warn('loadOverviewStats error:', err);
+    animateStats();
+  });
+}
+
+/* -- Users from Firestore -- */
+function loadUsers() {
+  if (!window.firestore || !window.db) { filterUsers(); return; }
+  var _f = window.firestore;
+  var rowsEl  = document.getElementById('users-rows');
+  var mobileEl = document.getElementById('users-mobile');
+  rowsEl.innerHTML  = '<div style="padding:20px;"><div class="sk" style="height:16px;width:60%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:80%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:50%;"></div></div>';
+  mobileEl.innerHTML = rowsEl.innerHTML;
+
+  _f.getDocs(_f.query(_f.collection(window.db, 'users'), _f.orderBy('createdAt', 'desc')))
+    .then(function(snap) {
+      USERS = [];
+      snap.forEach(function(d) {
+        var u = d.data();
+        var joined = u.createdAt && u.createdAt.toDate
+          ? u.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : (u.joinedDate || 'Unknown');
+        USERS.push({
+          uid: d.id,
+          name: u.name || u.displayName || 'Unknown',
+          email: u.email || '',
+          role: u.role || 'freelancer',
+          kycStatus: u.kycStatus || 'not_started',
+          joined: joined,
+          totalEarnings: u.totalEarnings || 0,
+          totalSpent: u.totalSpent || 0,
+          projectCount: u.projectCount || 0,
+          suspended: !!u.suspended,
+          banned: !!u.banned
+        });
+      });
+      filterUsers();
+    })
+    .catch(function(err) {
+      console.warn('loadUsers error:', err);
+      filterUsers();
+    });
+}
+
+/* -- Transactions from Firestore (projects collection) -- */
+function loadTransactions() {
+  if (!window.firestore || !window.db) { filterTransactions(); return; }
+  var _f = window.firestore;
+  var rowsEl = document.getElementById('tx-rows');
+  var mobileEl = document.getElementById('tx-mobile');
+  rowsEl.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:70%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:90%;"></div></div>';
+  mobileEl.innerHTML = rowsEl.innerHTML;
+
+  _f.getDocs(_f.query(_f.collection(window.db, 'projects'), _f.orderBy('createdAt', 'desc')))
+    .then(function(snap) {
+      TRANSACTIONS = [];
+      snap.forEach(function(d) {
+        var p = d.data();
+        var date = p.createdAt && p.createdAt.toDate
+          ? p.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        TRANSACTIONS.push({
+          id: d.id,
+          project: p.projectTitle || p.title || 'Untitled',
+          buyer: p.buyerName || 'Unknown',
+          freelancer: p.freelancerName || 'Unknown',
+          gross: p.amount || 0,
+          fee: p.platformFeeAmount || 0,
+          net: p.netAmount || (p.amount || 0),
+          method: p.paymentMethod || 'Unknown',
+          date: date,
+          escrowStatus: p.escrowStatus || 'pending'
+        });
+      });
+      filterTransactions();
+    })
+    .catch(function(err) {
+      console.warn('loadTransactions error:', err);
+      filterTransactions();
+    });
+}
+
+/* -- Contracts from Firestore -- */
+function loadContracts() {
+  if (!window.firestore || !window.db) { renderContractsTable(); return; }
+  var _f = window.firestore;
+  var rowsEl = document.getElementById('contracts-rows');
+  rowsEl.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:60%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:80%;"></div></div>';
+
+  _f.getDocs(_f.query(
+    _f.collection(window.db, 'projects'),
+    _f.where('freelancerSigned', '==', true),
+    _f.where('buyerSigned', '==', true),
+    _f.orderBy('signedAt', 'desc')
+  ))
+    .then(function(snap) {
+      CONTRACTS = [];
+      snap.forEach(function(d) {
+        var p = d.data();
+        var date = p.signedAt && p.signedAt.toDate
+          ? p.signedAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        CONTRACTS.push({
+          id: d.id,
+          project: p.projectTitle || p.title || 'Untitled',
+          buyer: p.buyerName || 'Unknown',
+          freelancer: p.freelancerName || 'Unknown',
+          dateSigned: date,
+          amount: p.amount || 0,
+          pdfUrl: p.contractPdfUrl || '#'
+        });
+      });
+      renderContractsTable();
+    })
+    .catch(function(err) {
+      console.warn('loadContracts error:', err);
+      renderContractsTable();
+    });
+}
+
+/* -- Disputes from Firestore -- */
+function loadDisputes() {
+  if (!window.firestore || !window.db) { renderDisputesTable(); return; }
+  var _f = window.firestore;
+  var rowsEl = document.getElementById('disputes-rows');
+  rowsEl.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:60%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:80%;"></div></div>';
+
+  _f.getDocs(_f.query(_f.collection(window.db, 'disputes'), _f.orderBy('createdAt', 'desc')))
+    .then(function(snap) {
+      DISPUTES = [];
+      snap.forEach(function(d) {
+        var dis = d.data();
+        var date = dis.createdAt && dis.createdAt.toDate
+          ? dis.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        DISPUTES.push({
+          id: d.id,
+          project: dis.projectTitle || 'Untitled',
+          buyer: dis.buyerName || 'Unknown',
+          freelancer: dis.freelancerName || 'Unknown',
+          dateRaised: date,
+          status: dis.status || 'open',
+          amount: dis.amount || 0,
+          contractPdfUrl: dis.contractPdfUrl || '#',
+          freelancerEvidence: dis.freelancerEvidence || '',
+          buyerEvidence: dis.buyerEvidence || ''
+        });
+      });
+      renderDisputesTable();
+    })
+    .catch(function(err) {
+      console.warn('loadDisputes error:', err);
+      renderDisputesTable();
+    });
+}
+
+/* -- Payouts from Firestore -- */
+function loadPayouts() {
+  if (!window.firestore || !window.db) { filterPayouts(); return; }
+  var _f = window.firestore;
+  var rowsEl = document.getElementById('payouts-rows');
+  rowsEl.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:60%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:80%;"></div></div>';
+
+  _f.getDocs(_f.query(_f.collection(window.db, 'payouts'), _f.orderBy('createdAt', 'desc')))
+    .then(function(snap) {
+      PAYOUTS = [];
+      snap.forEach(function(d) {
+        var p = d.data();
+        var date = p.createdAt && p.createdAt.toDate
+          ? p.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        PAYOUTS.push({
+          id: d.id,
+          freelancer: p.freelancerName || 'Unknown',
+          email: p.email || '',
+          amountUsd: p.amountUsd || 0,
+          amountCrypto: p.amountCrypto || 0,
+          currency: p.currency || 'USDT',
+          wallet: p.walletAddress || '',
+          date: date,
+          status: p.status || 'processing'
+        });
+      });
+      filterPayouts();
+    })
+    .catch(function(err) {
+      console.warn('loadPayouts error:', err);
+      filterPayouts();
+    });
+}
+
+/* -- KYC pending from Firestore -- */
+function loadKyc() {
+  if (!window.firestore || !window.db) { renderKycCards(); return; }
+  var _f = window.firestore;
+  var grid = document.getElementById('kyc-grid');
+  grid.innerHTML = '<div class="glass" style="padding:24px;grid-column:1/-1;"><div class="sk" style="height:18px;width:40%;margin-bottom:12px;"></div><div class="sk" style="height:14px;width:70%;"></div></div>';
+
+  _f.getDocs(_f.query(
+    _f.collection(window.db, 'users'),
+    _f.where('kycStatus', '==', 'under-review'),
+    _f.orderBy('kycSubmittedAt', 'desc')
+  ))
+    .then(function(snap) {
+      KYC_PENDING = [];
+      snap.forEach(function(d) {
+        var u = d.data();
+        var date = u.kycSubmittedAt && u.kycSubmittedAt.toDate
+          ? u.kycSubmittedAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+          : '';
+        KYC_PENDING.push({
+          uid: d.id,
+          name: u.name || u.displayName || 'Unknown',
+          email: u.email || '',
+          submittedDate: date,
+          documentType: u.kycDocumentType || 'NIN Card',
+          kycImages: u.kycImages || { frontUrl: '', backUrl: '', selfieUrl: '' },
+          kycStatus: 'pending'
+        });
+      });
+      renderKycCards();
+    })
+    .catch(function(err) {
+      console.warn('loadKyc error:', err);
+      renderKycCards();
+    });
+}
+
+/* ============ BOOT ============ */
+function boot() {
+  buildNav();
+  showSection('overview');
+  loadOverviewStats();
+  loadUsers();
+  loadTransactions();
+  loadContracts();
+  loadDisputes();
+  loadPayouts();
+  loadKyc();
+  loadSettings();
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+/* â”€â”€ Auth check â”€â”€ */
+(function waitForAuth() {
+  if (!window.authFn || !window.auth || !window.firestore) {
+    return setTimeout(waitForAuth, 50);
+  }
+  window.authFn.onAuthStateChanged(window.auth, function(user) {
+    if (!user) {
+      window.location.href = '/login.html';
+      return;
+    }
+    var _f = window.firestore;
+    _f.getDoc(_f.doc(window.db, 'users', user.uid)).then(function(snap) {
+      if (!snap.exists() || snap.data().role !== 'admin') {
+        window.location.href = '/login.html';
+        return;
+      }
+      var name = snap.data().displayName || snap.data().name || 'Admin';
+      document.getElementById('user-avatar').textContent = getInitials(name);
+      boot();
+    }).catch(function(err) {
+      console.error('Auth error:', err);
+      window.location.href = '/login.html';
+    });
+  });
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+<script>Â// Safety: force-hide loading overlay after 10s if auth/boot stallsÂ(function() {Â  var _safetyTimer = setTimeout(function() {Â    var ov = document.getElementById("loading-overlay");Â    if (ov) { ov.style.display = "none"; }Â  }, 10000);Â  window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };Â})();Â</script>Â
+
+<script type="module">
+  import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signOut }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, collection, query, where,
+           orderBy, limit, getDocs, setDoc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  var app = initializeApp({
+    apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+    authDomain:        'kreddlo.firebaseapp.com',
+    projectId:         'kreddlo',
+    storageBucket:     'kreddlo.firebasestorage.app',
+    messagingSenderId: '764500458567',
+    appId:             '1:764500458567:web:2389d5cf8c688caafd0562',
+  });
+
+  window.db       = getFirestore(app);
+  window.auth     = getAuth(app);
+  window.authFn   = { onAuthStateChanged: function(a, cb) { return onAuthStateChanged(a, cb); } };
+  window.firestore = {
+    getDoc:     function() { return getDoc.apply(null, arguments); },
+    doc:        function() { return doc.apply(null, arguments); },
+    collection: function() { return collection.apply(null, arguments); },
+    query:      function() { return query.apply(null, arguments); },
+    where:      function() { return where.apply(null, arguments); },
+    orderBy:    function() { return orderBy.apply(null, arguments); },
+    limit:      function() { return limit.apply(null, arguments); },
+    getDocs:    function() { return getDocs.apply(null, arguments); },
+    setDoc:     function() { return setDoc.apply(null, arguments); },
+    updateDoc:  function() { return updateDoc.apply(null, arguments); },
+    onSnapshot: function() { return onSnapshot.apply(null, arguments); },
+  };
+  window._signOut = signOut;
+</script>
+</body>
+</html>
