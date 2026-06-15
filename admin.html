@@ -1646,8 +1646,16 @@ function renderKycCards() {
   grid.innerHTML = KYC_PENDING.map(function(k) {
     var imgs = k.kycImages || {};
     function imgCell(url, label) {
-      if (!url) return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div><div style="background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);">No image</div></div>';
-      return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div><a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" alt="' + label + '" style="width:100%;height:90px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block;" onerror="this.parentElement.innerHTML=\'<div style=&quot;background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);&quot;>Load failed</div>\'"/></a></div>';
+      var placeholder = '<div style="background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);">No image</div>';
+      if (!url) return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div>' + placeholder + '</div>';
+      return '<div style="flex:1;min-width:0;"><div class="lbl" style="margin-bottom:6px;">' + label + '</div>' +
+        '<a href="' + url + '" target="_blank" rel="noopener">' +
+          '<img src="' + url + '" alt="' + label + '" ' +
+            'style="width:100%;height:90px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block;" ' +
+            'onerror="var p=this.closest(\'a\');if(p){p.outerHTML=\'<div style=&quot;background:#f0f2f6;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(13,33,69,0.4);&quot;>Load failed</div>\';}"' +
+          '/>' +
+        '</a>' +
+      '</div>';
     }
     return '<div class="glass" style="padding:24px;" id="kyc-card-' + k.uid + '">' +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">' +
@@ -2101,44 +2109,64 @@ function loadPayouts() {
 }
 
 /* -- KYC pending from Firestore -- */
+function _buildKycPendingFromSnap(snap) {
+  KYC_PENDING = [];
+  snap.forEach(function(d) {
+    var u = d.data();
+    var rawTs = u.kycSubmittedAt && u.kycSubmittedAt.toDate
+      ? u.kycSubmittedAt.toDate().getTime()
+      : 0;
+    var date = rawTs
+      ? new Date(rawTs).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+      : '';
+    KYC_PENDING.push({
+      uid: d.id,
+      name: u.name || u.displayName || 'Unknown',
+      email: u.email || '',
+      submittedDate: date,
+      rawSubmittedAt: rawTs,
+      documentType: u.kycDocumentType || 'NIN Card',
+      kycImages: u.kycImages || { frontUrl: '', backUrl: '', selfieUrl: '' },
+      kycStatus: 'pending'
+    });
+  });
+  /* Sort newest-first in JS — no Firestore composite index needed */
+  KYC_PENDING.sort(function(a, b) {
+    return (b.rawSubmittedAt || 0) - (a.rawSubmittedAt || 0);
+  });
+}
+
 function loadKyc() {
   if (!window.firestore || !window.db) { renderKycCards(); return; }
   var _f = window.firestore;
   var grid = document.getElementById('kyc-grid');
   grid.innerHTML = '<div class="glass" style="padding:24px;grid-column:1/-1;"><div class="sk" style="height:18px;width:40%;margin-bottom:12px;"></div><div class="sk" style="height:14px;width:70%;"></div></div>';
 
+  /* Primary query — simple where only, sort client-side (no composite index required) */
   _f.getDocs(_f.query(
     _f.collection(window.db, 'users'),
-    _f.where('kycStatus', '==', 'under-review'),
-    _f.orderBy('kycSubmittedAt', 'desc')
+    _f.where('kycStatus', '==', 'under-review')
   ))
     .then(function(snap) {
-      KYC_PENDING = [];
-      snap.forEach(function(d) {
-        var u = d.data();
-        var date = u.kycSubmittedAt && u.kycSubmittedAt.toDate
-          ? u.kycSubmittedAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
-          : '';
-        KYC_PENDING.push({
-          uid: d.id,
-          name: u.name || u.displayName || 'Unknown',
-          email: u.email || '',
-          submittedDate: date,
-          documentType: u.kycDocumentType || 'NIN Card',
-          kycImages: u.kycImages || { frontUrl: '', backUrl: '', selfieUrl: '' },
-          kycStatus: 'pending'
-        });
-      });
+      _buildKycPendingFromSnap(snap);
       renderKycCards();
     })
     .catch(function(err) {
       console.warn('loadKyc error:', err);
+      /* Fallback: render empty state rather than broken UI */
+      KYC_PENDING = [];
       renderKycCards();
     });
 }
 
 /* ============ BOOT ============ */
+var _kycUnsubscribe = null; /* store onSnapshot cleanup fn */
+
 function boot() {
+  /* ADMIN_SECRET — must match the ADMIN_SECRET env var set in Netlify.
+     Set your chosen secret string here after adding it to Netlify env vars. */
+  window.ADMIN_SECRET = '';
+
   buildNav();
   showSection('overview');
   loadOverviewStats();
@@ -2150,6 +2178,25 @@ function boot() {
   loadKyc();
   loadSettings();
   document.getElementById('loading-overlay').style.display = 'none';
+
+  /* Real-time KYC listener — updates panel when submissions arrive or statuses change */
+  if (window.firestore && window.db) {
+    var _f = window.firestore;
+    if (_kycUnsubscribe) { _kycUnsubscribe(); }
+    _kycUnsubscribe = _f.onSnapshot(
+      _f.query(
+        _f.collection(window.db, 'users'),
+        _f.where('kycStatus', '==', 'under-review')
+      ),
+      function(snap) {
+        _buildKycPendingFromSnap(snap);
+        renderKycCards();
+      },
+      function(err) {
+        console.warn('KYC onSnapshot error:', err);
+      }
+    );
+  }
 }
 
 /* ── Auth check ── */

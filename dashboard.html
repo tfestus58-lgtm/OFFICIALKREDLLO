@@ -267,6 +267,25 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
         </div>
       </div>
 
+      <!-- KYC UNDER-REVIEW BANNER — shown when kycStatus is under-review -->
+      <div id="kyc-review-banner" style="display:none;background:#fff3cd;border:1px solid #f6c843;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:none;">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(214,158,46,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#b7791f" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4m0 4h.01"/>
+            </svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:13px;font-weight:700;color:#0d2145;margin:0 0 3px;">Identity verification under review</p>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.60);margin:0;line-height:1.5;">We will notify you by email once a decision has been made. You can still browse the platform but you cannot accept payments until verified.</p>
+          </div>
+          <button onclick="document.getElementById('kyc-review-banner').style.display='none'" style="width:26px;height:26px;background:rgba(13,33,69,0.07);border:none;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" title="Dismiss">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
       <!-- SECTION A: Greeting + actions -->
       <div class="fu fu-1" style="margin-bottom:26px;">
         <p id="greeting" style="font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48);margin:0 0 5px;">GOOD MORNING</p>
@@ -565,7 +584,7 @@ import { initializeApp }                            from 'https://www.gstatic.co
 import { getAuth, onAuthStateChanged, signOut }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, collection,
          query, where, orderBy, limit, getDocs,
-         setDoc }                                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+         setDoc, onSnapshot }                       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getMessaging, getToken, onMessage }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
 
 // ── Firebase config ──────────────────────────────────────────────────────────
@@ -845,6 +864,34 @@ async function loadDashboard(uid) {
     // 1. User document
     var userSnap = await getDoc(doc(db, 'users', uid));
     var user     = userSnap.exists() ? userSnap.data() : {};
+
+    // ── KYC GUARD ────────────────────────────────────────────────────────────
+    var kycStatus = user.kycStatus || '';
+    if (kycStatus !== 'verified' && kycStatus !== 'under-review' && kycStatus !== 'declined') {
+      // Not submitted at all — send to verify
+      window.location.href = 'verify.html';
+      return;
+    }
+    if (kycStatus === 'under-review' || kycStatus === 'declined') {
+      var banner = document.getElementById('kyc-review-banner');
+      if (banner) banner.style.display = 'flex';
+    }
+
+    // ── REAL-TIME KYC WATCHER ─────────────────────────────────────────────────
+    // If status changes to verified while user is on dashboard, hide banner + toast
+    if (kycStatus === 'under-review' || kycStatus === 'declined') {
+      var _kycUnsub = onSnapshot(doc(db, 'users', uid), function(snap) {
+        if (!snap.exists()) return;
+        var newStatus = snap.data().kycStatus;
+        if (newStatus === 'verified') {
+          _kycUnsub();
+          var b = document.getElementById('kyc-review-banner');
+          if (b) b.style.display = 'none';
+          showToast('Your identity has been verified. Your profile is now live. 🎉');
+        }
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     var name    = user.name || user.displayName || 'there';
     var balance = Number(user.balance || user.availableBalance || 0);
