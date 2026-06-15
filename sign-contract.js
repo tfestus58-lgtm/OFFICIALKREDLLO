@@ -120,6 +120,22 @@ async function buildPdf(contractData, contractId) {
   return Buffer.from(result.body, 'base64');
 }
 
+// ── Internal function caller ──────────────────────────────────────
+async function callFunction(name, payload) {
+  const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+  if (!platformUrl) { console.warn(`PLATFORM_URL not set — cannot call ${name}.`); return; }
+  try {
+    const res = await fetch(`${platformUrl}/.netlify/functions/${name}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    if (!res.ok) console.warn(`${name} returned ${res.status}: ${await res.text()}`);
+  } catch (err) {
+    console.error(`Failed to call ${name}:`, err.message);
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -215,6 +231,51 @@ exports.handler = async (event) => {
     } else if (bothSigned && contractPdfUrl) {
       // Both were already signed before, just make sure status is active
       await ref.update({ status: 'active' });
+    }
+
+    /* ── Notify the other party ── */
+    try {
+      const platformUrl  = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+      const contractUrl  = `${platformUrl}/dashboard-contracts.html`;
+      const contractTitle = data.title || 'Contract';
+
+      if (bothSigned) {
+        // Both signed — notify both parties the contract is now active
+        const notifyUids = [
+          { uid: data.freelancerUid, name: data.buyerName     || 'the client',     other: data.freelancerName || 'the freelancer' },
+          { uid: data.buyerUid,      name: data.freelancerName || 'the freelancer', other: data.buyerName      || 'the client' },
+        ];
+        for (const party of notifyUids) {
+          if (!party.uid) continue;
+          await callFunction('send-smart-notification', {
+            userUid:    party.uid,
+            title:      'Contract Now Active',
+            body:       `"${contractTitle}" has been signed by both parties and is now active.`,
+            url:        contractUrl,
+            templateId: 'contract-active',
+            emailMode:  'always',
+            emailData:  { contractTitle, name: party.other },
+          });
+        }
+      } else {
+        // Only one party signed — notify the other to sign
+        const otherUid  = role === 'freelancer' ? data.buyerUid      : data.freelancerUid;
+        const signerName = role === 'freelancer' ? (data.freelancerName || 'The freelancer') : (data.buyerName || 'The client');
+        if (otherUid) {
+          await callFunction('send-smart-notification', {
+            userUid:    otherUid,
+            title:      'Signature Required',
+            body:       `${signerName} has signed "${contractTitle}". Your signature is needed to activate it.`,
+            url:        contractUrl,
+            templateId: 'contract-sign-requested',
+            emailMode:  'always',
+            emailData:  { contractTitle, signerName },
+          });
+        }
+      }
+    } catch (notifErr) {
+      // Non-fatal — contract is already signed/active
+      console.warn('[sign-contract] notification error:', notifErr.message);
     }
 
     return {

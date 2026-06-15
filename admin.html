@@ -1163,25 +1163,62 @@ document.addEventListener('keydown', function(e) {
 });
 
 /* ============ SUSPEND / BAN ============ */
-function toggleSuspend(uid) {
+async function toggleSuspend(uid) {
   var u = USERS.find(function(x) { return x.uid === uid; });
   if (!u) return;
 
-  if (u.suspended) {
-    // Unsuspend does not require confirmation
-    u.suspended = false;
-    showToast('User unsuspended');
-  } else {
+  var willSuspend = !u.suspended;
+
+  if (willSuspend) {
     var ok = confirm('Suspend ' + u.name + '? They will not be able to log in until reinstated.');
     if (!ok) return;
-    u.suspended = true;
-    showToast('User suspended');
   }
-  // In production: updateDoc(doc(window.db, 'users', u.uid), { suspended: u.suspended });
+
+  // Optimistic UI update
+  u.suspended = willSuspend;
   filterUsers();
+  showToast(willSuspend ? 'User suspended' : 'User unsuspended');
+
+  // Persist to Firestore
+  if (window.firestore && window.db) {
+    try {
+      var _f = window.firestore;
+      await _f.updateDoc(_f.doc(window.db, 'users', uid), {
+        suspended: willSuspend,
+      });
+    } catch (err) {
+      console.error('Firestore suspend update failed:', err);
+      showToast('Firestore update failed — check console');
+      // Revert optimistic update
+      u.suspended = !willSuspend;
+      filterUsers();
+      return;
+    }
+  }
+
+  // Send in-app + push notification to the user
+  if (willSuspend) {
+    try {
+      await fetch('/.netlify/functions/send-smart-notification', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userUid:    uid,
+          title:      'Account Suspended',
+          body:       'Your account has been suspended. Please contact support for assistance.',
+          url:        (window.location.origin || '') + '/dashboard.html',
+          templateId: 'account-suspended',
+          emailMode:  'always',
+          emailData:  { name: u.name || 'there' },
+        }),
+      });
+    } catch (err) {
+      console.warn('Suspend notification failed (non-fatal):', err.message);
+    }
+  }
 }
 
-function banUser(uid) {
+async function banUser(uid) {
   var u = USERS.find(function(x) { return x.uid === uid; });
   if (!u) return;
 
@@ -1189,9 +1226,37 @@ function banUser(uid) {
   if (!ok) return;
 
   u.banned = true;
-  // In production: updateDoc(doc(window.db, 'users', u.uid), { banned: true });
-  showToast('User banned');
   filterUsers();
+  showToast('User banned');
+
+  if (window.firestore && window.db) {
+    try {
+      var _f = window.firestore;
+      await _f.updateDoc(_f.doc(window.db, 'users', uid), { banned: true, suspended: true });
+    } catch (err) {
+      console.error('Firestore ban update failed:', err);
+      showToast('Firestore update failed — check console');
+    }
+  }
+
+  // Notify the banned user
+  try {
+    await fetch('/.netlify/functions/send-smart-notification', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userUid:    uid,
+        title:      'Account Banned',
+        body:       'Your account has been permanently banned. Contact support if you believe this is an error.',
+        url:        (window.location.origin || '') + '/dashboard.html',
+        templateId: 'account-banned',
+        emailMode:  'always',
+        emailData:  { name: u.name || 'there' },
+      }),
+    });
+  } catch (err) {
+    console.warn('Ban notification failed (non-fatal):', err.message);
+  }
 }
 
 /* ============ TOAST ============ */

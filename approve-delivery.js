@@ -199,13 +199,12 @@ exports.handler = async (event) => {
   /* ── Notify the freelancer: payment received ── */
   await callFunction('send-smart-notification', {
     userUid:    freelancerUid,
-    to:         freelancerEmail || null,
     title:      'Work Approved',
     body:       `"${projectTitle}" has been approved. Your payment is on its way.`,
     url:        projectUrl,
     templateId: 'payment-received',
-    emailMode:  'always',
-    data: {
+    emailMode:  freelancerEmail ? 'always' : 'never',
+    emailData: {
       name:         freelancerName,
       projectTitle,
       amount:       `$${netAmount.toFixed(2)}`,
@@ -214,23 +213,20 @@ exports.handler = async (event) => {
   });
 
   /* ── Notify the buyer: work delivered ── */
-  if (buyerEmail) {
-    await callFunction('send-smart-notification', {
-      userUid:      null,
-      to:           buyerEmail,
-      title:        'Work Delivered',
-      body:         `"${projectTitle}" has been marked as delivered. Please review and approve.`,
-      url:          projectUrl,
-      templateId:   'work-delivered',
-      emailMode:    'delayed',
-      delayMinutes: 15,
-      data: {
-        name:           buyerName,
-        projectTitle,
-        freelancerName,
-      },
-    });
-  }
+  await callFunction('send-smart-notification', {
+    userUid:      buyerUid,
+    title:        'Work Delivered',
+    body:         `"${projectTitle}" has been marked as delivered. Please review and approve.`,
+    url:          projectUrl,
+    templateId:   'work-delivered',
+    emailMode:    buyerEmail ? 'delayed' : 'never',
+    delayMinutes: 15,
+    emailData: {
+      name:           buyerName,
+      projectTitle,
+      freelancerName,
+    },
+  });
 
   return respond(200, {
     success: true,

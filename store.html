@@ -24,7 +24,7 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, query, where, getDocs, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, query, where, getDocs, orderBy, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk",
@@ -38,14 +38,14 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   window._db = db;
-  window._fs = { collection, query, where, getDocs, orderBy };
+  window._fs = { collection, query, where, getDocs, orderBy, doc, getDoc };
   document.dispatchEvent(new Event('firebase-ready'));
 </script>
 
 <style>
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased;min-height:100vh}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased;min-height:100vh;min-height:100dvh}
 
 /* ── Tokens ── */
 :root{
@@ -324,6 +324,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 }
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 </style>
+
+<style id="mobile-first-patch">
+html, body { width:100%; max-width:100%; overflow-x:hidden; box-sizing:border-box; }
+*, *::before, *::after { box-sizing:border-box; }
+.products-section { padding:20px 16px 60px !important; max-width:100% !important; }
+.products-grid { width:100% !important; }
+.prod-card { min-width:0; width:100%; }
+.store-header { padding:32px 16px 36px !important; }
+.store-name { font-size:20px !important; }
+.store-bio { font-size:13px !important; }
+.nav { padding:0 16px !important; }
+</style>
 </head>
 <body>
 
@@ -448,20 +460,45 @@ function esc(s) {
 
 // ── Init ────────────────────────────────────────────
 document.addEventListener('firebase-ready', async () => {
-  const storeSlug = new URLSearchParams(window.location.search).get('storeSlug');
-  if (!storeSlug) { show404(); return; }
+  const params    = new URLSearchParams(window.location.search);
+  const storeSlug = params.get('storeSlug') || params.get('slug');
+  const uidParam  = params.get('uid');
+
+  if (!storeSlug && !uidParam) { show404(); return; }
 
   try {
     const db = window._db;
-    const { collection, query, where, getDocs } = window._fs;
+    const { collection, query, where, getDocs, doc, getDoc } = window._fs;
 
-    // Find the user/seller by storeSlug
-    const uq = query(collection(db, 'users'), where('storeSlug', '==', storeSlug));
-    const uSnap = await getDocs(uq);
-    if (uSnap.empty) { show404(); return; }
+    let sellerDoc = null;
 
-    const sellerDoc = uSnap.docs[0];
+    // Option A: direct uid param (used by logged-in dashboard links)
+    if (uidParam) {
+      const snap = await getDoc(doc(db, 'users', uidParam));
+      if (snap.exists()) sellerDoc = snap;
+    }
+
+    // Option B: storeSlug — try nested field first, then flat fallback
+    if (!sellerDoc && storeSlug) {
+      let uSnap = await getDocs(query(collection(db, 'users'), where('storeSettings.storeSlug', '==', storeSlug)));
+      if (uSnap.empty) {
+        uSnap = await getDocs(query(collection(db, 'users'), where('storeSlug', '==', storeSlug)));
+      }
+      if (!uSnap.empty) sellerDoc = uSnap.docs[0];
+    }
+
+    if (!sellerDoc) { show404(); return; }
+
     _seller = { id: sellerDoc.id, ...sellerDoc.data() };
+    // Pull storeSlug from nested or flat field
+    if (!_seller.storeSlug && _seller.storeSettings?.storeSlug) {
+      _seller.storeSlug = _seller.storeSettings.storeSlug;
+    }
+    // Merge storeSettings fields into top-level for easy access
+    if (_seller.storeSettings) {
+      _seller.bio = _seller.bio || _seller.storeSettings.storeBio || '';
+      _seller.coverColor = _seller.coverColor || _seller.storeSettings.bannerColor || null;
+    }
 
     // Load products belonging to this seller
     const pq = query(

@@ -72,46 +72,69 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .fu-1{animation-delay:.05s}.fu-2{animation-delay:.14s}.fu-3{animation-delay:.23s}
 
 /* Policy content */
-.policy-section{margin-bottom:40px}
+.policy-section{margin-bottom:32px}
 .policy-section:last-child{margin-bottom:0}
-.policy-h{font-size:18px;font-weight:700;color:#0d2145;margin:0 0 14px;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px}
-.policy-h::before{content:'';display:inline-block;width:4px;height:20px;background:#0d2145;border-radius:2px;flex-shrink:0}
-.policy-p{font-size:15px;font-weight:500;color:rgba(13,33,69,0.66);line-height:1.85;margin:0 0 12px}
+.policy-h{font-size:16px;font-weight:700;color:#0d2145;margin:0 0 12px;letter-spacing:-0.2px;display:flex;align-items:center;gap:10px}
+.policy-h::before{content:'';display:inline-block;width:4px;height:18px;background:#0d2145;border-radius:2px;flex-shrink:0}
+.policy-p{font-size:14px;font-weight:500;color:rgba(13,33,69,0.66);line-height:1.8;margin:0 0 10px}
 .policy-p:last-child{margin-bottom:0}
-.policy-ul{list-style:none;padding:0;margin:0 0 12px}
-.policy-ul li{font-size:15px;font-weight:500;color:rgba(13,33,69,0.66);line-height:1.75;padding:5px 0 5px 22px;position:relative}
-.policy-ul li::before{content:'';position:absolute;left:0;top:14px;width:7px;height:7px;border-radius:50%;background:#0d2145;opacity:.30}
-.policy-divider{height:1px;background:linear-gradient(to right,transparent,#e2e8f0,transparent);margin:32px 0}
-.policy-highlight{border-radius:10px;padding:14px 18px;margin:14px 0}
+.policy-ul{list-style:none;padding:0;margin:0 0 10px}
+.policy-ul li{font-size:14px;font-weight:500;color:rgba(13,33,69,0.66);line-height:1.7;padding:5px 0 5px 20px;position:relative}
+.policy-ul li::before{content:'';position:absolute;left:0;top:13px;width:6px;height:6px;border-radius:50%;background:#0d2145;opacity:.28}
+.policy-divider{height:1px;background:linear-gradient(to right,transparent,#e2e8f0,transparent);margin:24px 0}
+.policy-highlight{border-radius:10px;padding:12px 16px;margin:12px 0}
 .policy-highlight.warn{background:#fff3cd;border-left:3px solid #856404}
-.policy-highlight.warn p{font-size:14px;font-weight:600;color:#856404;margin:0;line-height:1.6}
+.policy-highlight.warn p{font-size:13px;font-weight:600;color:#856404;margin:0;line-height:1.6}
 .policy-highlight.info{background:#e8f5ef;border-left:3px solid #2d8a5e;border-radius:0 10px 10px 0}
-.policy-highlight.info p{font-size:14px;font-weight:600;color:#2d8a5e;margin:0;line-height:1.6}
+.policy-highlight.info p{font-size:13px;font-weight:600;color:#2d8a5e;margin:0;line-height:1.6}
 .policy-highlight.red{background:#fde8e8;border-left:3px solid #c81e1e;border-radius:0 10px 10px 0}
-.policy-highlight.red p{font-size:14px;font-weight:600;color:#c81e1e;margin:0;line-height:1.6}
+.policy-highlight.red p{font-size:13px;font-weight:600;color:#c81e1e;margin:0;line-height:1.6}
 
-/* Fee table */
-.fee-table{width:100%;border-collapse:collapse;margin:14px 0}
-.fee-table th{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(13,33,69,0.42);padding:10px 14px;text-align:left;border-bottom:2px solid #e2e8f0;white-space:nowrap}
-.fee-table td{font-size:14px;font-weight:500;color:rgba(13,33,69,0.70);padding:13px 14px;border-bottom:1px solid #f0f2f6;line-height:1.5;vertical-align:top}
+/* Fee table — mobile-first: stacked cards on small screens, table on large */
+.fee-table{width:100%;border-collapse:collapse;margin:14px 0;display:none}
+.fee-table th{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(13,33,69,0.42);padding:10px 12px;text-align:left;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+.fee-table td{font-size:13px;font-weight:500;color:rgba(13,33,69,0.70);padding:11px 12px;border-bottom:1px solid #f0f2f6;line-height:1.5;vertical-align:top}
 .fee-table tr:last-child td{border-bottom:none}
 .fee-table td:first-child{font-weight:700;color:#0d2145}
 .fee-table tr:hover td{background:rgba(13,33,69,0.02)}
 
+/* Fee cards — mobile default */
+.fee-cards{display:flex;flex-direction:column;gap:10px;margin:14px 0 16px}
+.fee-card{background:#f8f9fb;border-radius:12px;padding:14px 16px;border:1px solid #e2e8f0}
+.fee-card-title{font-size:14px;font-weight:700;color:#0d2145;margin:0 0 8px}
+.fee-card-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px}
+.fee-card-row:last-child{margin-bottom:0}
+.fee-card-label{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:rgba(13,33,69,0.40);white-space:nowrap;flex-shrink:0}
+.fee-card-value{font-size:13px;font-weight:600;color:rgba(13,33,69,0.70);text-align:right}
+
 /* TOC */
 .toc-link{display:block;font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);text-decoration:none;padding:7px 12px;border-radius:8px;transition:all .15s;border-left:2px solid transparent}
-.toc-link:hover{color:#0d2145;background:rgba(13,33,69,0.04);border-left-color:#e2e8f0}
+.toc-link:hover,.toc-link:focus{color:#0d2145;background:rgba(13,33,69,0.04);border-left-color:#e2e8f0}
+
+/* Mobile TOC accordion */
+.toc-mobile{background:rgba(255,255,255,0.80);border:1px solid #e2e8f0;border-radius:14px;margin-bottom:16px;overflow:hidden}
+.toc-mobile-btn{width:100%;background:transparent;border:none;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#0d2145;cursor:pointer;letter-spacing:.3px}
+.toc-mobile-btn svg{transition:transform .2s;flex-shrink:0}
+.toc-mobile-btn.open svg{transform:rotate(180deg)}
+.toc-mobile-links{display:none;padding:4px 12px 12px;display:flex;flex-direction:column;gap:2px}
+.toc-mobile-links.hidden{display:none}
 
 /* Prohibited list */
-.prohibited-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #f0f2f6}
+.prohibited-item{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid #f0f2f6}
 .prohibited-item:last-child{border-bottom:none}
-.prohibited-icon{width:28px;height:28px;border-radius:8px;background:#fde8e8;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.prohibited-icon{width:26px;height:26px;border-radius:8px;background:#fde8e8;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 
 /* Responsive */
 @media(min-width:768px){.hide-desktop{display:none!important}}
 @media(max-width:767px){.hide-mobile{display:none!important}}
-@media(max-width:600px){
-  .fee-table th,.fee-table td{padding:10px 10px;font-size:13px}
+
+@media(min-width:600px){
+  .policy-h{font-size:18px}
+  .policy-p,.policy-ul li{font-size:15px}
+  .policy-highlight.warn p,.policy-highlight.info p,.policy-highlight.red p{font-size:14px}
+  .fee-table{display:table}
+  .fee-cards{display:none}
+  .toc-mobile{display:none}
 }
 </style>
 </head>
@@ -159,7 +182,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 </div>
 
 <!-- HERO -->
-<section style="position:relative;overflow:hidden;background:linear-gradient(160deg,#091830 0%,#0d2145 55%,#162f5e 100%);padding:64px 20px 56px;">
+<section style="position:relative;overflow:hidden;background:linear-gradient(160deg,#091830 0%,#0d2145 55%,#162f5e 100%);padding:52px 20px 44px;">
   <div class="blob-n" style="opacity:.5;"></div>
   <div class="blob-g" style="opacity:.4;"></div>
   <div style="position:relative;z-index:1;max-width:720px;margin:0 auto;text-align:center;">
@@ -167,14 +190,34 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.65);letter-spacing:.5px;">LEGAL</span>
     </div>
-    <h1 class="fu fu-2" style="font-size:36px;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.1;margin:0 0 16px;">Terms of Service</h1>
+    <h1 class="fu fu-2" style="font-size:clamp(26px,6vw,36px);font-weight:800;color:#fff;letter-spacing:-0.8px;line-height:1.15;margin:0 0 16px;">Terms of Service</h1>
     <p class="fu fu-3" style="font-size:15px;font-weight:500;color:rgba(255,255,255,0.55);margin:0;line-height:1.6;">Last updated: 13 June 2026. By creating a Kreddlo account you agree to these terms in full.</p>
   </div>
 </section>
 
 <!-- CONTENT -->
-<section style="padding:40px 20px 80px;position:relative;">
+<section style="padding:24px 16px 64px;position:relative;">
   <div style="max-width:720px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:24px;" id="content-grid">
+
+    <!-- TOC mobile accordion -->
+    <div class="toc-mobile fu fu-1" id="toc-mobile-wrap" style="display:block;">
+      <button class="toc-mobile-btn" id="toc-toggle" onclick="toggleToc()">
+        <span>On this page</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="toc-mobile-links hidden" id="toc-links-mobile">
+        <a href="#t1" class="toc-link" onclick="closeToc()">Eligibility</a>
+        <a href="#t2" class="toc-link" onclick="closeToc()">Our Services</a>
+        <a href="#t3" class="toc-link" onclick="closeToc()">Fees</a>
+        <a href="#t4" class="toc-link" onclick="closeToc()">Escrow</a>
+        <a href="#t5" class="toc-link" onclick="closeToc()">Disputes</a>
+        <a href="#t6" class="toc-link" onclick="closeToc()">Prohibited Activities</a>
+        <a href="#t7" class="toc-link" onclick="closeToc()">Termination</a>
+        <a href="#t8" class="toc-link" onclick="closeToc()">Limitation of Liability</a>
+        <a href="#t9" class="toc-link" onclick="closeToc()">Governing Law</a>
+        <a href="#t10" class="toc-link" onclick="closeToc()">Changes to Terms</a>
+      </div>
+    </div>
 
     <!-- TOC (desktop sidebar) -->
     <div class="hide-mobile fu fu-1" id="toc-box" style="background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08);padding:24px;margin-bottom:4px;">
@@ -192,7 +235,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
     </div>
 
     <!-- Main card -->
-    <div class="glass fu fu-2" style="padding:28px 24px;" id="policy-card">
+    <div class="glass fu fu-2" style="padding:20px 16px;" id="policy-card">
 
       <!-- Section 1 -->
       <div class="policy-section" id="t1">
@@ -233,6 +276,40 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
       <div class="policy-section" id="t3">
         <h2 class="policy-h">Fees</h2>
         <p class="policy-p">Kreddlo charges the following fees. All fees are displayed clearly before any transaction is confirmed.</p>
+        <!-- Fee cards: mobile -->
+        <div class="fee-cards">
+          <div class="fee-card">
+            <p class="fee-card-title">Platform fee</p>
+            <div class="fee-card-row"><span class="fee-card-label">Who pays</span><span class="fee-card-value">Freelancer</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">Amount</span><span class="fee-card-value">8% of project value</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">When</span><span class="fee-card-value">On escrow release</span></div>
+          </div>
+          <div class="fee-card">
+            <p class="fee-card-title">Project protection fee</p>
+            <div class="fee-card-row"><span class="fee-card-label">Who pays</span><span class="fee-card-value">Buyer</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">Amount</span><span class="fee-card-value">3% of project value</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">When</span><span class="fee-card-value">At checkout</span></div>
+          </div>
+          <div class="fee-card">
+            <p class="fee-card-title">Withdrawal fee</p>
+            <div class="fee-card-row"><span class="fee-card-label">Who pays</span><span class="fee-card-value">Freelancer</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">Amount</span><span class="fee-card-value">2.5% of amount</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">When</span><span class="fee-card-value">Per withdrawal</span></div>
+          </div>
+          <div class="fee-card">
+            <p class="fee-card-title">Pro subscription</p>
+            <div class="fee-card-row"><span class="fee-card-label">Who pays</span><span class="fee-card-value">Freelancer</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">Amount</span><span class="fee-card-value">$19 / month</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">When</span><span class="fee-card-value">Monthly in advance</span></div>
+          </div>
+          <div class="fee-card">
+            <p class="fee-card-title">Profile boost</p>
+            <div class="fee-card-row"><span class="fee-card-label">Who pays</span><span class="fee-card-value">Freelancer</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">Amount</span><span class="fee-card-value">$9 / 7 days</span></div>
+            <div class="fee-card-row"><span class="fee-card-label">When</span><span class="fee-card-value">At time of purchase</span></div>
+          </div>
+        </div>
+        <!-- Fee table: tablet+ -->
         <div style="overflow-x:auto;margin:4px 0 16px;border-radius:14px;border:1px solid #e2e8f0;">
           <table class="fee-table">
             <thead>
@@ -504,19 +581,37 @@ function closeMobileMenu(){
   document.body.style.overflow='';
 }
 
-// Smooth scroll TOC
+// Smooth scroll TOC (offset for sticky nav)
 document.querySelectorAll('a[href^="#t"]').forEach(function(a){
   a.addEventListener('click',function(e){
     e.preventDefault();
     var t=document.querySelector(this.getAttribute('href'));
-    if(t){t.scrollIntoView({behavior:'smooth',block:'start'});}
+    if(t){
+      var offset=72;
+      var top=t.getBoundingClientRect().top+window.pageYOffset-offset;
+      window.scrollTo({top:top,behavior:'smooth'});
+    }
   });
 });
 
-// Desktop: sidebar layout
+// Mobile TOC accordion
+function toggleToc(){
+  var links=document.getElementById('toc-links-mobile');
+  var btn=document.getElementById('toc-toggle');
+  var open=!links.classList.contains('hidden');
+  if(open){links.classList.add('hidden');btn.classList.remove('open');}
+  else{links.classList.remove('hidden');btn.classList.add('open');}
+}
+function closeToc(){
+  document.getElementById('toc-links-mobile').classList.add('hidden');
+  document.getElementById('toc-toggle').classList.remove('open');
+}
+
+// Desktop: sidebar layout + hide mobile TOC
 function applyDesktopLayout(){
   var grid=document.getElementById('content-grid');
   var toc=document.getElementById('toc-box');
+  var tocMobile=document.getElementById('toc-mobile-wrap');
   if(window.innerWidth>=900){
     grid.style.maxWidth='980px';
     grid.style.gridTemplateColumns='220px 1fr';
@@ -524,10 +619,12 @@ function applyDesktopLayout(){
     toc.style.position='sticky';
     toc.style.top='80px';
     toc.style.alignSelf='start';
+    if(tocMobile) tocMobile.style.display='none';
   } else {
     grid.style.maxWidth='720px';
     grid.style.gridTemplateColumns='1fr';
     toc.style.display='none';
+    if(tocMobile) tocMobile.style.display='block';
   }
 }
 applyDesktopLayout();

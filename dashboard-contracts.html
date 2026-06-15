@@ -165,11 +165,228 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   .contract-card{padding:24px!important}
 }
 </style>
+
+<style id="mobile-first-patch">
+/* ═══════════════════════════════════════════════════
+   KREDDLO GLOBAL MOBILE-FIRST PATCH
+   Fixes: overflow, stat cards, hamburger, sidebar,
+   loading overlay, products grid, bottom sheet
+═══════════════════════════════════════════════════ */
+
+/* 1. ROOT OVERFLOW FIX — kills horizontal scroll/blank sides */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: border-box; }
+
+/* 2. MAIN WRAP — never wider than viewport */
+#main-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 3. PAGE CONTENT — proper mobile padding, no bleed */
+#page-content {
+  padding: 18px 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden;
+}
+
+/* 4. STAT CARDS — mobile font scaling so text fits */
+@media (max-width: 400px) {
+  .stat-val { font-size: 22px !important; letter-spacing: -0.5px !important; }
+  .stat-lbl { font-size: 10px !important; letter-spacing: 1px !important; }
+  .stat-card { padding: 16px 14px !important; }
+  .badge { font-size: 10px !important; padding: 2px 8px !important; }
+}
+@media (min-width: 401px) and (max-width: 767px) {
+  .stat-val { font-size: 26px !important; }
+  .stat-card { padding: 18px 16px !important; }
+}
+
+/* 5. STAT GRID — 2-col always on mobile, min 0 to prevent overflow */
+#section-c > div, #stats-grid > div, #summary-cards > div {
+  min-width: 0;
+}
+.stat-card { min-width: 0; }
+
+/* 6. HAMBURGER — always visible on mobile, proper tap size */
+#hamburger {
+  display: flex !important;
+  width: 44px !important;
+  height: 44px !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: rgba(13,33,69,0.08);
+  border-radius: 10px;
+}
+@media (min-width: 1024px) {
+  #hamburger { display: none !important; }
+}
+
+/* 7. TOPBAR — full width, no overflow */
+header {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 14px !important;
+}
+header h1 {
+  font-size: 16px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+header > div:last-child {
+  flex-shrink: 0;
+  gap: 6px !important;
+}
+
+/* 8. MOBILE MENU — full height with safe area */
+#mobile-menu {
+  height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-top: max(30px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+
+/* 9. LOADING OVERLAY — full screen properly */
+#loading-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* 10. PRODUCTS GRID — single col mobile */
+#products-grid, #products-grid-sk {
+  grid-template-columns: 1fr !important;
+  width: 100% !important;
+}
+@media (min-width: 600px) {
+  #products-grid, #products-grid-sk {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (min-width: 1024px) {
+  #products-grid, #products-grid-sk {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* 11. PRODUCT CARDS — prevent overflow */
+.prod-card { min-width: 0; width: 100%; }
+.prod-title { word-break: break-word; }
+
+/* 12. BOTTOM SHEET (create product modal) — mobile first */
+.cp-overlay {
+  padding: 0 !important;
+  align-items: flex-end !important;
+}
+.cp-sheet {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 24px 24px 0 0 !important;
+  max-height: 92dvh !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (min-width: 600px) {
+  .cp-overlay { align-items: center !important; padding: 20px !important; }
+  .cp-sheet {
+    max-width: 600px !important;
+    border-radius: 24px !important;
+    max-height: 90dvh !important;
+  }
+}
+
+/* 13. QUICK CARDS — equal width, responsive */
+.qcard {
+  width: calc(33.333% - 8px) !important;
+  min-width: 0 !important;
+  padding: 12px 6px !important;
+}
+.qcard-lbl { font-size: 10px !important; }
+@media (max-width: 360px) {
+  .qcard { width: calc(33.333% - 6px) !important; padding: 10px 4px !important; }
+  .qcard-icon { width: 34px !important; height: 34px !important; }
+}
+
+/* 14. SECTION HEADER WRAP (products page title + button) */
+.fu.fu-1 > div { min-width: 0; }
+#create-product-btn { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 400px) {
+  /* Stack the title+button on very small screens */
+  .fu.fu-1[style*="justify-content:space-between"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+  #create-product-btn { width: 100% !important; }
+}
+
+/* 15. MODALS — full width on mobile */
+.modal-box {
+  width: calc(100vw - 32px) !important;
+  max-width: 500px !important;
+  max-height: 90dvh !important;
+  overflow-y: auto !important;
+  padding: 22px 18px !important;
+}
+
+/* 16. GLASS CARDS — no overflow */
+.glass { min-width: 0; }
+
+/* 17. PERIOD PILLS (earnings) — wrap and small on mobile */
+.pill { padding: 8px 14px !important; font-size: 12px !important; }
+
+/* 18. EARNINGS SUMMARY CARDS — single col mobile */
+#summary-cards {
+  grid-template-columns: 1fr !important;
+}
+@media (min-width: 768px) {
+  #summary-cards { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* 19. PAYOUT TABLE — hide on mobile, show cards */
+@media (max-width: 767px) {
+  .payout-desktop { display: none !important; }
+  .payout-mobile { display: block !important; }
+}
+@media (min-width: 768px) {
+  .payout-desktop { display: table !important; }
+  .payout-mobile { display: none !important; }
+}
+
+/* 20. TOAST — above safe area on mobile */
+.toast {
+  bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+  max-width: calc(100vw - 32px) !important;
+}
+
+/* 21. NAV LINKS — prevent text overflow in sidebar */
+.nav-link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+</style>
 </head>
 <body>
 
 <!-- LOADING OVERLAY -->
-<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;">
+<div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
   <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
@@ -184,7 +401,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 <div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;z-index:400;background:rgba(9,24,48,0.58);"></div>
 
 <!-- MOBILE MENU -->
-<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;">
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:272px;height:100%;background:#091830;z-index:500;padding:30px 22px;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <button onclick="closeMobileMenu()" style="position:absolute;top:18px;right:18px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,0.14)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
@@ -197,7 +414,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 </div>
 
 <!-- DESKTOP SIDEBAR -->
-<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;">
   <a href="/dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
   <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
   <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
@@ -318,11 +535,13 @@ var NAV = [
   { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
 ];
 
-function buildNav() {
+function buildNav(uid) {
   var cur = (window.location.pathname.split('/').pop() || 'dashboard.html');
   var html = NAV.map(function(n) {
+    var href = n.href;
+    if (n.label === 'Store' && uid) href = '/store.html?uid=' + uid;
     var active = cur === n.href.replace('/','') ? ' active' : '';
-    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+    return '<a href="'+href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
   }).join('');
   document.getElementById('mobile-nav').innerHTML = html;
   document.getElementById('desktop-nav').innerHTML = html;
@@ -759,7 +978,7 @@ window._boot = function(user) {
   document.getElementById('user-avatar').textContent =
     parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : DEMO_USER.name.slice(0,2).toUpperCase();
 
-  buildNav();
+  buildNav(user.uid);
   document.getElementById('bell-dot').style.display = 'block';
 
   // Fetch user role from Firestore, then load contracts
