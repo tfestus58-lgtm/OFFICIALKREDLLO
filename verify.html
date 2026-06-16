@@ -1187,6 +1187,11 @@
           else target = 'dashboard.html';
         }
       } catch (e) { /* fall back to dashboard.html */ }
+      // Honour ?next=upgrade — send newly-verified freelancers straight to the Pro modal
+      var _nextParam = new URLSearchParams(window.location.search).get('next');
+      if (_nextParam === 'upgrade' && target === 'dashboard.html') {
+        target = 'pricing.html?openUpgrade=1';
+      }
       window.location.href = target;
     }, 3000);
   }

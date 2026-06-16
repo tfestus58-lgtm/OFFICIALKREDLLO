@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Kreddlo" />
 <link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
-  <title>James Whitfield — Kreddlo</title>
+  <title>Freelancer Profile — Kreddlo</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -21,7 +21,7 @@
   <!-- Firebase CDN -->
   <script type="module">
     import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-    import { getFirestore, collection, query, where, orderBy, limit, getDocs }
+    import { getFirestore, collection, query, where, orderBy, limit, getDocs, doc, getDoc }
                                 from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
     const firebaseConfig = {
@@ -36,6 +36,7 @@
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
     window._fsReviews = { collection, query, where, orderBy, limit, getDocs };
+    window._fsProfile  = { doc, getDoc };
   </script>
 
   <script>
@@ -483,16 +484,16 @@
 
       <!-- Avatar + Identity -->
       <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
-        <div class="avatar">JW</div>
+        <div class="avatar" id="profile-avatar">…</div>
         <div style="min-width:0;flex:1;">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-            <h1 style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;line-height:1.2;">James Whitfield</h1>
+            <h1 style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;line-height:1.2;" id="profile-name">…</h1>
             <span class="badge-verified">
               <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="#2d8a5e" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
               Verified
             </span>
           </div>
-          <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin-bottom:8px;">Full-Stack Developer and UI Designer</p>
+          <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin-bottom:8px;" id="profile-title"></p>
           <!-- Stars -->
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span id="profile-stars" style="display:inline-flex;gap:2px;"></span>
@@ -504,29 +505,29 @@
       <!-- Stat row: 3 boxes across full width -->
       <div style="display:flex;gap:8px;margin-bottom:18px;">
         <div class="stat-box">
-          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;">$120</span>
+          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;" id="profile-starting-price">—</span>
           <span class="label-upper" style="margin-top:4px;text-align:center;">Starting at</span>
         </div>
         <div class="stat-box">
-          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;">47</span>
+          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;" id="profile-projects-count">0</span>
           <span class="label-upper" style="margin-top:4px;text-align:center;">Projects</span>
         </div>
         <div class="stat-box">
-          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;">Mar 23</span>
+          <span style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;line-height:1.2;" id="profile-member-since">—</span>
           <span class="label-upper" style="margin-top:4px;text-align:center;">Member since</span>
         </div>
       </div>
 
       <!-- Availability + Hire Me CTA -->
-      <div style="padding:14px 16px;background:rgba(45,138,94,0.05);border:1px solid rgba(45,138,94,0.15);border-radius:14px;margin-bottom:14px;">
+      <div id="availability-section" style="padding:14px 16px;background:rgba(45,138,94,0.05);border:1px solid rgba(45,138,94,0.15);border-radius:14px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
           <span class="pulse" style="width:8px;height:8px;border-radius:50%;background:#3dbd7a;display:inline-block;flex-shrink:0;"></span>
           <span style="font-size:13px;font-weight:600;color:#2d8a5e;">Available for new projects</span>
         </div>
-        <p style="font-size:12px;font-weight:400;color:rgba(13,33,69,0.50);line-height:1.5;margin-bottom:12px;">Response time is typically under 2 hours. Projects booked 2 weeks in advance.</p>
+        <p style="font-size:12px;font-weight:400;color:rgba(13,33,69,0.50);line-height:1.5;margin-bottom:12px;">Reach out to discuss your project requirements.</p>
         <button onclick="openHireModal()" class="btn-green" style="width:100%;justify-content:center;padding:13px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          Hire James
+          Hire <span class="hire-btn-name"></span>
         </button>
       </div>
 
@@ -546,12 +547,9 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         About
       </h2>
-      <p style="font-size:14px;font-weight:400;color:rgba(13,33,69,0.65);line-height:1.8;">
-        I am a full-stack developer and UI designer with 6 years of experience building high-performance web applications and intuitive digital products. I specialize in React, Node.js, Tailwind CSS and Firebase, and I have delivered 47 projects for clients across the United States, United Kingdom, Canada and Australia.
-      </p>
-      <p style="font-size:14px;font-weight:400;color:rgba(13,33,69,0.65);line-height:1.8;margin-top:10px;">
-        I take pride in clean code, pixel-perfect design and clear communication at every stage of a project. Whether you need a landing page, a full SaaS dashboard or a mobile-first web application, I will deliver on time and to specification.
-      </p>
+      <div id="profile-bio-wrap">
+        <p style="font-size:14px;font-weight:400;color:rgba(13,33,69,0.65);line-height:1.8;" id="profile-bio"></p>
+      </div>
     </div>
 
 
@@ -563,17 +561,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
         Skills
       </h2>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        <span class="skill-tag">React</span>
-        <span class="skill-tag">Node.js</span>
-        <span class="skill-tag">TypeScript</span>
-        <span class="skill-tag">Firebase</span>
-        <span class="skill-tag">Tailwind CSS</span>
-        <span class="skill-tag">Next.js</span>
-        <span class="skill-tag">UI Design</span>
-        <span class="skill-tag">REST APIs</span>
-        <span class="skill-tag">Figma</span>
-        <span class="skill-tag">PostgreSQL</span>
+      <div id="profile-skills-wrap" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <!-- Skills injected by loadProfile() -->
       </div>
     </div>
 
@@ -655,7 +644,7 @@
       <div class="step-dot pending">4</div>
     </div>
     <h2 style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.4px;margin-bottom:5px;">Start a Project</h2>
-    <p style="font-size:13px;font-weight:400;color:rgba(13,33,69,0.50);margin-bottom:20px;line-height:1.6;">with <strong style="color:#2d8a5e;">James Whitfield</strong>. A contract is generated automatically.</p>
+    <p style="font-size:13px;font-weight:400;color:rgba(13,33,69,0.50);margin-bottom:20px;line-height:1.6;">with <strong style="color:#2d8a5e;" id="modal-freelancer-name"></strong>. A contract is generated automatically.</p>
 
     <div style="display:flex;flex-direction:column;gap:16px;">
       <div>
@@ -718,8 +707,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
         <div style="background:rgba(45,138,94,0.05);border:1px solid rgba(45,138,94,0.18);border-radius:10px;padding:12px;">
           <p class="label-upper" style="color:#2d8a5e;margin-bottom:5px;">Provider</p>
-          <p style="font-size:13px;font-weight:700;color:#0d2145;">James Whitfield</p>
-          <p style="font-size:11px;color:rgba(13,33,69,0.45);">@jwhitfield</p>
+          <p id="c-provider-name" style="font-size:13px;font-weight:700;color:#0d2145;"></p>
+          <p id="c-provider-username" style="font-size:11px;color:rgba(13,33,69,0.45);"></p>
         </div>
         <div style="background:rgba(13,33,69,0.03);border:1px solid rgba(13,33,69,0.09);border-radius:10px;padding:12px;">
           <p class="label-upper" style="margin-bottom:5px;">Client</p>
@@ -1037,11 +1026,133 @@
     }
   }
 
+  // ── Load Profile from Firestore ───────────────────────────────────────
+  async function loadProfile(uid) {
+    // Wait for Firebase module to be ready
+    let waited = 0;
+    while ((!window.db || !window._fsProfile) && waited < 5000) {
+      await new Promise(r => setTimeout(r, 100));
+      waited += 100;
+    }
+    if (!window.db || !window._fsProfile) return;
+
+    const { doc, getDoc } = window._fsProfile;
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    try {
+      const snap = await getDoc(doc(window.db, 'users', uid));
+      if (!snap.exists()) return;
+      const u = snap.data();
+
+      const displayName = u.displayName || u.name || 'Freelancer';
+      const username    = u.username || uid;
+
+      // Store globally for share link and modal
+      window._profileDisplayName = displayName;
+      window._profileUsername    = username;
+      window._profileUid         = uid;
+
+      // Page title
+      document.title = displayName + ' — Kreddlo';
+
+      // Dynamic SEO — updates OG tags, Twitter card and JSON-LD with real freelancer data
+      if (typeof window.applySEO === 'function') {
+        window.applySEO({
+          title:       displayName + ' — Verified Freelancer | Kreddlo',
+          description: (u.title ? u.title + '. ' : '') + (u.bio ? u.bio.slice(0, 120) + '...' : 'View ' + displayName + '\'s verified freelancer profile on Kreddlo. Hire with secure escrow.'),
+          url:         'https://kreddlo.com/profile.html?uid=' + uid,
+          image:       u.photoURL || DEFAULT_OG_IMAGE || 'https://kreddlo.com/assets/og-image.png',
+          type:        'profile',
+          name:        displayName,
+        });
+      }
+
+      // Avatar initials
+      const initials = displayName.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const avatarEl = document.getElementById('profile-avatar');
+      if (avatarEl) avatarEl.textContent = initials || '?';
+
+      // Name heading
+      const nameEl = document.getElementById('profile-name');
+      if (nameEl) nameEl.textContent = displayName;
+
+      // Professional title
+      const titleEl = document.getElementById('profile-title');
+      if (titleEl) titleEl.textContent = u.title || '';
+
+      // Bio
+      const bioEl = document.getElementById('profile-bio');
+      if (bioEl) bioEl.textContent = u.bio || 'This freelancer has not added a bio yet.';
+
+      // Starting price
+      const priceEl = document.getElementById('profile-starting-price');
+      if (priceEl) priceEl.textContent = u.startingPrice ? '$' + Number(u.startingPrice).toLocaleString() : '—';
+
+      // Completed projects count
+      const projEl = document.getElementById('profile-projects-count');
+      if (projEl) projEl.textContent = u.completedProjects != null ? u.completedProjects : (u.projectCount || 0);
+
+      // Member since
+      const sinceEl = document.getElementById('profile-member-since');
+      if (sinceEl && u.createdAt && u.createdAt.toDate) {
+        const dt = u.createdAt.toDate();
+        sinceEl.textContent = MONTHS[dt.getMonth()] + ' ' + String(dt.getFullYear()).slice(2);
+      }
+
+      // Skills
+      const skillsWrap = document.getElementById('profile-skills-wrap');
+      if (skillsWrap) {
+        const skills = Array.isArray(u.skills) ? u.skills : [];
+        if (skills.length > 0) {
+          skillsWrap.innerHTML = skills.map(s =>
+            '<span class="skill-tag">' + s.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>'
+          ).join('');
+        } else {
+          skillsWrap.innerHTML = '<p style="font-size:13px;color:rgba(13,33,69,0.45);">No skills listed yet.</p>';
+        }
+      }
+
+      // Availability section
+      if (u.available === false) {
+        const avail = document.getElementById('availability-section');
+        if (avail) avail.style.display = 'none';
+      }
+
+      // Hire button name spans
+      document.querySelectorAll('.hire-btn-name').forEach(el => {
+        el.textContent = displayName.split(' ')[0];
+      });
+
+      // Contract provider fields
+      const provName = document.getElementById('c-provider-name');
+      const provUser = document.getElementById('c-provider-username');
+      if (provName) provName.textContent = displayName;
+      if (provUser) provUser.textContent = '@' + username;
+
+      // Modal "with <name>" text
+      const modalName = document.getElementById('modal-freelancer-name');
+      if (modalName) modalName.textContent = displayName;
+
+    } catch (err) {
+      console.error('loadProfile error:', err);
+    }
+  }
+
   // Derive freelancer uid from URL param or default
   (function() {
     const params = new URLSearchParams(location.search);
-    const uid    = params.get('uid') || params.get('freelancerUid') || 'demo-uid';
-    loadReviews(uid);
+    const uid    = params.get('uid') || params.get('freelancerUid') || '';
+    if (uid) {
+      loadProfile(uid);
+      loadReviews(uid);
+    } else {
+      // No uid in URL — show a not-found state
+      document.title = 'Profile Not Found — Kreddlo';
+      const avatarEl = document.getElementById('profile-avatar');
+      if (avatarEl) avatarEl.textContent = '?';
+      const nameEl = document.getElementById('profile-name');
+      if (nameEl) nameEl.textContent = 'Profile not found';
+    }
   })();
 
   // ── Toast ────────────────────────────────────────────────────────────
@@ -1054,9 +1165,10 @@
 
   // ── Share ────────────────────────────────────────────────────────────
   window.copyProfileLink = function() {
-    const url = location.href.split('?')[0] + '?username=jwhitfield';
+    const uid = window._profileUid || new URLSearchParams(location.search).get('uid') || '';
+    const url = location.href.split('?')[0] + (uid ? '?uid=' + encodeURIComponent(uid) : '');
     navigator.clipboard.writeText(url).catch(() => {
-      const ta = document.createElement('textarea'); ta.value=url;
+      const ta = document.createElement('textarea'); ta.value = url;
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     });
     showToast('Profile link copied.');

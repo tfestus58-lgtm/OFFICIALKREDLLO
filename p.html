@@ -424,6 +424,18 @@ async function renderProduct(p) {
   document.querySelector('meta[property="og:description"]').setAttribute('content', (p.description || '').slice(0, 155));
   if (p.coverImage) document.querySelector('meta[property="og:image"]').setAttribute('content', p.coverImage);
 
+  // Dynamic SEO — updates all OG, Twitter and JSON-LD with real product data
+  if (typeof window.applySEO === 'function') {
+    window.applySEO({
+      title:       `${p.title} — ${sellerName} | Kreddlo`,
+      description: (p.description || '').slice(0, 155),
+      url:         window.location.href,
+      image:       p.coverImage || 'https://kreddlo.com/assets/og-image.png',
+      type:        'product',
+      name:        p.title,
+    });
+  }
+
   // ── Cover image ──
   const coverWrap = document.getElementById('cover-wrap');
   if (p.coverImage) {

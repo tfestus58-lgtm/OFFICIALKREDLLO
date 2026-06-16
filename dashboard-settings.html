@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="/assets/shared.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -641,11 +642,30 @@ header > div:last-child {
             <div class="settings-row" style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:24px;">
               <div style="min-width:0;">
                 <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 4px;">Two Factor Authentication</h3>
-                <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Add an extra layer of security to your account using an authenticator app.</p>
+                <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">A verification code will be sent to your email each time you sign in.</p>
+                <p id="twofa-status-text" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.40);margin:6px 0 0;"></p>
               </div>
               <button class="toggle" id="toggle-2fa" onclick="toggle2FA()" role="switch" aria-checked="false">
                 <div class="knob"></div>
               </button>
+            </div>
+
+            <!-- 2FA verification modal -->
+            <div id="twofa-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(9,24,48,0.55);align-items:center;justify-content:center;padding:20px;">
+              <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(13,33,69,0.18);">
+                <h3 style="font-size:17px;font-weight:800;color:#0d2145;margin:0 0 8px;">Verify your email</h3>
+                <p id="twofa-modal-desc" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 20px;line-height:1.5;">Enter the 6-digit code sent to your email to confirm.</p>
+                <input id="twofa-code-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+                  style="width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 14px;font-size:22px;font-weight:700;letter-spacing:8px;color:#0d2145;text-align:center;font-family:inherit;outline:none;margin-bottom:8px;"
+                  oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                  onfocus="this.style.borderColor='#2d8a5e'" onblur="this.style.borderColor='#e2e8f0'">
+                <p id="twofa-code-error" style="font-size:12px;font-weight:600;color:#c81e1e;margin:0 0 16px;display:none;"></p>
+                <div style="display:flex;gap:10px;">
+                  <button onclick="closeTwofaModal()" style="flex:1;padding:11px;border:1.5px solid #e2e8f0;background:#fff;border-radius:11px;font-size:14px;font-weight:600;color:rgba(13,33,69,0.55);cursor:pointer;font-family:inherit;">Cancel</button>
+                  <button id="twofa-confirm-btn" onclick="confirmTwofaCode()" style="flex:1;padding:11px;background:#0d2145;border:none;border-radius:11px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;">Confirm</button>
+                </div>
+                <p id="twofa-resend" style="font-size:12px;font-weight:600;color:#2d8a5e;margin:14px 0 0;text-align:center;cursor:pointer;" onclick="resendTwofaCode()">Resend code</p>
+              </div>
             </div>
 
           </div>
@@ -1047,12 +1067,110 @@ function updatePasswordHandler() {
   showToast('Password updated successfully');
 }
 
-function toggle2FA() {
-  TWO_FA_ENABLED = !TWO_FA_ENABLED;
+// ── 2FA state ──
+var _twofaPendingEnable = false;  // true = trying to enable, false = trying to disable
+var _twofaExpectedCode  = '';
+
+function _set2faToggle(enabled) {
+  TWO_FA_ENABLED = enabled;
   var btn = document.getElementById('toggle-2fa');
-  btn.classList.toggle('on', TWO_FA_ENABLED);
-  btn.setAttribute('aria-checked', TWO_FA_ENABLED ? 'true' : 'false');
-  showToast(TWO_FA_ENABLED ? 'Two factor authentication enabled' : 'Two factor authentication disabled');
+  if (btn) {
+    btn.classList.toggle('on', enabled);
+    btn.setAttribute('aria-checked', enabled ? 'true' : 'false');
+  }
+  var txt = document.getElementById('twofa-status-text');
+  if (txt) txt.textContent = enabled ? '2FA is active on your account.' : '';
+}
+
+async function toggle2FA() {
+  if (!DEMO.uid || !DEMO.email) { showToast('Account data not loaded yet. Try again.'); return; }
+
+  _twofaPendingEnable = !TWO_FA_ENABLED;
+
+  // Send a verification code to the user's email before committing the change
+  var modal = document.getElementById('twofa-modal');
+  var desc  = document.getElementById('twofa-modal-desc');
+  var inp   = document.getElementById('twofa-code-input');
+  var err   = document.getElementById('twofa-code-error');
+  if (inp) inp.value = '';
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  if (desc) desc.textContent = 'Enter the 6-digit code we just sent to ' + DEMO.email + ' to ' + (_twofaPendingEnable ? 'enable' : 'disable') + ' two-factor authentication.';
+
+  modal.style.display = 'flex';
+
+  // Generate and send the code
+  _twofaExpectedCode = String(Math.floor(100000 + Math.random() * 900000));
+  try {
+    await fetch('/.netlify/functions/send-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to:   DEMO.email,
+        type: 'email-verification',
+        data: { name: DEMO.name || 'there', code: _twofaExpectedCode }
+      })
+    });
+  } catch(e) {
+    showToast('Could not send code. Check your connection.');
+    modal.style.display = 'none';
+    return;
+  }
+}
+
+async function confirmTwofaCode() {
+  var inp = document.getElementById('twofa-code-input');
+  var err = document.getElementById('twofa-code-error');
+  var btn = document.getElementById('twofa-confirm-btn');
+  var code = (inp ? inp.value.trim() : '');
+
+  if (code.length !== 6) {
+    if (err) { err.textContent = 'Please enter the full 6-digit code.'; err.style.display = 'block'; }
+    return;
+  }
+  if (code !== _twofaExpectedCode) {
+    if (err) { err.textContent = 'Incorrect code. Please try again.'; err.style.display = 'block'; }
+    if (inp) { inp.value = ''; inp.focus(); }
+    return;
+  }
+
+  // Code correct — save to Firestore and update UI
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), { twoFactorEnabled: _twofaPendingEnable }, { merge: true });
+    _set2faToggle(_twofaPendingEnable);
+    closeTwofaModal();
+    showToast(_twofaPendingEnable ? 'Two-factor authentication enabled.' : 'Two-factor authentication disabled.');
+  } catch(e) {
+    if (err) { err.textContent = 'Could not save. Try again.'; err.style.display = 'block'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+  }
+}
+
+function closeTwofaModal() {
+  var modal = document.getElementById('twofa-modal');
+  if (modal) modal.style.display = 'none';
+  _twofaExpectedCode = '';
+}
+
+async function resendTwofaCode() {
+  if (!DEMO.email) return;
+  _twofaExpectedCode = String(Math.floor(100000 + Math.random() * 900000));
+  try {
+    await fetch('/.netlify/functions/send-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to:   DEMO.email,
+        type: 'email-verification',
+        data: { name: DEMO.name || 'there', code: _twofaExpectedCode }
+      })
+    });
+    showToast('New code sent to your email.');
+  } catch(e) {
+    showToast('Could not resend. Check your connection.');
+  }
 }
 
 // ============ WALLET ============
@@ -1417,6 +1535,13 @@ async function loadProfile() {
       WALLET_ADDRESS = data.walletAddress;
       document.getElementById('wallet-address-display').textContent = WALLET_ADDRESS;
     }
+
+    // 2FA state — restore from Firestore
+    _set2faToggle(data.twoFactorEnabled === true);
+
+    // Store email for 2FA code sending
+    DEMO.email = data.email || (window.auth && window.auth.currentUser ? window.auth.currentUser.email : '') || '';
+
   } catch (e) {
     console.warn('[Settings] Could not load profile:', e);
   }
@@ -1447,6 +1572,7 @@ if ('serviceWorker' in navigator) {
   import { getAuth, onAuthStateChanged, signOut }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs }
                                                                     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getMessaging, getToken }                                 from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
 
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
@@ -1467,6 +1593,8 @@ if ('serviceWorker' in navigator) {
   document.getElementById('dt-signout').onclick = window.handleLogout;
   window.db = getFirestore(app);
   window._fsSettings = { doc, getDoc, setDoc, collection, query, where, getDocs };
+  // Firebase Messaging — used by requestPushPermission()
+  try { window._messaging = getMessaging(app); } catch(e) { window._messaging = null; }
 
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
@@ -1480,50 +1608,89 @@ if ('serviceWorker' in navigator) {
 </script>
 <script>
 // ============ PUSH NOTIFICATIONS ============
-function requestPushPermission() {
+// VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+var VAPID_KEY = window.KREDDLO_VAPID_PUBLIC_KEY;
+
+function _setPushMsg(msg, text, color) {
+  if (!msg) return;
+  msg.style.display = 'block';
+  msg.style.color   = color;
+  msg.textContent   = text;
+}
+
+async function requestPushPermission() {
   var btn = document.getElementById('push-enable-btn');
   var msg = document.getElementById('push-status-msg');
   if (!msg) return;
 
   if (!('Notification' in window)) {
-    msg.style.display = 'block';
-    msg.style.color = 'rgba(13,33,69,0.52)';
-    msg.textContent = 'Push notifications are not supported in this browser.';
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    msg.style.display = 'block';
-    msg.style.color = '#2d8a5e';
-    msg.textContent = 'Push notifications are already enabled.';
-    if (btn) btn.style.display = 'none';
+    _setPushMsg(msg, 'Push notifications are not supported in this browser.', 'rgba(13,33,69,0.52)');
     return;
   }
   if (Notification.permission === 'denied') {
-    msg.style.display = 'block';
-    msg.style.color = '#c81e1e';
-    msg.textContent = 'Notifications blocked. Enable them in your browser or phone settings.';
+    _setPushMsg(msg, 'Notifications blocked. Enable them in your browser or phone settings.', '#c81e1e');
     return;
   }
-  // 'default' — ask the user
-  Notification.requestPermission().then(function(permission) {
-    msg.style.display = 'block';
-    if (permission === 'granted') {
-      msg.style.color = '#2d8a5e';
-      msg.textContent = 'Push notifications enabled.';
-      if (btn) btn.style.display = 'none';
-      setTimeout(function() {
-        var banner = document.getElementById('push-enable-banner');
-        if (banner) banner.style.display = 'none';
-      }, 2000);
-    } else {
-      msg.style.color = 'rgba(13,33,69,0.52)';
-      msg.textContent = 'Notifications not enabled. You can change this in your device settings.';
+  if (Notification.permission === 'granted') {
+    _setPushMsg(msg, 'Push notifications are already enabled.', '#2d8a5e');
+    if (btn) btn.style.display = 'none';
+    // Still try to register/refresh the token in case it changed
+    await _registerFcmToken(msg);
+    return;
+  }
+
+  // 'default' — request permission first
+  var permission;
+  try {
+    permission = await Notification.requestPermission();
+  } catch(e) {
+    _setPushMsg(msg, 'Could not request permission. Try again from your browser settings.', 'rgba(13,33,69,0.52)');
+    return;
+  }
+
+  if (permission !== 'granted') {
+    _setPushMsg(msg, 'Notifications not enabled. You can change this in your device settings.', 'rgba(13,33,69,0.52)');
+    return;
+  }
+
+  // Permission granted — register FCM token
+  _setPushMsg(msg, 'Enabling push notifications…', '#2d8a5e');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enabling…'; }
+  await _registerFcmToken(msg);
+  if (btn) { btn.disabled = false; btn.textContent = 'Enable Notifications'; }
+}
+
+async function _registerFcmToken(msg) {
+  var messaging = window._messaging;
+  if (!messaging) {
+    _setPushMsg(msg, 'Push notifications unavailable. Check your browser settings.', 'rgba(13,33,69,0.52)');
+    return;
+  }
+  if (!DEMO.uid || !window.db) {
+    _setPushMsg(msg, 'Not signed in. Please reload and try again.', '#c81e1e');
+    return;
+  }
+
+  try {
+    var token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (!token) {
+      _setPushMsg(msg, 'Could not get push token. Check browser notification settings.', '#c81e1e');
+      return;
     }
-  }).catch(function() {
-    msg.style.display = 'block';
-    msg.style.color = 'rgba(13,33,69,0.52)';
-    msg.textContent = 'Could not request permission. Try again from your browser settings.';
-  });
+    // Save token to Firestore — send-push-notification.js reads users/{uid}.fcmToken
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), { fcmToken: token }, { merge: true });
+    _setPushMsg(msg, 'Push notifications enabled ✓', '#2d8a5e');
+    var btn = document.getElementById('push-enable-btn');
+    if (btn) btn.style.display = 'none';
+    setTimeout(function() {
+      var banner = document.getElementById('push-enable-banner');
+      if (banner) banner.style.display = 'none';
+    }, 2000);
+  } catch(e) {
+    console.error('[FCM] getToken failed:', e);
+    _setPushMsg(msg, 'Could not enable push notifications: ' + (e.message || 'unknown error'), '#c81e1e');
+  }
 }
 
 // Show or hide the push banner based on current permission state

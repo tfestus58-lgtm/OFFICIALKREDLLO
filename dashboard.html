@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="/assets/shared.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -824,7 +825,7 @@ var FIREBASE_CONFIG = {
   messagingSenderId: '764500458567',
   appId:             '1:764500458567:web:2389d5cf8c688caafd0562'
 };
-var VAPID_KEY = 'BAMBTh5A3sX4MsxQD1xlJwgLrFR9bYs-IXJ4Xoq-Orn1gByn81_qvD2lTtbkM1R328JqXe63veD3fyK1ulPDb1c';
+var VAPID_KEY = window.KREDDLO_VAPID_PUBLIC_KEY;
 
 var app  = initializeApp(FIREBASE_CONFIG);
 var auth = getAuth(app);

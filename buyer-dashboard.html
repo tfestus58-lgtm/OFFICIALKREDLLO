@@ -10,9 +10,12 @@
 <meta name="apple-mobile-web-app-title" content="Kreddlo" />
 <link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
 <title>Buyer Dashboard — Kreddlo</title>
+<link rel="dns-prefetch" href="https://www.gstatic.com"/>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
@@ -105,8 +108,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
 /* Blobs */
-.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
-.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0}
+.blob-n{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(13,33,69,0.09) 0%,transparent 70%);top:-100px;right:-100px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;will-change:transform}
+.blob-g{position:absolute;width:440px;height:440px;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);bottom:-60px;left:-80px;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;will-change:transform}
 
 /* Fade up */
 .fu{opacity:0;transform:translateY(18px);animation:fu .45s ease forwards}
@@ -213,6 +216,20 @@ body { overflow-x: hidden !important; }
 @media (max-width: 767px) {
   #desktop-actions { display: none !important; }
 }
+
+/* PERF: disable expensive backdrop-filter on weak/small devices */
+@media (prefers-reduced-motion: reduce), (max-width: 480px) {
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255,255,255,0.92) !important;
+  }
+  .qcard {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255,255,255,0.92) !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -285,7 +302,7 @@ body { overflow-x: hidden !important; }
       <!-- SECTION A: Greeting + actions -->
       <div class="fu fu-1" style="margin-bottom:26px;">
         <p id="greeting" style="font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48);margin:0 0 5px;">GOOD MORNING</p>
-        <h2 style="font-size:26px;font-weight:800;color:#0d2145;letter-spacing:-0.7px;margin:0 0 5px;line-height:1.2;">Welcome back, Claire.</h2>
+        <h2 id="welcome-heading" style="font-size:26px;font-weight:800;color:#0d2145;letter-spacing:-0.7px;margin:0 0 5px;line-height:1.2;">Welcome back.</h2>
         <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 18px;">Here is an overview of your projects and spending.</p>
         <div id="desktop-actions" style="display:none;flex-wrap:wrap;gap:10px;">
           <a href="/browse.html" class="btn-green">
@@ -372,7 +389,7 @@ body { overflow-x: hidden !important; }
           <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0;">
             <div>
               <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 2px;">Recent Projects</h3>
-              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;">Your last 5 engagements</p>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;">Your most recent projects</p>
             </div>
             <a href="/buyer-projects.html" style="font-size:13px;font-weight:600;color:#2d8a5e;text-decoration:none;">View all</a>
           </div>
@@ -382,7 +399,7 @@ body { overflow-x: hidden !important; }
         <!-- Quick stats -->
         <div class="glass" style="padding:22px;">
           <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 3px;">Spending Overview</h3>
-          <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0 0 18px;">June 2026 summary</p>
+          <p id="spending-month-label" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0 0 18px;"></p>
           <div style="display:flex;flex-direction:column;">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid #f0f2f6;">
               <div style="display:flex;align-items:center;gap:9px;">
@@ -470,13 +487,14 @@ body { overflow-x: hidden !important; }
 <div id="toast" class="toast"></div>
 
 <script>
-// ============ DEMO DATA ============
-var DEMO = { name: '', role: 'buyer', uid: null };
+// ============ CURRENT USER ============
+var currentUser = { name: '', role: 'buyer', uid: null };
 
 // LIVE DATA — populated by loadBuyerDashboard() in _boot
 var PROJECTS = [];
 var PURCHASES = [];
 var DISPUTES_COUNT = 0;
+var _dashboardLoading = false;
 
 var STATUS = {
   unsigned:   { label:'Awaiting Signature', cls:'badge-grey'  },
@@ -486,6 +504,15 @@ var STATUS = {
   disputed:   { label:'Disputed',           cls:'badge-red'   },
   cancelled:  { label:'Cancelled',          cls:'badge-grey'  }
 };
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ============ NAV (buyer) ============
 var NAV = [
@@ -522,16 +549,14 @@ function closeMobileMenu() {
   document.body.style.overflow = '';
 }
 
-// ============ LOGOUT ============
-function handleLogout() { showToast('Signed out (demo mode)'); }
-document.getElementById('mb-signout').onclick = handleLogout;
-document.getElementById('dt-signout').onclick = handleLogout;
-
 // ============ GREETING ============
 function setGreeting() {
   var h = new Date().getHours();
   document.getElementById('greeting').textContent =
     h < 12 ? 'GOOD MORNING' : h < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING';
+  var now = new Date();
+  document.getElementById('spending-month-label').textContent =
+    now.toLocaleString('en', { month: 'long', year: 'numeric' }) + ' summary';
 }
 
 // ============ STATS ============
@@ -551,65 +576,83 @@ function renderStats() {
   var escrow = PROJECTS.reduce(function(sum, p){ return sum + (p.escrowStatus === 'funded' ? p.amount : 0); }, 0);
   var spentMonth = PROJECTS.reduce(function(sum, p){ return sum + (p.escrowStatus !== 'unfunded' ? p.amount : 0); }, 0);
   var hired = new Set(PROJECTS.map(function(p){ return p.freelancerUid || p.freelancer; })).size;
-  var avg = totalSpent > 0 ? totalSpent / PROJECTS.filter(function(p){ return p.escrowStatus !== 'unfunded'; }).length : 0;
+  var fundedCount = PROJECTS.filter(function(p){ return p.escrowStatus !== 'unfunded'; }).length;
+  var avg = (totalSpent > 0 && fundedCount > 0) ? totalSpent / fundedCount : 0;
 
   document.getElementById('qs-spent-month').textContent = '€' + spentMonth.toLocaleString();
   document.getElementById('qs-escrow').textContent = '€' + escrow.toLocaleString();
   document.getElementById('qs-hired').textContent = hired;
-  document.getElementById('qs-avg').textContent = '€' + avg.toFixed(0);
+  document.getElementById('qs-avg').textContent = '€' + (isFinite(avg) ? avg.toFixed(0) : '0');
 }
 
 // ============ PROJECTS LIST ============
 function renderProjects() {
-  if (PROJECTS.length === 0) {
-    document.getElementById('projects-list').innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:32px 20px;font-size:14px;">No projects yet. <a href="/browse.html" style="color:#2d8a5e;font-weight:600;">Browse freelancers</a> to get started.</p>';
-    return;
+  try {
+    if (PROJECTS.length === 0) {
+      document.getElementById('projects-list').innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:32px 20px;font-size:14px;">No projects yet. <a href="/browse.html" style="color:#2d8a5e;font-weight:600;">Browse freelancers</a> to get started.</p>';
+      return;
+    }
+    document.getElementById('projects-list').innerHTML = PROJECTS.map(function(p) {
+      var s = STATUS[p.status] || STATUS.in_progress;
+      return '<div class="proj-row">'
+        +'<div style="min-width:0;flex:1;">'
+          +'<div class="proj-title">'+escapeHtml(p.title)+'</div>'
+          +'<div class="proj-buyer">'+escapeHtml(p.freelancer)+'</div>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:10px;">'
+          +'<span class="badge '+s.cls+'">'+s.label+'</span>'
+          +'<span style="font-size:14px;font-weight:800;color:#0d2145;">€'+(Number(p.amount)||0)+'</span>'
+        +'</div>'
+        +'<div class="proj-actions">'+ getActions(p) +'</div>'
+      +'</div>';
+    }).join('');
+  } catch(e) {
+    console.error('[renderProjects]', e);
+    document.getElementById('projects-list').innerHTML =
+      '<p style="padding:20px;color:#c81e1e;font-size:13px;">Could not display projects. Please refresh.</p>';
   }
-  document.getElementById('projects-list').innerHTML = PROJECTS.map(function(p) {
-    var s = STATUS[p.status] || STATUS.in_progress;
-    return '<div class="proj-row">'
-      +'<div style="min-width:0;flex:1;">'
-        +'<div class="proj-title">'+p.title+'</div>'
-        +'<div class="proj-buyer">'+p.freelancer+'</div>'
-      +'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:10px;">'
-        +'<span class="badge '+s.cls+'">'+s.label+'</span>'
-        +'<span style="font-size:14px;font-weight:800;color:#0d2145;">€'+p.amount+'</span>'
-      +'</div>'
-      +'<div class="proj-actions">'+ getActions(p) +'</div>'
-    +'</div>';
-  }).join('');
 }
 
 // ============ RECENT PURCHASES ============
 function renderRecentPurchases() {
-  var el = document.getElementById('recent-purchases-list');
-  if (!el) return;
-  if (PURCHASES.length === 0) {
-    el.innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:32px 20px;font-size:14px;">No purchases yet. <a href="/store.html" style="color:#6c3fc5;font-weight:600;">Visit the store</a> to buy products.</p>';
-    return;
+  try {
+    var el = document.getElementById('recent-purchases-list');
+    if (!el) return;
+    if (PURCHASES.length === 0) {
+      el.innerHTML = '<p style="color:rgba(13,33,69,0.5);text-align:center;padding:32px 20px;font-size:14px;">No purchases yet. <a href="/store.html" style="color:#6c3fc5;font-weight:600;">Visit the store</a> to buy products.</p>';
+      return;
+    }
+    el.innerHTML = PURCHASES.slice(0, 3).map(function(pur) {
+      var delivered = pur.deliveryStatus === 'delivered' && pur.deliveryContent;
+      var badgeCls  = delivered ? 'badge-green' : 'badge-grey';
+      var badgeTxt  = delivered ? 'Delivered' : 'Pending';
+      var safeUrl = (typeof pur.deliveryContent === 'string' &&
+        (pur.deliveryContent.startsWith('https://') || pur.deliveryContent.startsWith('http://')))
+        ? pur.deliveryContent
+        : '#';
+      var accessBtn = delivered
+        ? '<a href="' + safeUrl + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6c3fc5;background:#f0eaff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;text-decoration:none;white-space:nowrap;">'
+            + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+            + 'Access Product</a>'
+        : '<span style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.4);">Awaiting delivery</span>';
+      return '<div class="proj-row">'
+        + '<div style="min-width:0;flex:1;">'
+          + '<div class="proj-title">' + escapeHtml(pur.title) + '</div>'
+          + '<div class="proj-buyer">' + escapeHtml(pur.seller) + ' &middot; ' + escapeHtml(pur.date) + '</div>'
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:10px;">'
+          + '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>'
+          + '<span style="font-size:14px;font-weight:800;color:#0d2145;">€' + (Number(pur.amount)||0) + '</span>'
+        + '</div>'
+        + '<div class="proj-actions">' + accessBtn + '</div>'
+      + '</div>';
+    }).join('');
+  } catch(e) {
+    console.error('[renderRecentPurchases]', e);
+    var el = document.getElementById('recent-purchases-list');
+    if (el) el.innerHTML =
+      '<p style="padding:20px;color:#c81e1e;font-size:13px;">Could not display purchases. Please refresh.</p>';
   }
-  el.innerHTML = PURCHASES.slice(0, 3).map(function(pur) {
-    var delivered = pur.deliveryStatus === 'delivered' && pur.deliveryContent;
-    var badgeCls  = delivered ? 'badge-green' : 'badge-grey';
-    var badgeTxt  = delivered ? 'Delivered' : 'Pending';
-    var accessBtn = delivered
-      ? '<a href="' + pur.deliveryContent + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#6c3fc5;background:#f0eaff;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;text-decoration:none;white-space:nowrap;">'
-          + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
-          + 'Access Product</a>'
-      : '<span style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.4);">Awaiting delivery</span>';
-    return '<div class="proj-row">'
-      + '<div style="min-width:0;flex:1;">'
-        + '<div class="proj-title">' + pur.title + '</div>'
-        + '<div class="proj-buyer">' + pur.seller + ' &middot; ' + pur.date + '</div>'
-      + '</div>'
-      + '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:10px;">'
-        + '<span class="badge ' + badgeCls + '">' + badgeTxt + '</span>'
-        + '<span style="font-size:14px;font-weight:800;color:#0d2145;">€' + pur.amount + '</span>'
-      + '</div>'
-      + '<div class="proj-actions">' + accessBtn + '</div>'
-    + '</div>';
-  }).join('');
 }
 
 // ============ ACTION BUTTONS PER STATUS ============
@@ -667,7 +710,7 @@ async function makePayment(id) {
         orderId:      id,
         amount:       project.totalAmount || project.budget || project.amount,
         description:  'Escrow payment for: ' + (project.title || id),
-        buyerEmail:   DEMO.email || '',
+        buyerEmail:   currentUser.email || '',
         projectTitle: project.title || id
       };
     } else if (stripeEnabled) {
@@ -676,7 +719,7 @@ async function makePayment(id) {
         orderId:      id,
         amount:       project.totalAmount || project.budget || project.amount,
         description:  'Escrow payment for: ' + (project.title || id),
-        buyerEmail:   DEMO.email || '',
+        buyerEmail:   currentUser.email || '',
         projectTitle: project.title || id
       };
     } else {
@@ -685,7 +728,7 @@ async function makePayment(id) {
         orderId:      id,
         amount:       project.totalAmount || project.budget || project.amount,
         description:  'Escrow payment for: ' + (project.title || id),
-        buyerEmail:   DEMO.email || ''
+        buyerEmail:   currentUser.email || ''
       };
     }
 
@@ -713,15 +756,16 @@ async function makePayment(id) {
 // ============ APPROVE DELIVERY ============
 async function approveDelivery(id) {
   var btn = document.getElementById('approve-btn-'+id);
+  if (!btn || btn.disabled) return;
   var original = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = '<svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Approving...';
 
-  var _idToken = auth && auth.currentUser ? await auth.currentUser.getIdToken() : '';
+  var _idToken = window.auth && window.auth.currentUser ? await window.auth.currentUser.getIdToken() : '';
   fetch('/.netlify/functions/approve-delivery', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _idToken },
-    body: JSON.stringify({ projectId: id, buyerUid: DEMO.uid })
+    body: JSON.stringify({ projectId: id, buyerUid: currentUser.uid })
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
@@ -752,7 +796,7 @@ function raiseDispute(id) {
 
 // ============ VIEW CONTRACT ============
 function viewContract(id) {
-  window.location.href = '/dashboard-contracts.html';
+  window.location.href = '/dashboard-contracts.html?id=' + encodeURIComponent(id);
 }
 
 // ============ TOAST ============
@@ -771,13 +815,30 @@ document.addEventListener('keydown', function(e) {
 
 // ============ LOAD BUYER DASHBOARD FROM FIRESTORE ============
 async function loadBuyerDashboard(uid) {
-  if (!window.db || !window._fsQ) return;
+  if (_dashboardLoading) return;
+  _dashboardLoading = true;
+  if (!window.db || !window._fsQ) { _dashboardLoading = false; return; }
+
+  // Session cache — render instantly on repeat visits, then refresh in background
+  try {
+    var _cached = sessionStorage.getItem('krd_dash_' + uid);
+    if (_cached) {
+      var _c = JSON.parse(_cached);
+      PROJECTS = _c.projects || [];
+      PURCHASES = _c.purchases || [];
+      DISPUTES_COUNT = PROJECTS.filter(function(p){ return p.status === 'disputed'; }).length;
+      renderStats(); renderProjects(); renderRecentPurchases();
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+  } catch(e) { /* cache miss, continue to Firestore */ }
+
   var fsQ = window._fsQ;
   try {
     var q = fsQ.query(
       fsQ.collection(window.db, 'projects'),
       fsQ.where('buyerUid', '==', uid),
-      fsQ.orderBy('createdAt', 'desc')
+      fsQ.orderBy('createdAt', 'desc'),
+      fsQ.limit(20)
     );
     var snap = await fsQ.getDocs(q);
 
@@ -846,30 +907,57 @@ async function loadBuyerDashboard(uid) {
       PURCHASES = [];
     }
 
+    // Write to session cache after successful load
+    try {
+      sessionStorage.setItem('krd_dash_' + uid, JSON.stringify({
+        projects: PROJECTS,
+        purchases: PURCHASES
+      }));
+    } catch(e) { /* storage full, non-fatal */ }
   } catch(err) {
     console.error('[loadBuyerDashboard]', err);
     showToast('Could not load dashboard data. Pull to refresh.');
+  } finally {
+    renderStats();
+    renderProjects();
+    renderRecentPurchases();
+    document.getElementById('loading-overlay').style.display = 'none';
+    _dashboardLoading = false;
   }
-  renderStats();
-  renderProjects();
-  renderRecentPurchases();
-  document.getElementById('loading-overlay').style.display = 'none';
 }
 
 // ============ BOOT ============
-window._boot = function(user, userData) {
-  DEMO.uid   = user.uid;
-  DEMO.email = user.email || '';
-  DEMO.name  = user.displayName || (userData && userData.name) || user.email || 'User';
+window._boot = async function(user, userData) {
+  currentUser.uid   = user.uid;
+  currentUser.email = user.email || '';
+  currentUser.name  = user.displayName || (userData && userData.name) || user.email || 'User';
+
+  // Welcome heading
+  var firstName = currentUser.name.trim().split(' ')[0];
+  document.getElementById('welcome-heading').textContent = 'Welcome back, ' + firstName + '.';
 
   // Avatar initials
-  var parts = DEMO.name.trim().split(' ');
+  var parts = currentUser.name.trim().split(' ');
   document.getElementById('user-avatar').textContent =
-    parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : DEMO.name.slice(0,2).toUpperCase();
+    parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : currentUser.name.slice(0,2).toUpperCase();
 
   setGreeting();
   buildNav();
-  document.getElementById('bell-dot').style.display = 'block';
+
+  // Bell dot — only show when there are unread notifications
+  try {
+    var fsQ = window._fsQ;
+    var bellSnap = await fsQ.getDocs(fsQ.query(
+      fsQ.collection(window.db, 'notifications'),
+      fsQ.where('uid', '==', user.uid),
+      fsQ.where('read', '==', false),
+      fsQ.limit(1)
+    ));
+    document.getElementById('bell-dot').style.display = bellSnap.empty ? 'none' : 'block';
+  } catch (e) {
+    document.getElementById('bell-dot').style.display = 'none';
+  }
+
   loadBuyerDashboard(user.uid);
 };
 </script>
@@ -896,7 +984,7 @@ if ('serviceWorker' in navigator) {
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, doc, getDoc, collection, query, where, orderBy, getDocs, limit } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
     authDomain:        'kreddlo.firebaseapp.com',
@@ -915,7 +1003,8 @@ if ('serviceWorker' in navigator) {
   document.getElementById('dt-signout').onclick = window.handleLogout;
   const db   = getFirestore(app);
   window.db  = db;
-  window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc };
+  window.auth = auth;
+  window._fsQ = { collection, query, where, orderBy, getDocs, getDoc, doc, limit };
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
     getDoc(doc(db, 'users', user.uid)).then(function(snap) {

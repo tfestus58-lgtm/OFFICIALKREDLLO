@@ -19,6 +19,7 @@
  */
 
 const https = require('https');
+const { verifyCaller } = require('./_verify-auth');
 
 /* ─────────────────────────────────────────────
    FIREBASE ADMIN (loaded lazily so cold starts
@@ -178,6 +179,12 @@ exports.handler = async function (event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed.' }) };
   }
 
+  /* ── Verify caller identity ── */
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized. Please log in again.' }) };
+  }
+
   /* ── Parse body ── */
   let payload;
   try {
@@ -187,7 +194,7 @@ exports.handler = async function (event) {
   }
 
   const {
-    uid,
+    uid: _bodyUid,  // ignored — we use the verified caller uid
     amount,         // USD amount the freelancer entered
     amountCoin,     // coin amount after fees (sent to wallet)
     amountUsdt,     // equivalent USDT amount (for records)
@@ -199,6 +206,9 @@ exports.handler = async function (event) {
     usdtRate,       // USD per 1 USDT
     fees,           // { nowpaymentsFee, platformFee }
   } = payload;
+
+  // Always use the token-verified uid, not the client-supplied one
+  const uid = callerUid;
 
   /* ── Basic input validation ── */
   if (!uid || typeof uid !== 'string') {
@@ -224,7 +234,8 @@ exports.handler = async function (event) {
     const db = getDb();
 
     /* ────────────────────────────────────────
-       STEP 1 — Verify user + sufficient balance
+       STEP 1 — Pre-flight: verify user exists, role, KYC
+       (outside transaction — read-only, fail fast)
     ──────────────────────────────────────── */
     const userRef  = db.collection('users').doc(uid);
     const userSnap = await userRef.get();
@@ -245,21 +256,48 @@ exports.handler = async function (event) {
       return { statusCode: 403, body: JSON.stringify({ error: 'KYC verification required before withdrawing.' }) };
     }
 
-    const availableBalance = Number(userData.availableBalance || 0);
+    /* ────────────────────────────────────────
+       STEP 1b — Server-side fee validation
+       Load the expected platform fee rate from Firestore config,
+       apply Pro rate if the user has an active Pro plan,
+       then reject the request if the client-supplied fee is
+       more than 5% below what we expect (manipulation guard).
+    ──────────────────────────────────────── */
+    {
+      let expectedFeePct = 1.5; // safe default
+      try {
+        const cfgSnap = await db.collection('config').doc('platform').get();
+        if (cfgSnap.exists) {
+          const cfgData = cfgSnap.data();
+          if (typeof cfgData.withdrawalFeePercent === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercent;
+          }
+          // Pro users get a reduced fee rate
+          const isPro = (userData.plan === 'pro' || userData.premiumStatus === 'active')
+                        && userData.planStatus === 'active';
+          if (isPro && typeof cfgData.withdrawalFeePercentPro === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercentPro;
+          }
+        }
+      } catch (cfgErr) {
+        console.warn('[create-payout] Could not load fee config, using default:', cfgErr.message);
+      }
 
-    if (availableBalance < amtUsd) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: `Insufficient balance. Available: ${usd(availableBalance)}, Requested: ${usd(amtUsd)}.`,
-        }),
-      };
+      const expectedPlatformFee = amtUsd * (expectedFeePct / 100);
+      const clientPlatformFee   = Number(fees?.platformFee || 0);
+
+      if (clientPlatformFee < expectedPlatformFee * 0.95) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Invalid fee calculation. Please refresh and try again.' }),
+        };
+      }
     }
 
     /* ────────────────────────────────────────
        STEP 2 — Create payout document (status: pending)
-       We create it first so we have a doc ID to pass
-       to NOWPayments as extra_id for reconciliation.
+       Created OUTSIDE the transaction so we have a doc ID
+       to pass to NOWPayments as extra_id for reconciliation.
     ──────────────────────────────────────── */
     const payoutData = {
       userUid:       uid,
@@ -290,7 +328,46 @@ exports.handler = async function (event) {
     const payoutId  = payoutRef.id;
 
     /* ────────────────────────────────────────
-       STEP 3 — Call NOWPayments Mass Payout API
+       FIX #1 — Atomic balance reservation via Firestore transaction
+       Re-reads balance inside the transaction to prevent race conditions
+       where two simultaneous withdrawals both pass the balance check.
+    ──────────────────────────────────────── */
+    let reservedBalance;
+    try {
+      await db.runTransaction(async (tx) => {
+        const freshSnap = await tx.get(userRef);
+        const freshData = freshSnap.data();
+        const availableBalance = Number(freshData.availableBalance || 0);
+
+        if (availableBalance < amtUsd) {
+          const err = new Error(
+            `Insufficient balance. Available: ${usd(availableBalance)}, Requested: ${usd(amtUsd)}.`
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+
+        reservedBalance = availableBalance; // capture for use after transaction
+
+        const newBalance     = Math.max(0, availableBalance - amtUsd);
+        const totalWithdrawn = Number(freshData.totalWithdrawn || 0) + amtUsd;
+
+        tx.update(userRef, {
+          availableBalance: newBalance,
+          totalWithdrawn,
+          updatedAt: new Date(),
+        });
+      });
+    } catch (txErr) {
+      // Mark payout doc as failed so it doesn't appear stuck as 'pending'
+      await payoutRef.update({ status: 'failed', errorMsg: txErr.message, updatedAt: new Date() });
+      const sc = txErr.statusCode || 500;
+      return { statusCode: sc, body: JSON.stringify({ error: txErr.message }) };
+    }
+
+    /* ────────────────────────────────────────
+       STEP 3 — Call NOWPayments AFTER balance is reserved
+       If this fails we refund via compensating update.
     ──────────────────────────────────────── */
     let batchId, withdrawalId, nowStatus;
 
@@ -305,13 +382,14 @@ exports.handler = async function (event) {
       }));
     } catch (nowErr) {
       /*
-       * NOWPayments call failed — update payout doc to 'failed'
-       * and return the error so the UI can surface it.
+       * NOWPayments call failed — compensate by refunding the deducted balance
+       * and marking the payout doc 'failed'.
        */
-      await payoutRef.update({
-        status:    'failed',
-        errorMsg:  nowErr.message,
-        updatedAt: new Date(),
+      await payoutRef.update({ status: 'failed', errorMsg: nowErr.message, updatedAt: new Date() });
+      await userRef.update({
+        availableBalance: reservedBalance, // restore original balance
+        totalWithdrawn:   require('firebase-admin').firestore.FieldValue.increment(-amtUsd),
+        updatedAt:        new Date(),
       });
 
       return {
@@ -331,18 +409,8 @@ exports.handler = async function (event) {
       updatedAt:    new Date(),
     });
 
-    /* ────────────────────────────────────────
-       STEP 5 — Deduct from user availableBalance
-                and increment totalWithdrawn
-    ──────────────────────────────────────── */
-    const newBalance       = Math.max(0, availableBalance - amtUsd);
-    const totalWithdrawn   = Number(userData.totalWithdrawn || 0) + amtUsd;
-
-    await userRef.update({
-      availableBalance: newBalance,
-      totalWithdrawn,
-      updatedAt: new Date(),
-    });
+    /* ── Compute newBalance for response/notification ── */
+    const newBalance = Math.max(0, reservedBalance - amtUsd);
 
     /* ────────────────────────────────────────
        STEP 6 — Send withdrawal confirmation email

@@ -374,7 +374,7 @@
     import { initializeApp }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, getDoc }
                                 from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getAuth }          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
     const firebaseConfig = {
       apiKey:            "AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk",
@@ -403,6 +403,41 @@
         });
       } catch (e) { /* silent fail */ }
     })();
+
+    // Auth-aware nav
+    onAuthStateChanged(window.auth, async (user) => {
+      const navPublicDesktop = document.getElementById('nav-public-desktop');
+      const navAuthDesktop   = document.getElementById('nav-auth-desktop');
+      const navPublicMobile  = document.getElementById('nav-public-mobile');
+      const navAuthMobile    = document.getElementById('nav-auth-mobile');
+      const avatarEl         = document.getElementById('nav-browse-avatar');
+      const dashLinkD        = document.getElementById('nav-browse-dash-desktop');
+      const dashLinkM        = document.getElementById('nav-browse-dash-mobile');
+
+      if (!user) return; // keep public nav
+
+      // Resolve role → dashboard href
+      let dashHref = '/dashboard.html';
+      try {
+        const snap = await getDoc(doc(window.db, 'users', user.uid));
+        if (snap.exists() && snap.data().role === 'buyer') dashHref = '/buyer-dashboard.html';
+      } catch(e) {}
+
+      if (dashLinkD) dashLinkD.href = dashHref;
+      if (dashLinkM) dashLinkM.href = dashHref;
+
+      // Avatar initial
+      const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+      if (avatarEl) avatarEl.textContent = initial;
+
+      // Swap desktop nav
+      if (navPublicDesktop) navPublicDesktop.style.display = 'none';
+      if (navAuthDesktop)   navAuthDesktop.style.display   = 'flex';
+
+      // Swap mobile nav
+      if (navPublicMobile) navPublicMobile.style.display = 'none';
+      if (navAuthMobile)   navAuthMobile.style.display   = 'flex';
+    });
   </script>
 </head>
 
@@ -457,7 +492,7 @@
     </nav>
 
     <!-- Auth buttons -->
-    <div style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
+    <div id="nav-public-mobile" style="display:flex;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
       <a href="login.html" onclick="closeMobileMenu()"
          style="display:block;text-align:center;padding:12px 20px;border-radius:50px;border:1.5px solid rgba(255,255,255,0.20);color:rgba(255,255,255,0.80);font-size:14px;font-weight:600;text-decoration:none;transition:background 0.18s,border-color 0.18s;"
          onmouseover="this.style.background='rgba(255,255,255,0.06)';"
@@ -466,6 +501,12 @@
       </a>
       <a href="signup.html" onclick="closeMobileMenu()" class="btn-green" style="text-align:center;font-size:14px;padding:12px 20px;">
         Get Started
+      </a>
+    </div>
+    <!-- Auth nav (shown when logged in) -->
+    <div id="nav-auth-mobile" style="display:none;flex-direction:column;gap:10px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08);">
+      <a id="nav-browse-dash-mobile" href="/dashboard.html" onclick="closeMobileMenu()" class="btn-green" style="text-align:center;font-size:14px;padding:12px 20px;">
+        Dashboard
       </a>
     </div>
   </div>
@@ -495,10 +536,15 @@
 
       <!-- Desktop CTA + Hamburger -->
       <div style="display:flex;align-items:center;gap:10px;">
-        <!-- Desktop auth buttons (hidden on mobile) -->
-        <div class="desktop-auth" style="display:none;gap:8px;align-items:center;">
+        <!-- Desktop auth buttons (hidden on mobile, hidden when logged in) -->
+        <div id="nav-public-desktop" class="desktop-auth" style="display:none;gap:8px;align-items:center;">
           <a href="login.html"  class="btn-secondary" style="padding:9px 20px;font-size:14px;">Log In</a>
           <a href="signup.html" class="btn-green"      style="padding:9px 20px;font-size:14px;">Get Started</a>
+        </div>
+        <!-- Logged-in desktop nav (hidden by default) -->
+        <div id="nav-auth-desktop" style="display:none;align-items:center;gap:10px;">
+          <a id="nav-browse-dash-desktop" href="/dashboard.html" class="btn-secondary" style="padding:9px 20px;font-size:14px;font-weight:600;">Dashboard</a>
+          <div id="nav-browse-avatar" style="width:34px;height:34px;border-radius:50%;background:#2d8a5e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;"></div>
         </div>
         <!-- Hamburger -->
         <button id="hamburger" onclick="openMobileMenu()" aria-label="Open menu" aria-expanded="false"
@@ -756,7 +802,8 @@
       #freelancer-grid { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
       #products-grid   { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
       .md-flex-row { display: flex !important; }
-      .desktop-auth { display: flex !important; }
+      /* Show desktop auth area on wide screens — JS will hide/swap when logged in */
+      #nav-public-desktop { display: flex; }
       #hamburger { display: none !important; }
     }
     @media (min-width: 768px) {

@@ -74,68 +74,132 @@
      C. SEO CONFIG + applySEO()
   ══════════════════════════════════════════════════════════════ */
   var PAGE_SEO = {
-    '/':                  {
+    '/': {
       title:       'Kreddlo - Global Freelance Payments for Verified Professionals',
-      description: 'Kreddlo is a verified global freelance platform that gives professionals in underserved countries access to international payments, secure escrow and automatic payouts.',
+      description: 'Kreddlo is the Fiverr and Upwork alternative built for global freelancers. Unlike Selar, Gumroad or Payhip, Kreddlo combines KYC verification, escrow contracts and automatic payouts — better than Payoneer or Wise for freelance income.',
       url:         'https://kreddlo.com/',
+      type:        'website',
     },
-    '/index.html':        {
+    '/index.html': {
       title:       'Kreddlo - Global Freelance Payments for Verified Professionals',
-      description: 'Kreddlo is a verified global freelance platform that gives professionals in underserved countries access to international payments, secure escrow and automatic payouts.',
+      description: 'Kreddlo is the Fiverr and Upwork alternative built for global freelancers. Unlike Selar, Gumroad or Payhip, Kreddlo combines KYC verification, escrow contracts and automatic payouts — better than Payoneer or Wise for freelance income.',
       url:         'https://kreddlo.com/',
+      type:        'website',
     },
-    '/browse.html':       {
+    '/browse.html': {
       title:       'Browse Verified Freelancers - Kreddlo',
-      description: 'Find skilled KYC-verified freelancers across design, development, writing, marketing and more. Every professional on Kreddlo is identity-verified.',
+      description: 'Find KYC-verified freelancers across design, development, writing and marketing. A trusted Fiverr and Upwork alternative where every professional is identity-verified and paid faster than Payoneer, Wise or Paystack.',
       url:         'https://kreddlo.com/browse.html',
+      type:        'website',
     },
-    '/pricing.html':      {
+    '/pricing.html': {
       title:       'Pricing and Fees - Kreddlo',
-      description: 'Simple transparent pricing with no hidden fees. Understand exactly what freelancers and buyers pay before signing up on Kreddlo.',
+      description: 'Simple transparent pricing — lower fees than Fiverr, Upwork and Selar. No hidden charges like Payoneer or Wise. See exactly what freelancers and buyers pay. A fairer alternative to Flutterwave and Paystack for service payments.',
       url:         'https://kreddlo.com/pricing.html',
+      type:        'website',
     },
     '/how-it-works.html': {
       title:       'How Kreddlo Works - Verified Global Freelance Payments',
-      description: 'Learn how Kreddlo connects KYC-verified freelancers with global clients using escrow, digital contracts and automatic crypto payouts.',
+      description: 'Kreddlo connects KYC-verified freelancers with global clients using escrow, digital contracts and automatic payouts. A better alternative to Fiverr, Upwork, Geegpay and Grey for professionals in underserved countries.',
       url:         'https://kreddlo.com/how-it-works.html',
+      type:        'website',
     },
-    '/about.html':        {
+    '/about.html': {
       title:       'About Kreddlo - Built for Global Freelancers',
-      description: 'Kreddlo was built to give talented freelancers in underserved countries the financial infrastructure and professional identity tools they deserve.',
+      description: 'Kreddlo was built to give talented freelancers the tools Fiverr, Upwork, Selar and Nestuge never provided — KYC-verified identity, escrow protection and payouts that work where Payoneer, Wise, Geegpay and Grey fall short.',
       url:         'https://kreddlo.com/about.html',
+      type:        'website',
     },
-    '/privacy.html':      {
+    '/privacy.html': {
       title:       'Privacy Policy - Kreddlo',
       description: 'Learn how Kreddlo collects, uses and protects your personal data including identity verification documents and payment information.',
       url:         'https://kreddlo.com/privacy.html',
+      type:        'website',
     },
-    '/terms.html':        {
+    '/terms.html': {
       title:       'Terms of Service - Kreddlo',
       description: 'Read the Kreddlo terms of service covering platform rules, fees, dispute resolution and user responsibilities.',
       url:         'https://kreddlo.com/terms.html',
+      type:        'website',
     },
-    '/signup.html':       {
-      title:       'Create Your Account - Kreddlo',
-      description: 'Sign up on Kreddlo to get verified and start working with global clients. Free to join for freelancers and buyers worldwide.',
+    '/signup.html': {
+      title:       'Create Your Free Account - Kreddlo',
+      description: 'Join Kreddlo free and get verified to work with global clients. Get paid faster than Fiverr, Upwork, Selar or Selfany — without the payout limits of Payoneer, Wise, Flutterwave or Paystack.',
       url:         'https://kreddlo.com/signup.html',
+      type:        'website',
     },
-    '/login.html':        {
+    '/login.html': {
       title:       'Log In - Kreddlo',
       description: 'Log in to your Kreddlo account to access your dashboard, contracts, earnings and withdrawal tools.',
       url:         'https://kreddlo.com/login.html',
+      type:        'website',
+    },
+    '/store.html': {
+      title:       'My Service Store - Kreddlo',
+      description: 'Showcase and sell your freelance services on Kreddlo. A verified store that works better than Selar, Selfany or Nestuge — with built-in escrow, contracts and global client discovery.',
+      url:         'https://kreddlo.com/store.html',
+      type:        'website',
+    },
+    '/p.html': {
+      title:       'Service Listing - Kreddlo',
+      description: 'View this verified freelance service on Kreddlo. Hire a KYC-verified professional with secure escrow and guaranteed payouts — no Payoneer, Wise or Flutterwave limits.',
+      url:         'https://kreddlo.com/p.html',
+      type:        'product',
+    },
+    '/review.html': {
+      title:       'Leave a Review - Kreddlo',
+      description: 'Share your experience working with a Kreddlo freelancer. Your review helps build trust across the global freelance community.',
+      url:         'https://kreddlo.com/review.html',
+      type:        'website',
+    },
+    '/profile.html': {
+      title:       'Freelancer Profile - Kreddlo',
+      description: 'View this verified freelancer\'s profile on Kreddlo. Browse their portfolio, services and reviews. Hire with confidence using secure escrow — the better alternative to Fiverr and Upwork.',
+      url:         'https://kreddlo.com/profile.html',
+      type:        'profile',
     },
   };
 
+  // Default OG image — create a 1200×630 branded image and host at this path.
+  // Until then social shares will show no image; any image is better than none.
+  var DEFAULT_OG_IMAGE = 'https://kreddlo.com/assets/og-image.png';
+
   /**
-   * Sets a meta tag's content by its element ID.
-   * Falls back to querySelector by name/property if ID not found.
+   * Sets a <meta> tag content by element ID.
    */
   function setMeta(id, content, attr) {
     attr = attr || 'content';
     var el = document.getElementById(id);
-    if (el) {
-      el.setAttribute(attr, content);
+    if (el) el.setAttribute(attr, content);
+  }
+
+  /**
+   * Upserts a <meta> tag by property or name attribute.
+   * Creates it if it does not already exist in <head>.
+   */
+  function upsertMeta(attrName, attrValue, content) {
+    var sel = 'meta[' + attrName + '="' + attrValue + '"]';
+    var el = document.querySelector(sel);
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute(attrName, attrValue);
+      document.head.appendChild(el);
     }
+    el.setAttribute('content', content);
+  }
+
+  /**
+   * Injects or replaces the JSON-LD <script> block for structured data.
+   * Google and AI crawlers read this first — it is the highest-value SEO tag.
+   */
+  function injectJSONLD(data) {
+    var existing = document.getElementById('kreddlo-jsonld');
+    if (existing) existing.parentNode.removeChild(existing);
+    var script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id   = 'kreddlo-jsonld';
+    script.textContent = JSON.stringify(data);
+    document.head.appendChild(script);
   }
 
   /**
@@ -146,43 +210,138 @@
    * profile.html can call it with dynamic freelancer data after a
    * Firestore fetch.
    *
-   * @param {Object} [custom] - optional override: { title, description, url }
+   * @param {Object} [custom] - optional override:
+   *   { title, description, url, image, type, jsonld }
+   *   - image:  full URL to a 1200×630 image (overrides DEFAULT_OG_IMAGE)
+   *   - type:   og:type string e.g. 'profile', 'product', 'website'
+   *   - jsonld: a ready-made JSON-LD object (skips auto-generation)
    */
   function applySEO(custom) {
     var pathname = window.location.pathname;
-    // Normalise trailing slash
     if (pathname !== '/' && pathname.endsWith('/')) {
       pathname = pathname.slice(0, -1);
     }
 
-    var config = PAGE_SEO[pathname] || PAGE_SEO['/'];
+    var base = PAGE_SEO[pathname] || PAGE_SEO['/'];
 
-    // Allow full override or partial override
-    if (custom) {
-      config = {
-        title:       custom.title       || config.title,
-        description: custom.description || config.description,
-        url:         custom.url         || config.url,
-      };
-    }
+    var config = {
+      title:       (custom && custom.title)       || base.title,
+      description: (custom && custom.description) || base.description,
+      url:         (custom && custom.url)         || base.url,
+      image:       (custom && custom.image)       || DEFAULT_OG_IMAGE,
+      type:        (custom && custom.type)        || base.type  || 'website',
+      jsonld:      (custom && custom.jsonld)      || null,
+    };
 
-    // document.title
+    /* ── 1. document.title ── */
     document.title = config.title;
 
-    // Meta description
+    /* ── 2. Meta description (ID-based, already in <head>) ── */
     setMeta('meta-description', config.description);
 
-    // Open Graph
-    setMeta('og-title',       config.title);
-    setMeta('og-description', config.description);
-    setMeta('og-url',         config.url);
+    /* ── 3. Open Graph — upsert so missing tags are created automatically ── */
+    upsertMeta('property', 'og:title',       config.title);
+    upsertMeta('property', 'og:description', config.description);
+    upsertMeta('property', 'og:url',         config.url);
+    upsertMeta('property', 'og:type',        config.type);
+    upsertMeta('property', 'og:image',       config.image);
+    upsertMeta('property', 'og:image:width',  '1200');
+    upsertMeta('property', 'og:image:height', '630');
+    upsertMeta('property', 'og:site_name',   'Kreddlo');
 
-    // Twitter
-    setMeta('twitter-title',       config.title);
-    setMeta('twitter-description', config.description);
+    /* ── 4. Twitter Card ── */
+    upsertMeta('name', 'twitter:card',        'summary_large_image');
+    upsertMeta('name', 'twitter:site',        '@kreddlo');
+    upsertMeta('name', 'twitter:title',       config.title);
+    upsertMeta('name', 'twitter:description', config.description);
+    upsertMeta('name', 'twitter:image',       config.image);
 
-    // Canonical
+    /* ── 5. Canonical ── */
     setMeta('canonical', config.url, 'href');
+
+    /* ── 6. JSON-LD structured data ── */
+    var jsonld = config.jsonld;
+
+    if (!jsonld) {
+      // Auto-generate appropriate schema based on page type
+      if (config.type === 'profile' && custom && custom.name) {
+        // Freelancer profile page — Person + ProfilePage schema
+        jsonld = {
+          '@context': 'https://schema.org',
+          '@type':    'ProfilePage',
+          'name':     config.title,
+          'url':      config.url,
+          'mainEntity': {
+            '@type':       'Person',
+            'name':        custom.name,
+            'url':         config.url,
+            'description': config.description,
+            'image':       config.image,
+            'worksFor': {
+              '@type': 'Organization',
+              'name':  'Kreddlo',
+              'url':   'https://kreddlo.com',
+            },
+          },
+        };
+      } else if (config.type === 'product' && custom && custom.name) {
+        // Service/product listing page
+        jsonld = {
+          '@context':   'https://schema.org',
+          '@type':      'Service',
+          'name':        custom.name || config.title,
+          'description': config.description,
+          'url':         config.url,
+          'image':       config.image,
+          'provider': {
+            '@type': 'Organization',
+            'name':  'Kreddlo',
+            'url':   'https://kreddlo.com',
+          },
+        };
+      } else {
+        // Default: WebSite + Organization for public pages
+        jsonld = {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              '@id':   'https://kreddlo.com/#website',
+              'url':   'https://kreddlo.com',
+              'name':  'Kreddlo',
+              'description': 'Global verified freelance marketplace and payment platform',
+              'potentialAction': {
+                '@type':       'SearchAction',
+                'target':      'https://kreddlo.com/browse.html?q={search_term_string}',
+                'query-input': 'required name=search_term_string',
+              },
+            },
+            {
+              '@type':       'Organization',
+              '@id':         'https://kreddlo.com/#organization',
+              'name':        'Kreddlo',
+              'url':         'https://kreddlo.com',
+              'logo':        'https://kreddlo.com/assets/logo.png',
+              'description': 'Kreddlo is a verified global freelance marketplace and payment platform — the Fiverr and Upwork alternative for professionals in underserved countries.',
+              'sameAs': [
+                'https://twitter.com/kreddlo',
+              ],
+            },
+            {
+              '@type':           'WebPage',
+              '@id':             config.url + '#webpage',
+              'url':             config.url,
+              'name':            config.title,
+              'description':     config.description,
+              'isPartOf':        { '@id': 'https://kreddlo.com/#website' },
+              'inLanguage':      'en',
+            },
+          ],
+        };
+      }
+    }
+
+    injectJSONLD(jsonld);
   }
 
   // Expose globally for pages with dynamic SEO (e.g. profile.html)
@@ -395,3 +554,8 @@
   }
 
 })(); // end IIFE
+
+// ── Centralised VAPID public key ─────────────────────────────────────────────
+// Used by dashboard.html and dashboard-settings.html for FCM push notifications.
+// Source: Firebase Console → Project Settings → Cloud Messaging → Web Push certificates
+window.KREDDLO_VAPID_PUBLIC_KEY = 'BAMBTh5A3sX4MsxQD1xlJwgLrFR9bYs-IXJ4Xoq-Orn1gByn81_qvD2lTtbkM1R328JqXe63veD3fyK1ulPDb1c';

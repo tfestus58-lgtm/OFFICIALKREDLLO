@@ -2,22 +2,22 @@
  * create-bank-payout.js — Kreddlo Netlify Function
  *
  * Handles freelancer FIAT (bank) withdrawal requests.
- * Mirrors create-payout.js (crypto) but settles to a bank account instead
- * of a crypto wallet.
+ * Supports multi-currency balances (NGN, USD, GBP, EUR, GHS, KES, ZAR, etc.)
  *
  * Flow:
- *  1. Validate & parse request body
+ *  1. Validate & parse request body (now includes withdrawalCurrency)
  *  2. Verify Paystack and/or Stripe is enabled in config/platform
  *  3. Verify user exists, is a freelancer, KYC verified, sufficient balance
+ *     in the requested currency (reads from user.balances map)
  *  4. Create a /payouts document (type: 'bank', status: 'pending')
- *  5. If Paystack is enabled and a matching bank code is found:
+ *  5. If Paystack is enabled and currency is Paystack-supported:
  *       - Create a Paystack transfer recipient
  *       - Initiate a Paystack transfer (automated)
- *     Otherwise:
- *       - Mark the payout as 'pending_review' for manual processing by the
- *         Kreddlo team (covers Stripe / international wires not yet
- *         automated, and any Paystack lookup failure)
- *  6. Deduct amount from user's availableBalance + increment totalWithdrawn
+ *     If international currency (USD, EUR, GBP, etc.):
+ *       - Mark as 'pending_manual' — requires manual Stripe Connect / wire
+ *     On any Paystack lookup failure:
+ *       - Mark as 'pending_review' for manual processing
+ *  6. Deduct amount from user's balances.{currency} + increment totalWithdrawn
  *  7. Send a withdrawal confirmation notification
  *  8. Return payout ID + status to the client
  *
@@ -27,7 +27,8 @@
  *   PLATFORM_URL              — e.g. https://kreddlo.com
  */
 
-const { getSettings } = require('./get-settings');
+const { getSettings }    = require('./get-settings');
+const { verifyCaller }   = require('./_verify-auth');
 
 /* ─────────────────────────────────────────────
    FIREBASE ADMIN (loaded lazily so cold starts
@@ -55,12 +56,22 @@ function getDb() {
    HELPERS
 ───────────────────────────────────────────── */
 
-/** Format a number as USD string */
-function usd(n) {
-  return '$' + Number(n || 0).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+/**
+ * Format a number in a given currency using Intl.NumberFormat.
+ * Falls back to USD formatting if currency is invalid.
+ */
+function formatCurrency(amount, currency) {
+  try {
+    return new Intl.NumberFormat('en', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(Number(amount || 0));
+  } catch {
+    return '$' + Number(amount || 0).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 }
 
 /** Mask an account number for display in emails/logs */
@@ -71,16 +82,24 @@ function maskAccount(num) {
   return '••••' + s.slice(-4);
 }
 
+/**
+ * Currencies Paystack can natively transfer to bank accounts.
+ * Everything else is routed as pending_manual.
+ */
+const PAYSTACK_TRANSFER_CURRENCIES = ['NGN', 'GHS', 'ZAR', 'KES'];
+
 const PAYSTACK_BASE = 'https://api.paystack.co';
 
 /**
  * Look up a Paystack bank_code matching the freeform bank name the
- * freelancer typed in. Returns null if no confident match is found.
+ * freelancer typed in. Uses currency to filter bank list.
+ * Returns null if no confident match is found.
  */
-async function findPaystackBankCode(paystackKey, bankName) {
+async function findPaystackBankCode(paystackKey, bankName, currency) {
   if (!bankName) return null;
 
-  const res = await fetch(`${PAYSTACK_BASE}/bank?currency=NGN`, {
+  const curr = (currency || 'NGN').toUpperCase();
+  const res = await fetch(`${PAYSTACK_BASE}/bank?currency=${curr}`, {
     headers: { Authorization: `Bearer ${paystackKey}` },
   });
 
@@ -106,9 +125,10 @@ async function findPaystackBankCode(paystackKey, bankName) {
 }
 
 /**
- * Create a Paystack transfer recipient (NUBAN) and return the recipient_code.
+ * Create a Paystack transfer recipient and return the recipient_code.
+ * Uses the provided currency (NUBAN for NGN, equivalent for GHS/ZAR/KES).
  */
-async function createPaystackRecipient(paystackKey, { accountName, accountNumber, bankCode }) {
+async function createPaystackRecipient(paystackKey, { accountName, accountNumber, bankCode, currency }) {
   const res = await fetch(`${PAYSTACK_BASE}/transferrecipient`, {
     method: 'POST',
     headers: {
@@ -120,7 +140,7 @@ async function createPaystackRecipient(paystackKey, { accountName, accountNumber
       name: accountName,
       account_number: accountNumber,
       bank_code: bankCode,
-      currency: 'NGN',
+      currency: (currency || 'NGN').toUpperCase(),
     }),
   });
 
@@ -135,9 +155,9 @@ async function createPaystackRecipient(paystackKey, { accountName, accountNumber
 
 /**
  * Initiate a Paystack transfer to a recipient. Amount is in the smallest
- * currency unit (kobo for NGN), so multiply naira amount by 100.
+ * currency unit (kobo for NGN, pesewas for GHS, etc.), so multiply by 100.
  */
-async function initiatePaystackTransfer(paystackKey, { amountNaira, recipientCode, reason, reference }) {
+async function initiatePaystackTransfer(paystackKey, { amountLocal, recipientCode, reason, reference }) {
   const res = await fetch(`${PAYSTACK_BASE}/transfer`, {
     method: 'POST',
     headers: {
@@ -146,7 +166,7 @@ async function initiatePaystackTransfer(paystackKey, { amountNaira, recipientCod
     },
     body: JSON.stringify({
       source: 'balance',
-      amount: Math.round(amountNaira * 100),
+      amount: Math.round(amountLocal * 100),
       recipient: recipientCode,
       reason: reason || 'Kreddlo withdrawal',
       reference,
@@ -187,6 +207,12 @@ exports.handler = async function (event) {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed.' }) };
   }
 
+  /* ── Verify caller identity ── */
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized. Please log in again.' }) };
+  }
+
   /* ── Parse body ── */
   let payload;
   try {
@@ -196,23 +222,30 @@ exports.handler = async function (event) {
   }
 
   const {
-    uid,
-    amount,          // USD amount the freelancer entered
+    uid: _bodyUid,  // ignored — we use the verified caller uid
+    amount,               // amount in the withdrawal currency
+    withdrawalCurrency,   // currency to withdraw (NGN, USD, GBP, etc.)
     accountName,
     accountNumber,
     bankName,
-    swift,           // SWIFT / IBAN — required for international transfers
+    swift,                // SWIFT / IBAN — required for international transfers
     country,
-    saveDetails,     // boolean — save bank details for future withdrawals
-    fees,            // { platformFee }
+    saveDetails,          // boolean — save bank details for future withdrawals
+    fees,                 // { platformFee }
   } = payload;
+
+  // Always use the token-verified uid, not the client-supplied one
+  const uid = callerUid;
+
+  /* ── Normalise currency ── */
+  const currency = (withdrawalCurrency || 'USD').toUpperCase().trim();
 
   /* ── Basic input validation ── */
   if (!uid || typeof uid !== 'string') {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing user ID.' }) };
   }
-  if (!amount || isNaN(Number(amount)) || Number(amount) < 10) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Minimum withdrawal amount is $10.00.' }) };
+  if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid withdrawal amount.' }) };
   }
   if (!accountName || !accountName.trim()) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Account holder name is required.' }) };
@@ -227,11 +260,12 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Country is required.' }) };
   }
 
-  const amtUsd = Number(amount);
+  const amountLocal = Number(amount);
 
   try {
     const db       = getDb();
     const settings = await getSettings(db);
+    const FieldValue = require('firebase-admin').firestore.FieldValue;
 
     /* ── Fiat payouts must be enabled by an admin ── */
     if (!settings.paystackEnabled && !settings.stripeEnabled) {
@@ -239,7 +273,8 @@ exports.handler = async function (event) {
     }
 
     /* ────────────────────────────────────────
-       STEP 1 — Verify user + sufficient balance
+       STEP 1 — Pre-flight: verify user exists, role, KYC
+       (outside transaction — read-only, fail fast)
     ──────────────────────────────────────── */
     const userRef  = db.collection('users').doc(uid);
     const userSnap = await userRef.get();
@@ -258,15 +293,54 @@ exports.handler = async function (event) {
       return { statusCode: 403, body: JSON.stringify({ error: 'KYC verification required before withdrawing.' }) };
     }
 
-    const availableBalance = Number(userData.availableBalance || 0);
-
-    if (availableBalance < amtUsd) {
+    /* ── Quick pre-flight balance check (non-transactional — re-checked inside tx below) ── */
+    const preflightBalances = userData.balances || {};
+    if (!Object.keys(preflightBalances).length && userData.availableBalance) {
+      preflightBalances['USD'] = Number(userData.availableBalance || 0);
+    }
+    if (Number(preflightBalances[currency] || 0) < amountLocal) {
       return {
         statusCode: 400,
         body: JSON.stringify({
-          error: `Insufficient balance. Available: ${usd(availableBalance)}, Requested: ${usd(amtUsd)}.`,
+          error: `Insufficient ${currency} balance. Available: ${formatCurrency(Number(preflightBalances[currency] || 0), currency)}, Requested: ${formatCurrency(amountLocal, currency)}.`,
         }),
       };
+    }
+
+    /* ────────────────────────────────────────
+       STEP 1b — Server-side fee validation
+       Load expected platform fee rate from Firestore config,
+       apply Pro rate if applicable, reject if client fee is manipulated.
+    ──────────────────────────────────────── */
+    let expectedFeePct = 1.5; // safe default
+    {
+      try {
+        const cfgSnap = await db.collection('config').doc('platform').get();
+        if (cfgSnap.exists) {
+          const cfgData = cfgSnap.data();
+          if (typeof cfgData.withdrawalFeePercent === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercent;
+          }
+          // Pro users get a reduced fee rate
+          const isPro = (userData.plan === 'pro' || userData.premiumStatus === 'active')
+                        && userData.planStatus === 'active';
+          if (isPro && typeof cfgData.withdrawalFeePercentPro === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercentPro;
+          }
+        }
+      } catch (cfgErr) {
+        console.warn('[create-bank-payout] Could not load fee config, using default:', cfgErr.message);
+      }
+
+      const expectedPlatformFee = amountLocal * (expectedFeePct / 100);
+      const clientPlatformFee   = Number(fees?.platformFee || 0);
+
+      if (clientPlatformFee < expectedPlatformFee * 0.95) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Invalid fee calculation. Please refresh and try again.' }),
+        };
+      }
     }
 
     /* ────────────────────────────────────────
@@ -286,9 +360,10 @@ exports.handler = async function (event) {
       userUid:    uid,
       userName:   userData.name  || '',
       userEmail:  userData.email || '',
-      amount:     amtUsd,
+      amount:     amountLocal,
+      currency,
       type:       'bank',
-      method:     null,           // set below: 'paystack' or 'manual'
+      method:     null,       // set below: 'paystack', 'pending_manual', or 'manual'
       bankDetails,
       fees: {
         platformFee,
@@ -302,44 +377,56 @@ exports.handler = async function (event) {
     const payoutId  = payoutRef.id;
 
     /* ────────────────────────────────────────
-       STEP 3 — Attempt automated Paystack transfer
-       (NGN NUBAN accounts only). Anything else
-       (Stripe, international wires, lookup
-       failures) is queued for manual processing.
+       STEP 3 — Route to Paystack or mark for manual processing
+
+       Paystack supports automated transfers for: NGN, GHS, ZAR, KES.
+       All international currencies (USD, EUR, GBP, etc.) are flagged
+       as pending_manual for Stripe Connect / wire processing.
     ──────────────────────────────────────── */
     let method        = 'manual';
     let payoutStatus  = 'pending_review';
     let transferCode  = null;
-    let resultMessage = `Bank transfer request of ${usd(amtUsd)} received. Our team will process this within 1-3 business days.`;
+    let resultMessage = `Bank transfer request of ${formatCurrency(amountLocal, currency)} received. Our team will process this within 1-3 business days.`;
 
+    const isPaystackCurrency = PAYSTACK_TRANSFER_CURRENCIES.includes(currency);
     const paystackKey = process.env.PAYSTACK_SECRET_KEY;
 
-    if (settings.paystackEnabled && paystackKey) {
+    if (!isPaystackCurrency) {
+      /* ── International currency — queue for manual Stripe/wire processing ── */
+      method       = 'pending_manual';
+      payoutStatus = 'pending_manual';
+      resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed manually within 2-5 business days.`;
+
+      console.log(`[create-bank-payout] ${currency} withdrawal for ${uid} — queued as pending_manual (international bank transfer).`);
+
+    } else if (settings.paystackEnabled && paystackKey) {
+      /* ── Attempt automated Paystack transfer for supported currencies ── */
       try {
-        const bankCode = await findPaystackBankCode(paystackKey, bankDetails.bankName);
+        const bankCode = await findPaystackBankCode(paystackKey, bankDetails.bankName, currency);
 
         if (bankCode) {
           const recipientCode = await createPaystackRecipient(paystackKey, {
             accountName:   bankDetails.accountName,
             accountNumber: bankDetails.accountNumber,
             bankCode,
+            currency,
           });
 
           const transferResult = await initiatePaystackTransfer(paystackKey, {
-            amountNaira:   amtUsd, // platform fee already deducted client-side, amtUsd is final payout amount
+            amountLocal,
             recipientCode,
-            reason:        `Kreddlo withdrawal ${payoutId}`,
-            reference:     `kreddlo-${uid}-${payoutId}`,
+            reason:    `Kreddlo withdrawal ${payoutId}`,
+            reference: `kreddlo-${uid}-${payoutId}`,
           });
 
           method        = 'paystack';
           payoutStatus  = 'sent';
           transferCode  = transferResult.transferCode;
-          resultMessage = `Withdrawal of ${usd(amtUsd)} sent to your bank account.`;
+          resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} sent to your bank account.`;
         }
       } catch (paystackErr) {
         console.error('[create-bank-payout] Paystack transfer failed, falling back to manual review:', paystackErr.message);
-        // Falls through to manual review — payout is still recorded and balance deducted.
+        // Falls through — payout is still recorded, balance still deducted, team handles manually.
       }
     }
 
@@ -347,33 +434,64 @@ exports.handler = async function (event) {
       method,
       status:       payoutStatus,
       transferCode: transferCode || null,
-      updatedAt:    new Date(),
+      // For international currencies, add a note for the team
+      ...(method === 'pending_manual' ? {
+        note: 'International bank transfer — requires manual processing via Stripe Connect or wire.',
+      } : {}),
+      updatedAt: new Date(),
     });
 
     /* ────────────────────────────────────────
-       STEP 4 — Deduct from user availableBalance
-                and increment totalWithdrawn
+       FIX #1 — Atomic balance reservation via Firestore transaction
+       Re-reads balance inside transaction to prevent race conditions.
     ──────────────────────────────────────── */
-    const newBalance     = Math.max(0, availableBalance - amtUsd);
-    const totalWithdrawn = Number(userData.totalWithdrawn || 0) + amtUsd;
+    let newCurrencyBalance;
+    try {
+      await db.runTransaction(async (tx) => {
+        const freshSnap    = await tx.get(userRef);
+        const freshData    = freshSnap.data();
+        const freshBalances = freshData.balances || {};
+        if (!Object.keys(freshBalances).length && freshData.availableBalance) {
+          freshBalances['USD'] = Number(freshData.availableBalance || 0);
+        }
+        const currencyBalance = Number(freshBalances[currency] || 0);
 
-    const userUpdate = {
-      availableBalance: newBalance,
-      totalWithdrawn,
-      updatedAt: new Date(),
-    };
+        if (currencyBalance < amountLocal) {
+          const err = new Error(
+            `Insufficient ${currency} balance. Available: ${formatCurrency(currencyBalance, currency)}, Requested: ${formatCurrency(amountLocal, currency)}.`
+          );
+          err.statusCode = 400;
+          throw err;
+        }
 
-    if (saveDetails) {
-      userUpdate.bankDetails = bankDetails;
+        newCurrencyBalance = Math.max(0, currencyBalance - amountLocal);
+
+        const txUpdate = {
+          [`balances.${currency}`]: FieldValue.increment(-amountLocal),
+          totalWithdrawn:           FieldValue.increment(amountLocal),
+          updatedAt:                new Date(),
+        };
+        if (currency === 'USD') {
+          txUpdate.availableBalance = Math.max(0, Number(freshData.availableBalance || 0) - amountLocal);
+        }
+        if (saveDetails) {
+          txUpdate.bankDetails = bankDetails;
+        }
+        tx.update(userRef, txUpdate);
+      });
+    } catch (txErr) {
+      await payoutRef.update({ status: 'failed', errorMsg: txErr.message, updatedAt: new Date() });
+      const sc = txErr.statusCode || 500;
+      return { statusCode: sc, body: JSON.stringify({ error: txErr.message }) };
     }
-
-    await userRef.update(userUpdate);
 
     /* ────────────────────────────────────────
        STEP 5 — Send withdrawal confirmation notification
     ──────────────────────────────────────── */
     try {
       const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+      const formattedAmount = formatCurrency(amountLocal, currency);
+
       await fetch(`${platformUrl}/.netlify/functions/send-smart-notification`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -382,18 +500,19 @@ exports.handler = async function (event) {
           to:         userData.email || null,
           title:      'Bank Withdrawal Initiated',
           body:       method === 'paystack'
-            ? `Your withdrawal of ${usd(amtUsd)} has been sent to your bank account.`
-            : `Your withdrawal of ${usd(amtUsd)} has been received and is being processed by our team.`,
+            ? `Your withdrawal of ${formattedAmount} has been sent to your bank account.`
+            : `Your withdrawal of ${formattedAmount} has been received and is being processed by our team.`,
           url:        `${platformUrl}/dashboard-withdraw.html`,
           templateId: 'bank-withdrawal-initiated',
           emailMode:  'always',
           data: {
             name:          userData.name || 'Freelancer',
-            amount:        usd(amtUsd),
+            amount:        formattedAmount,
+            currency,
             bankName:      bankDetails.bankName,
             accountNumber: maskAccount(bankDetails.accountNumber),
             payoutId,
-            newBalance:    usd(newBalance),
+            newBalance:    formatCurrency(newCurrencyBalance, currency),
             date:          new Date().toLocaleDateString('en-US', {
               weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
             }),
@@ -416,12 +535,13 @@ exports.handler = async function (event) {
         'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
-        success:    true,
+        success:            true,
         payoutId,
-        status:     payoutStatus,
+        status:             payoutStatus,
         method,
-        newBalance,
-        message:    resultMessage,
+        currency,
+        newCurrencyBalance,
+        message:            resultMessage,
       }),
     };
 

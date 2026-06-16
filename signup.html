@@ -554,9 +554,11 @@
           // Non-fatal — user can request resend from email-confirm page
         }
 
-        /* Redirect to email confirmation page */
+        /* Redirect to email confirmation page — thread ?next param if present */
+        var _nextParam = new URLSearchParams(window.location.search).get('next');
         window.location.href = 'email-confirm.html?uid=' + encodeURIComponent(uid)
-          + '&email=' + encodeURIComponent(email);
+          + '&email=' + encodeURIComponent(email)
+          + (_nextParam ? '&next=' + encodeURIComponent(_nextParam) : '');
 
       } catch (err) {
         setLoading(false);

@@ -1,11 +1,12 @@
 // netlify/functions/generate-contract-pdf.js
 //
 // Generates a styled Kreddlo Service Agreement PDF with embedded
-// signature images, uploads to Firebase Storage, and returns the
-// public download URL.
+// signature images and returns the raw PDF bytes.
+// Firebase Storage is NOT used here — upload is handled by sign-contract.js
+// via Cloudinary when both parties have signed.
 //
 // POST body:
-//   projectId            string   — Firestore project doc ID
+//   projectId            string   — Firestore project doc ID (used for naming only)
 //   projectTitle         string
 //   serviceDescription   string
 //   budget               number   — service amount in USD
@@ -21,15 +22,12 @@
 //   buyerSignedAt        string   — ISO datetime
 //   buyerIp              string
 //   agreementDate        string   — human-readable e.g. "June 5, 2025"
-//   preview              bool     — if true, return raw PDF binary (no upload)
-//   uploadToStorage      bool     — if true, upload and return { url }
+//   preview              bool     — if true (default), return raw PDF binary
 //
 // Returns:
-//   preview=true  → application/pdf binary
-//   otherwise     → { url: "https://..." }
+//   application/pdf binary (always)
 
 const { PDFDocument, rgb, StandardFonts, degrees } = require('pdf-lib');
-const admin = require('firebase-admin');
 
 // ── Colour helpers (pdf-lib uses 0-1 RGB) ────────────────────────
 const NAVY  = rgb(0.051, 0.129, 0.271);   // #0d2145
@@ -42,17 +40,6 @@ const GREEN_BORDER = rgb(0.784, 0.902, 0.831); // #c8e6d4
 const SLATE_BG  = rgb(0.957, 0.961, 0.973); // #f4f6f9
 const SLATE_BORDER = rgb(0.867, 0.890, 0.933); // #dde3ee
 const LINE_COLOR   = rgb(0.886, 0.910, 0.941); // #e2e8f0
-
-// ── Firebase Admin init (lazy, singleton) ────────────────────────
-function getAdmin() {
-  if (admin.apps.length) return admin;
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: serviceAccount.project_id + '.appspot.com',
-  });
-  return admin;
-}
 
 // ── Helpers ──────────────────────────────────────────────────────
 function fmtMoney(n) {
@@ -161,8 +148,7 @@ exports.handler = async (event) => {
     buyerSignedAt        = '',
     buyerIp              = '',
     agreementDate        = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-    preview              = false,
-    uploadToStorage      = false,
+    preview              = true,  // always returns raw PDF now
   } = body;
 
   try {
@@ -463,48 +449,13 @@ exports.handler = async (event) => {
     // ── Serialise ────────────────────────────────────────────────
     const pdfBytes = await pdfDoc.save();
 
-    // ── Preview mode: return raw PDF ─────────────────────────────
-    if (preview) {
-      return {
-        statusCode: 200,
-        headers: {
-          'Content-Type':        'application/pdf',
-          'Content-Disposition': `attachment; filename="kreddlo-service-agreement.pdf"`,
-          'Content-Length':      pdfBytes.length.toString(),
-        },
-        body:            Buffer.from(pdfBytes).toString('base64'),
-        isBase64Encoded: true,
-      };
-    }
-
-    // ── Upload to Firebase Storage ────────────────────────────────
-    if (uploadToStorage) {
-      const app     = getAdmin();
-      const bucket  = app.storage().bucket();
-      const fileName = `contracts/${projectId || Date.now()}/kreddlo-service-agreement.pdf`;
-      const file    = bucket.file(fileName);
-
-      await file.save(Buffer.from(pdfBytes), {
-        metadata: { contentType: 'application/pdf' },
-      });
-
-      await file.makePublic();
-
-      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: publicUrl }),
-      };
-    }
-
-    // ── Fallback: return raw PDF ──────────────────────────────────
+    // Always return the raw PDF binary
     return {
       statusCode: 200,
       headers: {
         'Content-Type':        'application/pdf',
         'Content-Disposition': `attachment; filename="kreddlo-service-agreement.pdf"`,
+        'Content-Length':      pdfBytes.length.toString(),
       },
       body:            Buffer.from(pdfBytes).toString('base64'),
       isBase64Encoded: true,

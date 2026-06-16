@@ -32,6 +32,7 @@
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
+const { verifyCaller }                 = require('./_verify-auth');
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -85,6 +86,12 @@ exports.handler = async (event) => {
 
   if (event.httpMethod !== 'POST') {
     return respond(405, { error: 'Method not allowed.' });
+  }
+
+  /* ── Verify caller identity ── */
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return respond(401, { error: 'Unauthorized. Please log in again.' });
   }
 
   let body;

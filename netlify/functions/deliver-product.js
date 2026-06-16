@@ -16,6 +16,7 @@
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
+const { verifyCaller }                 = require('./_verify-auth');
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -72,6 +73,15 @@ exports.handler = async (event) => {
 
   if (event.httpMethod !== 'POST') {
     return respond(405, { error: 'Method not allowed.' });
+  }
+
+  /* ── Verify caller identity (skip if called internally via webhook) ── */
+  const authHeader = event.headers['authorization'] || event.headers['Authorization'] || '';
+  if (authHeader) {
+    const callerUid = await verifyCaller(event);
+    if (!callerUid) {
+      return respond(401, { error: 'Unauthorized. Please log in again.' });
+    }
   }
 
   let body;
@@ -179,11 +189,17 @@ exports.handler = async (event) => {
       salesCount: FieldValue.increment(1),
     });
 
-    /* ── Credit seller balance ── */
+    /* ── Credit seller balance (per-currency map) ── */
+    const sellerAmount  = (typeof body.sellerAmount === 'number' && body.sellerAmount > 0)
+      ? body.sellerAmount
+      : (order.sellerAmount || 0);
+    const orderCurrency = (order.currency || 'USD').toUpperCase();
+    const amountFormatted = new Intl.NumberFormat('en', { style: 'currency', currency: orderCurrency }).format(sellerAmount);
     await db.collection('users').doc(order.sellerUid).update({
-      totalSales:       FieldValue.increment(1),
-      availableBalance: FieldValue.increment(order.sellerAmount),
-      totalEarned:      FieldValue.increment(order.sellerAmount),
+      totalSales:                            FieldValue.increment(1),
+      [`balances.${orderCurrency}`]:         FieldValue.increment(sellerAmount),
+      availableBalance:                      FieldValue.increment(sellerAmount),
+      totalEarned:                           FieldValue.increment(sellerAmount),
     });
 
     /* ── Schedule review-request email (48 hours = 2880 minutes) ── */
@@ -208,7 +224,7 @@ exports.handler = async (event) => {
     await callFunction('send-smart-notification', {
       userUid:    order.sellerUid,
       title:      'You made a sale!',
-      body:       `${order.buyerName} purchased "${product.title}" for $${order.sellerAmount} USD.`,
+      body:       `${order.buyerName} purchased "${product.title}" for ${amountFormatted}.`,
       url:        `${platformUrl}/dashboard.html`,
       templateId: 'product-sale',
       emailMode:  'always',

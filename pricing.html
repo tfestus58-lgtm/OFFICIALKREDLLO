@@ -225,7 +225,7 @@
   <script type="module">
     import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getAuth }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getStorage }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
     const firebaseConfig = {
       apiKey:"AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk", authDomain:"kreddlo.firebaseapp.com",
@@ -235,6 +235,8 @@
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app); window.auth = getAuth(app); window.storage = getStorage(app);
     window._fsPlatformConfig = { doc, getDoc };
+    // Keep currentUser fresh so handleProUpgrade() can check auth state
+    onAuthStateChanged(window.auth, () => {});
     window.dispatchEvent(new Event('kreddlo-firebase-ready'));
 
     // Load social links from Firestore config
@@ -399,7 +401,7 @@
             </div>
           </div>
 
-          <a href="signup.html" class="btn-green text-center mt-auto">Start Pro Plan</a>
+          <button onclick="handleProUpgrade('monthly')" class="btn-green text-center mt-auto" style="width:100%;border:none;cursor:pointer;font-family:inherit;">Start Pro Plan</button>
         </div>
 
         <!-- Boost Add-On -->
@@ -960,6 +962,171 @@
   </script>
 
 <div id="footer-placeholder"></div>
+
+<!-- ── Pro Upgrade Modal ── -->
+<div id="pro-upgrade-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(9,24,48,0.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 24px 80px rgba(9,24,48,0.22);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <p style="font-size:18px;font-weight:800;color:#0d2145;margin:0;">Upgrade to Pro</p>
+        <p id="pro-modal-period-label" style="font-size:13px;color:rgba(13,33,69,0.5);margin:2px 0 0;"></p>
+      </div>
+      <button onclick="closeProModal()" style="width:32px;height:32px;border-radius:8px;background:rgba(13,33,69,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="14" height="14" fill="none" stroke="#0d2145" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Billing period toggle -->
+    <div style="display:flex;background:rgba(13,33,69,0.05);border-radius:12px;padding:4px;margin-bottom:20px;">
+      <button id="pro-period-monthly" onclick="setProPeriod('monthly')"
+        style="flex:1;padding:9px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.18s;background:#2d8a5e;color:#fff;">
+        Monthly
+      </button>
+      <button id="pro-period-annual" onclick="setProPeriod('annual')"
+        style="flex:1;padding:9px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.18s;background:transparent;color:rgba(13,33,69,0.55);">
+        Annual <span style="font-size:11px;color:#2d8a5e;font-weight:700;">Save 17%</span>
+      </button>
+    </div>
+
+    <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 16px;">Choose your payment method:</p>
+
+    <!-- Gateway options -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      <button onclick="submitProUpgrade('stripe')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#635bff" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card (Stripe)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Visa, Mastercard, Amex</p></div>
+      </button>
+      <button onclick="submitProUpgrade('paystack')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00c3f7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card / Transfer (Paystack)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Best for Africa — NGN, GHS, KES</p></div>
+      </button>
+      <button onclick="submitProUpgrade('crypto')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 9h4a2 2 0 010 4H9v-4zm0 4h4.5a2 2 0 010 4H9v-4z"/></svg>
+        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Crypto (NOWPayments)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">BTC, ETH, USDT, 300+ coins</p></div>
+      </button>
+    </div>
+
+    <div id="pro-modal-error" style="display:none;font-size:13px;color:#c81e1e;background:#fde8e8;border-radius:10px;padding:10px 14px;margin-bottom:12px;"></div>
+    <div id="pro-modal-loading" style="display:none;text-align:center;padding:8px 0;font-size:13px;color:rgba(13,33,69,0.55);">Preparing checkout…</div>
+  </div>
+</div>
+
+<script>
+// ── Pro Upgrade flow ──
+var _proUpgradePeriod = 'monthly';
+
+// Auto-open the Pro modal when redirected back from signup/login with ?openUpgrade=1
+(function() {
+  if (new URLSearchParams(window.location.search).get('openUpgrade') === '1') {
+    // Wait for Firebase auth to confirm the user is logged in before opening
+    var _upgradeCheckInterval = setInterval(function() {
+      if (window.auth && window.auth.currentUser) {
+        clearInterval(_upgradeCheckInterval);
+        handleProUpgrade('monthly');
+      }
+    }, 150);
+    // Give up after 5 seconds to avoid infinite loop
+    setTimeout(function() { clearInterval(_upgradeCheckInterval); }, 5000);
+  }
+})();
+
+function _showUpgradeToast(msg) {
+  var t = document.getElementById('_upgrade-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_upgrade-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:#0d2145;color:#fff;border-radius:50px;padding:11px 22px;font-size:13px;font-weight:600;z-index:9999;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center;font-family:inherit;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  requestAnimationFrame(function() {
+    t.style.transform = 'translateX(-50%) translateY(0)';
+    t.style.opacity   = '1';
+  });
+  setTimeout(function() {
+    t.style.transform = 'translateX(-50%) translateY(60px)';
+    t.style.opacity   = '0';
+  }, 2800);
+}
+
+function handleProUpgrade(defaultPeriod) {
+  // Must be logged in
+  if (!window.auth || !window.auth.currentUser) {
+    _showUpgradeToast('Create an account to upgrade to Pro');
+    setTimeout(function() { window.location.href = '/signup.html?next=upgrade'; }, 900);
+    return;
+  }
+  _proUpgradePeriod = defaultPeriod || 'monthly';
+  setProPeriod(_proUpgradePeriod);
+  var modal = document.getElementById('pro-upgrade-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProModal() {
+  document.getElementById('pro-upgrade-modal').style.display = 'none';
+  document.getElementById('pro-modal-error').style.display = 'none';
+  document.getElementById('pro-modal-loading').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function setProPeriod(period) {
+  _proUpgradePeriod = period;
+  var mBtn = document.getElementById('pro-period-monthly');
+  var aBtn = document.getElementById('pro-period-annual');
+  var label = document.getElementById('pro-modal-period-label');
+  if (period === 'annual') {
+    aBtn.style.background = '#2d8a5e'; aBtn.style.color = '#fff';
+    mBtn.style.background = 'transparent'; mBtn.style.color = 'rgba(13,33,69,0.55)';
+    if (label) label.textContent = 'Annual plan — billed once per year';
+  } else {
+    mBtn.style.background = '#2d8a5e'; mBtn.style.color = '#fff';
+    aBtn.style.background = 'transparent'; aBtn.style.color = 'rgba(13,33,69,0.55)';
+    if (label) label.textContent = 'Monthly plan — cancel anytime';
+  }
+}
+
+async function submitProUpgrade(gateway) {
+  var user = window.auth && window.auth.currentUser;
+  if (!user) { window.location.href = '/signup.html?next=upgrade'; return; }
+
+  var errorEl   = document.getElementById('pro-modal-error');
+  var loadingEl = document.getElementById('pro-modal-loading');
+  errorEl.style.display = 'none';
+  loadingEl.style.display = 'block';
+
+  // Disable all gateway buttons during request
+  document.querySelectorAll('.pro-gateway-btn').forEach(function(b) { b.disabled = true; b.style.opacity = '0.6'; });
+
+  try {
+    var res = await fetch('/.netlify/functions/create-subscription', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        uid:           user.uid,
+        gateway:       gateway,
+        billingPeriod: _proUpgradePeriod,
+        userEmail:     user.email || '',
+      }),
+    });
+    var data = await res.json();
+    if (!res.ok || !data.checkoutUrl) {
+      throw new Error(data.error || 'Could not start checkout. Please try again.');
+    }
+    window.location.href = data.checkoutUrl;
+  } catch (err) {
+    loadingEl.style.display = 'none';
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+    document.querySelectorAll('.pro-gateway-btn').forEach(function(b) { b.disabled = false; b.style.opacity = '1'; });
+  }
+}
+
+// Close modal on backdrop click
+document.getElementById('pro-upgrade-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeProModal();
+});
+</script>
 
 <script>
 if ('serviceWorker' in navigator) {

@@ -217,6 +217,18 @@ async function handleFundedPayment(data) {
     return;
   }
 
+  /* ── Route: Pro upgrade (order_id starts with "sub_") ── */
+  if (order_id.startsWith('sub_')) {
+    const subSnap = await db.collection('subscriptions').doc(order_id).get().catch(() => null);
+    if (subSnap && subSnap.exists) {
+      const sub = subSnap.data();
+      await handleProUpgrade({ db, uid: sub.uid, billingPeriod: sub.billingPeriod, subscriptionId: order_id, gateway: 'crypto', amount: Number(outcome_amount || pay_amount || 0) });
+    } else {
+      console.error(`[pro_upgrade] Subscription doc "${order_id}" not found.`);
+    }
+    return;
+  }
+
   const projectRef = db.collection('projects').doc(order_id);
 
   /* ── Try projects collection first ── */
@@ -252,32 +264,62 @@ async function handleFundedPayment(data) {
       return;
     }
 
-    // Mark order paid
+    /*
+     * outcome_amount is the fiat equivalent NOWPayments actually received
+     * after crypto conversion. outcome_currency is the fiat currency code.
+     * Fall back to pay_amount (crypto) if outcome fields are absent.
+     */
+    const confirmedAmount   = Number(outcome_amount) || Number(actually_paid) || Number(pay_amount) || 0;
+    const confirmedCurrency = (outcome_currency || 'USD').toUpperCase();
+
+    // Fetch platform settings to calculate fees
+    let productOrderSettings;
+    try {
+      productOrderSettings = await getSettings(db);
+    } catch (err) {
+      console.warn('[nowpayments-webhook] Could not fetch settings for product order, using defaults:', err.message);
+      productOrderSettings = { platformFeePercent: 2.5 };
+    }
+
+    const productPlatformFee  = +(confirmedAmount * (productOrderSettings.platformFeePercent / 100)).toFixed(2);
+    const productSellerAmount = +(confirmedAmount - productPlatformFee).toFixed(2);
+
+    // Mark order paid and write confirmed amount + fees
     try {
       await orderRef.update({
         paymentStatus:      'paid',
         paymentMethod:      'crypto',
+        nowpaymentsId:      payment_id  || null,
+        payCurrency:        pay_currency || null,
+        payAmount:          pay_amount   || null,
+        actuallyPaid:       actually_paid || null,
+        amount:             confirmedAmount,
+        currency:           confirmedCurrency,
+        amountUsd:          confirmedCurrency === 'USD' ? confirmedAmount : null,
+        platformFee:        productPlatformFee,
+        sellerAmount:       productSellerAmount,
         paymentConfirmedAt: FieldValue.serverTimestamp(),
         updatedAt:          FieldValue.serverTimestamp(),
       });
-      console.log(`Product order ${order_id} marked as paid.`);
+      console.log(`Product order ${order_id} marked as paid. Amount: ${confirmedAmount} ${confirmedCurrency}, sellerAmount: ${productSellerAmount}`);
     } catch (err) {
       console.error(`Firestore update failed for product-order ${order_id}:`, err.message);
       return;
     }
 
     // Trigger delivery
-    await callFunction('deliver-product', { orderId: order_id });
+    await callFunction('deliver-product', { orderId: order_id, sellerAmount: productSellerAmount });
 
     // Fire Facebook pixel if product has a pixelId configured
     try {
       const productSnap = await db.collection('products').doc(order.productId).get();
-      if (productSnap.exists && productSnap.data().facebookPixelId) {
+      const fbPixelId = productSnap.exists && productSnap.data().integrations && productSnap.data().integrations.facebookPixelId;
+      if (fbPixelId) {
         await callFunction('pixel-event', {
-          pixelId:   productSnap.data().facebookPixelId,
+          pixelId:   fbPixelId,
           eventName: 'Purchase',
-          value:     order.amountUsd || 0,
-          currency:  'USD',
+          value:     confirmedAmount,
+          currency:  confirmedCurrency,
           email:     order.buyerEmail || '',
           orderId:   order_id,
         });
@@ -318,6 +360,7 @@ async function handleFundedPayment(data) {
     paymentMethod:   'crypto',
     paymentId:       payment_id,
     paymentStatus:   payment_status,
+    currency:        (outcome_currency || 'USD').toUpperCase(),
     payCurrency:     pay_currency      || null,
     payAmount:       pay_amount        || null,
     actuallyPaid:    actually_paid     || null,
@@ -380,8 +423,8 @@ async function handleFundedPayment(data) {
       name:         freelancerName,
       buyerName,
       projectTitle: project.projectTitle || 'Your project',
-      amount:       project.netAmount || outcome_amount || pay_amount
-                      ? `$${Number(project.netAmount || outcome_amount || pay_amount).toFixed(2)}`
+      amount:       (outcome_amount || pay_amount)
+                      ? new Intl.NumberFormat('en', { style: 'currency', currency: (outcome_currency || 'USD').toUpperCase() }).format(Number(outcome_amount || pay_amount))
                       : 'the agreed amount',
       dashboardUrl: projectUrl,
     },
@@ -391,7 +434,8 @@ async function handleFundedPayment(data) {
 
 /* ══════════════════════════════════════════════════════════════
    HANDLE FAILED / EXPIRED / REFUNDED PAYMENT
-   Marks the project payment status so the buyer can retry.
+   Marks the project or product-order payment status so the buyer
+   can retry. Checks product-orders first, then falls back to projects.
 ══════════════════════════════════════════════════════════════ */
 async function handleFailedPayment({ order_id, payment_id, payment_status }) {
   if (!order_id) return;
@@ -404,7 +448,29 @@ async function handleFailedPayment({ order_id, payment_id, payment_status }) {
     return;
   }
 
+  /* ── Check product-orders first ── */
   try {
+    const orderSnap = await db.collection('product-orders').doc(order_id).get();
+    if (orderSnap.exists) {
+      await db.collection('product-orders').doc(order_id).update({
+        paymentStatus: payment_status,
+        nowpaymentsId: payment_id || null,
+        updatedAt:     FieldValue.serverTimestamp(),
+      });
+      console.log(`Product order ${order_id} payment marked as ${payment_status}.`);
+      return;
+    }
+  } catch (err) {
+    console.error(`Firestore read/update failed for product-order ${order_id}:`, err.message);
+  }
+
+  /* ── Fall back to projects ── */
+  try {
+    const projectSnap = await db.collection('projects').doc(order_id).get();
+    if (!projectSnap.exists) {
+      console.warn(`handleFailedPayment: order_id "${order_id}" not found in product-orders or projects — skipping.`);
+      return;
+    }
     await db.collection('projects').doc(order_id).update({
       paymentStatus: payment_status,
       paymentId:     payment_id || null,
@@ -439,6 +505,55 @@ async function callFunction(name, payload) {
   }
 }
 
+
+/* ── Pro Upgrade handler ── */
+async function handleProUpgrade({ db, uid, billingPeriod, subscriptionId, gateway, amount }) {
+  if (!uid) {
+    console.error('[pro_upgrade] Missing uid — cannot activate Pro.');
+    return;
+  }
+  const now       = new Date();
+  const daysToAdd = billingPeriod === 'annual' ? 365 : 30;
+  const endDate   = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  try {
+    await db.collection('users').doc(uid).update({
+      plan:             'pro',
+      premiumStatus:    'active',
+      premiumStartDate: now,
+      premiumEndDate:   endDate,
+      updatedAt:        require('firebase-admin/firestore').FieldValue.serverTimestamp(),
+    });
+    if (subscriptionId) {
+      await db.collection('subscriptions').doc(subscriptionId).update({
+        status:         'active',
+        activatedAt:    now,
+        premiumEndDate: endDate,
+      }).catch(() => {});
+    }
+    console.log(`[pro_upgrade] uid: ${uid} activated Pro via ${gateway} — expires ${endDate.toISOString()}`);
+    const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+    if (platformUrl) {
+      const userSnap = await db.collection('users').doc(uid).get().catch(() => null);
+      const userData = userSnap?.exists ? userSnap.data() : {};
+      const toEmail  = userData.email || null;
+      const name     = userData.displayName || userData.name || 'Freelancer';
+      if (toEmail) {
+        await fetch(`${platformUrl}/.netlify/functions/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: toEmail, type: 'premium-activated',
+            data: { name, plan: 'Pro', billingPeriod: billingPeriod === 'annual' ? 'Annual' : 'Monthly',
+              endDate: endDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
+              dashboardUrl: `${platformUrl}/dashboard.html` },
+          }),
+        }).catch(e => console.warn('[pro_upgrade] send-email failed:', e.message));
+      }
+    }
+  } catch (err) {
+    console.error('[pro_upgrade] Firestore update failed:', err.message);
+  }
+}
 
 /* ── Utility: build a Netlify function response ── */
 function respond(statusCode, body) {

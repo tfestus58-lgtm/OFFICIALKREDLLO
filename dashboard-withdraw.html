@@ -666,7 +666,7 @@ header > div:last-child {
           <!-- Country -->
           <div style="margin-bottom:20px;">
             <label for="input-bank-country" class="lbl" style="display:block;margin-bottom:8px;">Country</label>
-            <select id="input-bank-country" class="inp" style="appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer;">
+            <select id="input-bank-country" onchange="calcBankFees()" class="inp" style="appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer;">
               <option value="">Select country</option>
               <option>Afghanistan</option><option>Albania</option><option>Algeria</option><option>Andorra</option><option>Angola</option><option>Antigua and Barbuda</option><option>Argentina</option><option>Armenia</option><option>Australia</option><option>Austria</option><option>Azerbaijan</option><option>Bahamas</option><option>Bahrain</option><option>Bangladesh</option><option>Barbados</option><option>Belarus</option><option>Belgium</option><option>Belize</option><option>Benin</option><option>Bhutan</option><option>Bolivia</option><option>Bosnia and Herzegovina</option><option>Botswana</option><option>Brazil</option><option>Brunei</option><option>Bulgaria</option><option>Burkina Faso</option><option>Burundi</option><option>Cabo Verde</option><option>Cambodia</option><option>Cameroon</option><option>Canada</option><option>Central African Republic</option><option>Chad</option><option>Chile</option><option>China</option><option>Colombia</option><option>Comoros</option><option>Congo</option><option>Costa Rica</option><option>Croatia</option><option>Cuba</option><option>Cyprus</option><option>Czech Republic</option><option>Denmark</option><option>Djibouti</option><option>Dominica</option><option>Dominican Republic</option><option>Ecuador</option><option>Egypt</option><option>El Salvador</option><option>Equatorial Guinea</option><option>Eritrea</option><option>Estonia</option><option>Eswatini</option><option>Ethiopia</option><option>Fiji</option><option>Finland</option><option>France</option><option>Gabon</option><option>Gambia</option><option>Georgia</option><option>Germany</option><option>Ghana</option><option>Greece</option><option>Grenada</option><option>Guatemala</option><option>Guinea</option><option>Guinea-Bissau</option><option>Guyana</option><option>Haiti</option><option>Honduras</option><option>Hungary</option><option>Iceland</option><option>India</option><option>Indonesia</option><option>Iran</option><option>Iraq</option><option>Ireland</option><option>Israel</option><option>Italy</option><option>Jamaica</option><option>Japan</option><option>Jordan</option><option>Kazakhstan</option><option>Kenya</option><option>Kiribati</option><option>Kuwait</option><option>Kyrgyzstan</option><option>Laos</option><option>Latvia</option><option>Lebanon</option><option>Lesotho</option><option>Liberia</option><option>Libya</option><option>Liechtenstein</option><option>Lithuania</option><option>Luxembourg</option><option>Madagascar</option><option>Malawi</option><option>Malaysia</option><option>Maldives</option><option>Mali</option><option>Malta</option><option>Marshall Islands</option><option>Mauritania</option><option>Mauritius</option><option>Mexico</option><option>Micronesia</option><option>Moldova</option><option>Monaco</option><option>Mongolia</option><option>Montenegro</option><option>Morocco</option><option>Mozambique</option><option>Myanmar</option><option>Namibia</option><option>Nauru</option><option>Nepal</option><option>Netherlands</option><option>New Zealand</option><option>Nicaragua</option><option>Niger</option><option>Nigeria</option><option>North Korea</option><option>North Macedonia</option><option>Norway</option><option>Oman</option><option>Pakistan</option><option>Palau</option><option>Palestine</option><option>Panama</option><option>Papua New Guinea</option><option>Paraguay</option><option>Peru</option><option>Philippines</option><option>Poland</option><option>Portugal</option><option>Qatar</option><option>Romania</option><option>Russia</option><option>Rwanda</option><option>Saint Kitts and Nevis</option><option>Saint Lucia</option><option>Saint Vincent and the Grenadines</option><option>Samoa</option><option>San Marino</option><option>Sao Tome and Principe</option><option>Saudi Arabia</option><option>Senegal</option><option>Serbia</option><option>Seychelles</option><option>Sierra Leone</option><option>Singapore</option><option>Slovakia</option><option>Slovenia</option><option>Solomon Islands</option><option>Somalia</option><option>South Africa</option><option>South Korea</option><option>South Sudan</option><option>Spain</option><option>Sri Lanka</option><option>Sudan</option><option>Suriname</option><option>Sweden</option><option>Switzerland</option><option>Syria</option><option>Taiwan</option><option>Tajikistan</option><option>Tanzania</option><option>Thailand</option><option>Timor-Leste</option><option>Togo</option><option>Tonga</option><option>Trinidad and Tobago</option><option>Tunisia</option><option>Turkey</option><option>Turkmenistan</option><option>Tuvalu</option><option>Uganda</option><option>Ukraine</option><option>United Arab Emirates</option><option>United Kingdom</option><option>United States</option><option>Uruguay</option><option>Uzbekistan</option><option>Vanuatu</option><option>Vatican City</option><option>Venezuela</option><option>Vietnam</option><option>Yemen</option><option>Zambia</option><option>Zimbabwe</option>
             </select>
@@ -689,6 +689,12 @@ header > div:last-child {
             <div class="fee-row" style="padding-top:4px;">
               <span style="font-size:14px;font-weight:700;color:#0d2145;">You will receive</span>
               <span id="bank-fee-final" style="font-size:16px;font-weight:800;color:#2d8a5e;">-</span>
+            </div>
+            <div id="bank-local-equiv" style="display:none;margin-top:8px;padding:8px 10px;background:rgba(45,138,94,0.08);border-radius:8px;">
+              <span style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.55);">≈ Local equivalent</span>
+              <span id="bank-local-equiv-amount" style="float:right;font-size:13px;font-weight:700;color:#0d2145;">-</span>
+              <div style="clear:both;"></div>
+              <div id="bank-local-rate-note" style="font-size:11px;color:rgba(13,33,69,0.4);margin-top:3px;"></div>
             </div>
           </div>
 
@@ -828,6 +834,57 @@ let rateCountdown     = 60;
 let lockedRate        = null;
 let activeBalanceType = 'crypto';
 let fiatEnabled       = false;
+
+// ======= BANK LOCAL CURRENCY CONVERSION =======
+let bankExchangeRates = {};   // { NGN: 1580.5, GHS: 15.2, ... } keyed by ISO code vs USD
+let bankExchangeRateFetched = false;
+
+// Maps bank country names (matching select options) to ISO 4217 currency codes
+const COUNTRY_CURRENCY_MAP = {
+  'Nigeria': 'NGN', 'Ghana': 'GHS', 'Kenya': 'KES', 'South Africa': 'ZAR',
+  'Tanzania': 'TZS', 'Uganda': 'UGX', 'Rwanda': 'RWF', 'Ethiopia': 'ETB',
+  'Senegal': 'XOF', 'Ivory Coast': 'XOF', "Côte d'Ivoire": 'XOF',
+  'Cameroon': 'XAF', 'Egypt': 'EGP', 'Morocco': 'MAD', 'Tunisia': 'TND',
+  'United Kingdom': 'GBP', 'Germany': 'EUR', 'France': 'EUR', 'Italy': 'EUR',
+  'Spain': 'EUR', 'Portugal': 'EUR', 'Netherlands': 'EUR', 'Belgium': 'EUR',
+  'Austria': 'EUR', 'Greece': 'EUR', 'Finland': 'EUR', 'Ireland': 'EUR',
+  'India': 'INR', 'Pakistan': 'PKR', 'Bangladesh': 'BDT', 'Philippines': 'PHP',
+  'Indonesia': 'IDR', 'Malaysia': 'MYR', 'Thailand': 'THB', 'Vietnam': 'VND',
+  'Brazil': 'BRL', 'Mexico': 'MXN', 'Colombia': 'COP', 'Argentina': 'ARS',
+  'Canada': 'CAD', 'Australia': 'AUD', 'New Zealand': 'NZD', 'Japan': 'JPY',
+  'South Korea': 'KRW', 'China': 'CNY', 'Singapore': 'SGD', 'Hong Kong': 'HKD',
+  'United Arab Emirates': 'AED', 'Saudi Arabia': 'SAR', 'Poland': 'PLN',
+  'Czech Republic': 'CZK', 'Hungary': 'HUF', 'Romania': 'RON', 'Turkey': 'TRY',
+  'Ukraine': 'UAH', 'Sweden': 'SEK', 'Norway': 'NOK', 'Denmark': 'DKK',
+  'Switzerland': 'CHF', 'Israel': 'ILS', 'Jordan': 'JOD', 'Qatar': 'QAR',
+  'Kuwait': 'KWD', 'Bahrain': 'BHD', 'Oman': 'OMR', 'Sri Lanka': 'LKR',
+  'Nepal': 'NPR', 'Myanmar': 'MMK', 'Cambodia': 'KHR', 'Zimbabwe': 'ZWL',
+  'Zambia': 'ZMW', 'Mozambique': 'MZN', 'Angola': 'AOA', 'Botswana': 'BWP',
+  'Namibia': 'NAD', 'Malawi': 'MWK', 'Liberia': 'LRD', 'Sierra Leone': 'SLL',
+  'Mauritius': 'MUR', 'Seychelles': 'SCR', 'Chile': 'CLP', 'Peru': 'PEN',
+  'Venezuela': 'VES', 'Guatemala': 'GTQ', 'Costa Rica': 'CRC', 'Panama': 'PAB',
+  'Dominican Republic': 'DOP', 'Jamaica': 'JMD', 'Trinidad and Tobago': 'TTD',
+  'Russia': 'RUB', 'Kazakhstan': 'KZT', 'Uzbekistan': 'UZS', 'Georgia': 'GEL',
+  'Azerbaijan': 'AZN', 'Armenia': 'AMD', 'Moldova': 'MDL', 'Serbia': 'RSD',
+  'Croatia': 'HRK', 'Bulgaria': 'BGN', 'Albania': 'ALL', 'North Macedonia': 'MKD',
+  'Bosnia and Herzegovina': 'BAM', 'Iceland': 'ISK', 'Taiwan': 'TWD',
+  'Mongolia': 'MNT', 'Bolivia': 'BOB', 'Paraguay': 'PYG', 'Uruguay': 'UYU',
+  'Ecuador': 'USD', 'El Salvador': 'USD'
+};
+
+async function fetchBankExchangeRate() {
+  if (bankExchangeRateFetched) return;
+  try {
+    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    if (!res.ok) return;
+    const data = await res.json();
+    bankExchangeRates = data.rates || {};
+    bankExchangeRateFetched = true;
+    calcBankFees(); // refresh display once rates arrive
+  } catch(e) {
+    console.warn('[withdraw] exchange rate fetch failed:', e);
+  }
+}
 
 // ======= BALANCE DISPLAY =======
 function fmt(n){ return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -975,6 +1032,7 @@ function activateBalanceCard(type) {
     if (formCrypto) formCrypto.style.display = 'none';
     if (formBank)   formBank.style.display   = 'block';
     if (label) label.textContent = 'Withdraw Fiat Balance';
+    fetchBankExchangeRate(); // fetch live rates for local currency display
   }
 }
 
@@ -986,6 +1044,35 @@ function calcBankFees() {
   const cur     = selectedWithdrawalCurrency || 'USD';
   document.getElementById('bank-fee-platform').textContent = amt > 0 ? '-' + fmtCurrency(platFee, cur) : '-';
   document.getElementById('bank-fee-final').textContent    = (amt > 0 && after > 0) ? fmtCurrency(after, cur) : '-';
+
+  // ---- Local currency equivalent ----
+  const localEl     = document.getElementById('bank-local-equiv');
+  const localAmt    = document.getElementById('bank-local-equiv-amount');
+  const localNote   = document.getElementById('bank-local-rate-note');
+
+  // Only show if the withdrawal currency is USD and we can convert to a different local currency
+  // We derive the "local currency" from the user's bank country selection
+  const countrySelect = document.getElementById('input-bank-country');
+  const bankCountry   = countrySelect ? countrySelect.value : '';
+  const localCur      = COUNTRY_CURRENCY_MAP[bankCountry] || null;
+
+  if (localEl && localCur && localCur !== cur && amt > 0 && after > 0) {
+    const rate = bankExchangeRates[localCur];
+    if (rate) {
+      // Convert the USD "after" amount to the local currency
+      const localAmount = after * rate;
+      const formatted   = fmtCurrency(localAmount, localCur);
+      localAmt.textContent  = formatted;
+      localNote.textContent = '1 ' + cur + ' ≈ ' + rate.toLocaleString('en', {maximumFractionDigits: 2}) + ' ' + localCur + ' (live rate)';
+      localEl.style.display = 'block';
+    } else if (bankExchangeRateFetched) {
+      localEl.style.display = 'none'; // rate not available for this currency
+    } else {
+      localEl.style.display = 'none'; // still loading
+    }
+  } else {
+    if (localEl) localEl.style.display = 'none';
+  }
 }
 
 // ======= BANK WITHDRAW (real Netlify Function) =======
@@ -1538,9 +1625,11 @@ window._boot = async function(user) {
       if (walletInput && liveWalletAddress) walletInput.value = liveWalletAddress;
 
       // Early payout — pro/premium only
-      var isPro = d.plan === 'pro' || d.premiumStatus === 'active';
+      var isPro = (d.plan === 'pro' || d.premiumStatus === 'active') && d.planStatus === 'active';
       var epSection = document.getElementById('early-payout-section');
       if (epSection && !isPro) epSection.style.display = 'none';
+      // Store isPro for use in fee config block below
+      window._withdrawIsPro = isPro;
     }
   } catch(e) {
     console.error('[withdraw] Firestore load failed:', e.message);
@@ -1562,9 +1651,15 @@ window._boot = async function(user) {
       if (typeof cfg.earlyPayoutFeePercent === 'number') EARLY_PAYOUT_FEE_PCT = cfg.earlyPayoutFeePercent;
       if (typeof cfg.holdingPeriodDays     === 'number') HOLDING_DAYS         = cfg.holdingPeriodDays;
       if (typeof cfg.minWithdrawalUsd      === 'number') { MIN_WITHDRAWAL = cfg.minWithdrawalUsd; MIN_BANK_WITHDRAWAL = cfg.minWithdrawalUsd; }
+      // Apply Pro reduced withdrawal fee if user is on an active Pro plan
+      if (window._withdrawIsPro && typeof cfg.withdrawalFeePercentPro === 'number') {
+        PLATFORM_FEE_PCT = cfg.withdrawalFeePercentPro;
+      }
       // Update fee labels in UI
       document.querySelectorAll('.platform-fee-label').forEach(function(el) {
-        el.textContent = 'Platform fee (' + PLATFORM_FEE_PCT + '%)';
+        el.textContent = window._withdrawIsPro && typeof cfg.withdrawalFeePercentPro === 'number'
+          ? 'Platform fee (' + PLATFORM_FEE_PCT + '%) — Pro rate'
+          : 'Platform fee (' + PLATFORM_FEE_PCT + '%)';
       });
     }
   } catch(e) {

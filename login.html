@@ -437,16 +437,19 @@
 
     /* ── Role-based redirect ── */
     function redirect(userData) {
+      // Honour ?next=upgrade — send freelancers straight to the Pro upgrade modal
+      var _nextParam = new URLSearchParams(window.location.search).get('next');
       if (userData.role === 'admin') {
         window.location.href = 'admin.html';
       } else if (userData.role === 'buyer') {
         window.location.href = 'buyer-dashboard.html';
       } else if (userData.kycStatus === 'pending') {
-        // Not yet submitted — send to verify
-        window.location.href = 'verify.html';
+        // Not yet submitted — send to verify (keep ?next so it survives KYC)
+        window.location.href = 'verify.html' + (_nextParam ? '?next=' + encodeURIComponent(_nextParam) : '');
       } else {
         // verified, under-review, declined — dashboard handles all these states
-        window.location.href = 'dashboard.html';
+        var target = (_nextParam === 'upgrade') ? 'pricing.html?openUpgrade=1' : 'dashboard.html';
+        window.location.href = target;
       }
     }
 
@@ -494,7 +497,31 @@
           return;
         }
 
-        redirect(snap.data());
+        const userData = snap.data();
+
+        /* ── 2FA gate ── */
+        if (userData.twoFactorEnabled === true) {
+          setLoading(false);
+          // Generate and send code
+          window._2fa_uid      = uid;
+          window._2fa_userData = userData;
+          window._2fa_code     = String(Math.floor(100000 + Math.random() * 900000));
+          try {
+            await fetch('/.netlify/functions/send-email', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                to:   email,
+                type: 'email-verification',
+                data: { name: userData.name || 'there', code: window._2fa_code }
+              })
+            });
+          } catch(e) { /* non-fatal — user will see the modal and can resend */ }
+          show2faModal(email);
+          return;
+        }
+
+        redirect(userData);
 
       } catch (err) {
         setLoading(false);
@@ -595,6 +622,85 @@ if ('serviceWorker' in navigator) {
       console.warn('Service worker registration failed:', err);
     });
   });
+}
+</script>
+
+<!-- ══ 2FA MODAL ══ -->
+<div id="login-2fa-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(9,24,48,0.60);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(13,33,69,0.18);">
+    <div style="font-size:22px;font-weight:800;color:#0d2145;margin-bottom:6px;">Check your email</div>
+    <p id="login-2fa-desc" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 20px;line-height:1.5;"></p>
+    <input id="login-2fa-input" type="text" inputmode="numeric" maxlength="6" placeholder="000000"
+      style="width:100%;box-sizing:border-box;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 14px;font-size:22px;font-weight:700;letter-spacing:8px;color:#0d2145;text-align:center;font-family:inherit;outline:none;margin-bottom:8px;"
+      oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      onfocus="this.style.borderColor='#2d8a5e'" onblur="this.style.borderColor='#e2e8f0'">
+    <p id="login-2fa-error" style="font-size:12px;font-weight:600;color:#c81e1e;margin:0 0 14px;display:none;"></p>
+    <button id="login-2fa-btn" onclick="confirm2faLogin()"
+      style="width:100%;padding:13px;background:#0d2145;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;margin-bottom:12px;">
+      Verify & Sign In
+    </button>
+    <p style="font-size:12px;font-weight:600;color:#2d8a5e;margin:0;text-align:center;cursor:pointer;" onclick="resend2faCode()">Resend code</p>
+  </div>
+</div>
+
+<script>
+function show2faModal(email) {
+  var modal = document.getElementById('login-2fa-modal');
+  var desc  = document.getElementById('login-2fa-desc');
+  var inp   = document.getElementById('login-2fa-input');
+  var err   = document.getElementById('login-2fa-error');
+  if (desc) desc.textContent = 'We sent a 6-digit code to ' + email + '. Enter it below to complete sign in.';
+  if (inp)  inp.value = '';
+  if (err)  { err.style.display = 'none'; err.textContent = ''; }
+  if (modal) modal.style.display = 'flex';
+}
+
+async function confirm2faLogin() {
+  var inp = document.getElementById('login-2fa-input');
+  var err = document.getElementById('login-2fa-error');
+  var btn = document.getElementById('login-2fa-btn');
+  var code = inp ? inp.value.trim() : '';
+
+  if (code.length !== 6) {
+    if (err) { err.textContent = 'Please enter the full 6-digit code.'; err.style.display = 'block'; }
+    return;
+  }
+  if (code !== window._2fa_code) {
+    if (err) { err.textContent = 'Incorrect code. Please try again.'; err.style.display = 'block'; }
+    if (inp) { inp.value = ''; inp.focus(); }
+    return;
+  }
+
+  // Code correct — proceed with redirect
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  if (err) err.style.display = 'none';
+
+  // Close modal then redirect
+  var modal = document.getElementById('login-2fa-modal');
+  if (modal) modal.style.display = 'none';
+
+  redirect(window._2fa_userData);
+}
+
+async function resend2faCode() {
+  if (!window._2fa_userData) return;
+  window._2fa_code = String(Math.floor(100000 + Math.random() * 900000));
+  var email = window._2fa_userData.email || '';
+  var name  = window._2fa_userData.name  || 'there';
+  try {
+    await fetch('/.netlify/functions/send-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: email, type: 'email-verification', data: { name, code: window._2fa_code } })
+    });
+    var err = document.getElementById('login-2fa-error');
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+    var inp = document.getElementById('login-2fa-input');
+    if (inp) inp.value = '';
+    alert('New code sent to ' + email);
+  } catch(e) {
+    alert('Could not resend. Check your connection.');
+  }
 }
 </script>
 </body>
