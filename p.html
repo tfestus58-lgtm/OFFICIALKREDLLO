@@ -21,6 +21,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
 <!-- Firebase -->
@@ -276,9 +279,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
         <input class="input-field" id="buyer-name" type="text" placeholder="Full Name" autocomplete="name" required/>
         <input class="input-field" id="buyer-email" type="email" placeholder="Email Address" autocomplete="email" required/>
 
-        <button class="btn-buy" id="btn-buy" onclick="handleBuyNow()">
+        <button class="btn-buy" id="btn-buy" onclick="handleBuyNow()" style="display:none;">
           <span class="btn-buy-spinner" id="buy-spinner"></span>
-          <span id="btn-card-text">Pay with Card / Bank</span>
+          <span id="btn-card-text">Pay Now</span>
         </button>
 
         <button class="btn-buy btn-buy-crypto" id="btn-crypto" onclick="handleCryptoBuy()" style="display:none;">
@@ -439,7 +442,7 @@ async function renderProduct(p) {
   // ── Cover image ──
   const coverWrap = document.getElementById('cover-wrap');
   if (p.coverImage) {
-    coverWrap.innerHTML = `<img class="cover-img" src="${p.coverImage}" alt="${escHtml(p.title)}" loading="eager"/>`;
+    coverWrap.innerHTML = `<img class="cover-img" src="${p.coverImage}" alt="${escHtml(p.title)}" loading="eager" decoding="async"/>`;
   } else {
     coverWrap.innerHTML = `<div class="cover-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.2)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
   }
@@ -448,7 +451,7 @@ async function renderProduct(p) {
   const sellerRow = document.getElementById('seller-row');
   const initials = sellerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const avatarEl = p.sellerPhoto
-    ? `<img class="seller-avatar" src="${p.sellerPhoto}" alt="${escHtml(sellerName)}" loading="lazy"/>`
+    ? `<img class="seller-avatar" src="${p.sellerPhoto}" alt="${escHtml(sellerName)}" loading="lazy" decoding="async"/>`
     : `<div class="seller-avatar-init">${initials}</div>`;
   const verifiedBadge = p.kycStatus === 'verified'
     ? `<span class="badge-verified"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Verified</span>`
@@ -466,7 +469,6 @@ async function renderProduct(p) {
   const formatter = new Intl.NumberFormat('en', { style: 'currency', currency: currency });
   document.getElementById('price-amount').textContent = formatter.format(price);
   document.getElementById('price-currency').textContent = currency;
-  document.getElementById('btn-card-text').textContent = `Pay with Card / Bank — ${formatter.format(price)}`;
 
   // ── Crypto button ──
   const cryptoBtn = document.getElementById('btn-crypto');
@@ -499,6 +501,8 @@ async function renderProduct(p) {
       unavailableMsg.style.display = 'block';
     }
   } else {
+    // Update label with price before revealing button
+    document.getElementById('btn-card-text').textContent = `Pay Now — ${formatter.format(price)}`;
     cardBtn.style.display = 'flex';
     unavailableMsg.style.display = 'none';
   }
@@ -692,7 +696,7 @@ async function handleBuyNow() {
     const currency = (_product.currency || 'USD').toUpperCase();
     const price = Number(_product.cardPrice || _product.price) || 0;
     const formatter = new Intl.NumberFormat('en', { style: 'currency', currency: currency });
-    btnText.textContent = `Pay with Card / Bank — ${formatter.format(price)}`;
+    btnText.textContent = `Pay Now — ${formatter.format(price)}`;
   }
 }
 

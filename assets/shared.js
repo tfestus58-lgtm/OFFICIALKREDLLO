@@ -455,7 +455,7 @@
   /* ══════════════════════════════════════════════════════════════
      G. FCM PUSH TOKEN SETUP
      Requests notification permission, gets the FCM token via
-     window.firestore helpers (initialized in each page's <head>),
+     window.fs* helpers (exposed from each page's module script),
      compares with the stored token in Firestore, updates if changed.
 
      H. REAL-TIME NOTIFICATION BELL DOT
@@ -468,29 +468,28 @@
     // We wait for auth state to confirm before touching Firestore.
     var authReady = setInterval(function () {
       if (
-        typeof window.auth        === 'undefined' ||
-        typeof window.authFn      === 'undefined' ||
-        typeof window.db          === 'undefined' ||
-        typeof window.firestore   === 'undefined'
+        typeof window.auth === 'undefined' ||
+        typeof window.db   === 'undefined'
       ) {
         return; // Firebase not ready yet — keep waiting
       }
 
       clearInterval(authReady);
+      clearTimeout(authReadyBailout);
 
-      window.authFn.onAuthStateChanged(window.auth, function (user) {
+      window.onAuthStateChanged(window.auth, function (user) {
         if (!user) return; // Not logged in — nothing to do
 
         var uid = user.uid;
 
         /* ── H. Bell dot listener ── */
-        var notifQuery = window.firestore.query(
-          window.firestore.collection(window.db, 'users', uid, 'notifications'),
-          window.firestore.where('read', '==', false),
-          window.firestore.limit(1)
+        var notifQuery = window.fsQuery(
+          window.fsCollection(window.db, 'users', uid, 'notifications'),
+          window.fsWhere('read', '==', false),
+          window.fsLimit(1)
         );
 
-        window.firestore.onSnapshot(notifQuery, function (snapshot) {
+        window.fsOnSnapshot(notifQuery, function (snapshot) {
           var bellDot = document.getElementById('bell-dot');
           if (!bellDot) return;
           bellDot.style.display = snapshot.empty ? 'none' : 'block';
@@ -501,6 +500,12 @@
       });
 
     }, 100); // poll every 100ms until Firebase is ready
+
+    // Bail out after 10 s — prevents infinite loop if Firebase never initialises
+    var authReadyBailout = setTimeout(function () {
+      clearInterval(authReady);
+      console.warn('shared.js: Firebase not ready after 10 s — bell dot and FCM skipped.');
+    }, 10000);
   }
 
   function setupFCMToken(uid) {
@@ -524,7 +529,7 @@
           return;
         }
 
-        return window.firestore.getToken(window.messaging, {
+        return window.fsGetToken(window.messaging, {
           vapidKey: VAPID_KEY,
         });
       })
@@ -532,14 +537,14 @@
         if (!newToken) return;
 
         // Compare with the stored token; only write if different
-        return window.firestore.getDoc(
-          window.firestore.doc(window.db, 'users', uid)
+        return window.fsGetDoc(
+          window.fsDoc(window.db, 'users', uid)
         ).then(function (snap) {
           var existingToken = snap.exists() ? (snap.data().fcmToken || '') : '';
           if (newToken === existingToken) return; // already up to date
 
-          return window.firestore.setDoc(
-            window.firestore.doc(window.db, 'users', uid),
+          return window.fsSetDoc(
+            window.fsDoc(window.db, 'users', uid),
             { fcmToken: newToken },
             { merge: true }
           ).then(function () {

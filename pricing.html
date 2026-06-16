@@ -13,6 +13,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -225,7 +228,7 @@
   <script type="module">
     import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getStorage }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
     const firebaseConfig = {
       apiKey:"AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk", authDomain:"kreddlo.firebaseapp.com",
@@ -233,11 +236,24 @@
       messagingSenderId:"764500458567", appId:"1:764500458567:web:2389d5cf8c688caafd0562",
     };
     const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app); window.auth = getAuth(app); window.storage = getStorage(app);
-    window._fsPlatformConfig = { doc, getDoc };
-    // Keep currentUser fresh so handleProUpgrade() can check auth state
-    onAuthStateChanged(window.auth, () => {});
-    window.dispatchEvent(new Event('kreddlo-firebase-ready'));
+    window.db = getFirestore(app); window.storage = getStorage(app);
+    // Force LOCAL persistence so the Firebase session survives the cross-origin
+    // redirect to Stripe checkout and back. Without this, some browsers drop the
+    // session on return and the user appears logged out.
+    const _auth = getAuth(app);
+    setPersistence(_auth, browserLocalPersistence).then(() => {
+      window.auth = _auth;
+      window._fsPlatformConfig = { doc, getDoc };
+      // Keep currentUser fresh so handleProUpgrade() can check auth state
+      onAuthStateChanged(window.auth, () => {});
+      window.dispatchEvent(new Event('kreddlo-firebase-ready'));
+    }).catch(() => {
+      // Fallback: proceed without explicit persistence (default behaviour)
+      window.auth = _auth;
+      window._fsPlatformConfig = { doc, getDoc };
+      onAuthStateChanged(window.auth, () => {});
+      window.dispatchEvent(new Event('kreddlo-firebase-ready'));
+    });
 
     // Load social links from Firestore config
     (async () => {
@@ -253,13 +269,13 @@
       } catch (e) { /* silent fail */ }
     })();
   </script>
-  <meta id="meta-description" name="description" content="" />
+  <meta id="meta-description" name="description" content="Simple transparent pricing — lower fees than Fiverr, Upwork and Selar. No hidden charges like Payoneer or Wise. See exactly what freelancers and buyers pay. A fairer alternative to Flutterwave and Paystack for service payments." />
   <meta id="og-title" property="og:title" content="" />
   <meta id="og-description" property="og:description" content="" />
   <meta id="og-url" property="og:url" content="" />
   <meta id="twitter-title" name="twitter:title" content="" />
   <meta id="twitter-description" name="twitter:description" content="" />
-  <link id="canonical" rel="canonical" href="" />
+  <link id="canonical" rel="canonical" href="https://kreddlo.com/pricing.html" />
   <script src="/assets/shared.js"></script>
 </head>
 
@@ -271,7 +287,7 @@
   <nav class="glass sticky top-0 z-50 mx-4 mt-3 rounded-2xl px-5 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
       <a href="index.html" class="flex-shrink-0">
-        <img src="assets/kreddlo-logo.png" alt="Kreddlo" width="120" height="36"
+        <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120" height="36"
              onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
       </a>
       <div class="hidden md:flex items-center gap-8">
@@ -765,7 +781,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
         <div class="flex flex-col gap-4">
           <a href="index.html">
-            <img src="assets/kreddlo-logo.png" alt="Kreddlo" width="120"
+            <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120"
                  onerror="this.outerHTML='<span style=\'font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
           </a>
           <p class="text-navy/50 text-[14px] leading-relaxed max-w-xs font-400">The complete freelance operating system for verified professionals in countries locked out of traditional payment networks.</p>
@@ -1015,19 +1031,43 @@
 // ── Pro Upgrade flow ──
 var _proUpgradePeriod = 'monthly';
 
-// Auto-open the Pro modal when redirected back from signup/login with ?openUpgrade=1
+// ── Handle return from Stripe and auto-open upgrade modal ──
 (function() {
-  if (new URLSearchParams(window.location.search).get('openUpgrade') === '1') {
-    // Wait for Firebase auth to confirm the user is logged in before opening
-    var _upgradeCheckInterval = setInterval(function() {
-      if (window.auth && window.auth.currentUser) {
-        clearInterval(_upgradeCheckInterval);
-        handleProUpgrade('monthly');
+  var params = new URLSearchParams(window.location.search);
+  var openUpgrade  = params.get('openUpgrade') === '1';
+  var subSuccess   = params.get('sub') === 'success';
+
+  if (!openUpgrade && !subSuccess) return;
+
+  // Wait for Firebase auth to fully initialise (including setPersistence async)
+  // then wait for onAuthStateChanged to confirm the user before acting.
+  var _authWait = setInterval(function() {
+    if (!window.auth) return; // Firebase module not ready yet
+    clearInterval(_authWait);
+
+    // Use onAuthStateChanged for a reliable first-resolve, not currentUser poll
+    var { onAuthStateChanged: _oac } = window._authFns || {};
+    // Fallback: poll currentUser if _authFns not available
+    var _userWait = setInterval(function() {
+      if (window.auth.currentUser) {
+        clearInterval(_userWait);
+        if (openUpgrade) {
+          handleProUpgrade('monthly');
+        }
+        if (subSuccess) {
+          // Clean URL then show success toast and redirect to dashboard
+          history.replaceState(null, '', window.location.pathname);
+          _showUpgradeToast('🎉 Pro plan activated! Welcome to Kreddlo Pro.');
+          setTimeout(function() {
+            window.location.href = '/dashboard-settings.html?upgraded=1';
+          }, 2000);
+        }
       }
     }, 150);
-    // Give up after 5 seconds to avoid infinite loop
-    setTimeout(function() { clearInterval(_upgradeCheckInterval); }, 5000);
-  }
+    // Give up after 8 seconds — longer window since setPersistence is async
+    setTimeout(function() { clearInterval(_userWait); }, 8000);
+  }, 50);
+  setTimeout(function() { clearInterval(_authWait); }, 8000);
 })();
 
 function _showUpgradeToast(msg) {
@@ -1113,6 +1153,10 @@ async function submitProUpgrade(gateway) {
     if (!res.ok || !data.checkoutUrl) {
       throw new Error(data.error || 'Could not start checkout. Please try again.');
     }
+    // Force-refresh the ID token to ensure Firebase has written the credential
+    // to localStorage before we navigate away to Stripe. Without this the
+    // session can appear lost when Stripe redirects back to pricing.html.
+    try { await user.getIdToken(true); } catch (_) { /* non-fatal */ }
     window.location.href = data.checkoutUrl;
   } catch (err) {
     loadingEl.style.display = 'none';

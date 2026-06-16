@@ -13,6 +13,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -400,6 +403,19 @@
         window._currentUid  = user.uid;
         window._currentUser = user;
         window._fbReady     = true;
+
+        // ── ROLE GUARD ──────────────────────────────────────────────────────
+        // Buyers never go through KYC — bounce them to their dashboard before
+        // any verification UI (form, banner, already-submitted state) renders.
+        try {
+          const roleSnap = await getDoc(doc(window.db, 'users', user.uid));
+          if (roleSnap.exists() && roleSnap.data().role === 'buyer') {
+            window.location.href = 'buyer-dashboard.html';
+            return;
+          }
+        } catch (e) {
+          // Non-fatal — fall through to normal KYC flow
+        }
 
         // Check if user already submitted — show correct state
         try {

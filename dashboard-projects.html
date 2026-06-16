@@ -12,6 +12,9 @@
 <title>My Projects — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -182,6 +185,10 @@ html, body {
   width: 100% !important;
   max-width: 100% !important;
   overflow-x: hidden;
+}
+@media (min-width: 1024px) {
+  #main-wrap { width: auto; max-width: none; }
+  #page-content { padding: 32px !important; width: auto !important; max-width: 100% !important; }
 }
 
 /* 4. STAT CARDS — mobile font scaling so text fits */
@@ -568,7 +575,8 @@ var NAV = [
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
   { label:'Browse',        href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
-  { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+  { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+  { label:'Profile',       href:'/profile.html',            icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
 ];
 
 function buildNav(uid) {
@@ -582,6 +590,10 @@ function buildNav(uid) {
   document.getElementById('mobile-nav').innerHTML = html;
   document.getElementById('desktop-nav').innerHTML = html;
 }
+
+// Build nav immediately on load (before auth resolves) so the hamburger
+// menu and sidebar are never empty, even if auth/Firestore is slow.
+buildNav(null);
 
 // ============ MOBILE MENU ============
 function openMobileMenu() {
@@ -1171,6 +1183,7 @@ if ('serviceWorker' in navigator) {
 
   const app      = initializeApp(FIREBASE_CONFIG);
   const auth     = getAuth(app);
+  window.auth = auth;
   window.handleLogout = function() {
     signOut(auth).then(function(){ window.location.href = '/login.html'; })
       .catch(function(){ window.location.href = '/login.html'; });

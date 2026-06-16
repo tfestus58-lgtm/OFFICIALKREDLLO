@@ -12,6 +12,9 @@
 <title>Settings — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="/assets/shared.js"></script>
@@ -179,6 +182,10 @@ html, body {
   width: 100% !important;
   max-width: 100% !important;
   overflow-x: hidden;
+}
+@media (min-width: 1024px) {
+  #main-wrap { width: auto; max-width: none; }
+  #page-content { padding: 32px !important; width: auto !important; max-width: 100% !important; }
 }
 
 /* 4. STAT CARDS - mobile font scaling so text fits */
@@ -533,10 +540,10 @@ header > div:last-child {
       <div class="fu fu-1" style="display:flex;gap:4px;margin-bottom:32px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
         <button class="tab-btn active" data-tab="profile" onclick="selectTab('profile')">Profile</button>
         <button class="tab-btn" data-tab="security" onclick="selectTab('security')">Security</button>
-        <button class="tab-btn" data-tab="wallet" onclick="selectTab('wallet')">Wallet</button>
+        <button id="tab-btn-wallet" class="tab-btn" data-tab="wallet" onclick="selectTab('wallet')">Wallet</button>
         <button class="tab-btn" data-tab="notifications" onclick="selectTab('notifications')">Notifications</button>
-        <button class="tab-btn" data-tab="store" onclick="selectTab('store')">Store</button>
-        <button class="tab-btn" data-tab="integrations" onclick="selectTab('integrations')">Integrations</button>
+        <button id="tab-btn-store" class="tab-btn" data-tab="store" onclick="selectTab('store')">Store</button>
+        <button id="tab-btn-integrations" class="tab-btn" data-tab="integrations" onclick="selectTab('integrations')">Integrations</button>
       </div>
 
       <div class="fu fu-2">
@@ -579,6 +586,7 @@ header > div:last-child {
                 <label class="label" for="f-title">Professional Title</label>
                 <input type="text" id="f-title" class="input-field" value="" placeholder="e.g. Full Stack Developer &amp; UI Designer"/>
               </div>
+              <div id="freelancer-profile-fields">
               <div>
                 <label class="label" for="f-skills">Skills</label>
                 <input type="text" id="f-skills" class="input-field" placeholder="Type a skill and press Enter" onkeydown="handleSkillKeydown(event)"/>
@@ -592,6 +600,7 @@ header > div:last-child {
               <div>
                 <label class="label" for="f-price">Starting Price (USD)</label>
                 <input type="number" id="f-price" class="input-field" value="" min="0" placeholder="0"/>
+              </div>
               </div>
             </div>
 
@@ -903,7 +912,8 @@ var NAV_FREELANCER = [
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
   { label:'Browse',        href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
-  { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+  { label:'Settings',      href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+  { label:'Profile',       href:'/profile.html',            icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
 ];
 var NAV_BUYER = [
   { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
@@ -955,18 +965,93 @@ function selectTab(tab) {
 }
 
 // ============ PHOTO ============
-function handlePhotoChange(e) {
+async function handlePhotoChange(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
+
+  // Preview immediately
   var reader = new FileReader();
   reader.onload = function(ev) {
     var img = document.getElementById('photo-img');
     img.src = ev.target.result;
     img.style.display = 'block';
     document.getElementById('photo-initials').style.display = 'none';
+    // Also update the topbar avatar to the new photo
+    var avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="avatar"/>';
+    }
   };
   reader.readAsDataURL(file);
-  showToast('Photo selected. Save Changes to apply.');
+
+  // Upload to Cloudinary via upload-image Netlify function
+  showToast('Uploading photo…');
+
+  try {
+    if (!DEMO.uid) throw new Error('Not signed in');
+
+    // Convert file to base64 (resize first for fast upload)
+    var base64 = await new Promise(function(resolve, reject) {
+      var img = new Image();
+      var objUrl = URL.createObjectURL(file);
+      img.onload = function() {
+        URL.revokeObjectURL(objUrl);
+        var MAX = 400;
+        var w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        resolve(dataUrl.split(',')[1]); // base64 only, no prefix
+      };
+      img.onerror = reject;
+      img.src = objUrl;
+    });
+
+    var res = await fetch('/.netlify/functions/upload-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image:    base64,
+        folder:   'profiles',
+        publicId: DEMO.uid + '-avatar'
+      })
+    });
+    var data = await res.json();
+    if (!res.ok || !data.url) throw new Error(data.error || 'Upload failed');
+
+    var photoUrl = data.url;
+
+    // Write to Firestore — use all field names referenced across the project
+    var ready = await waitForFirestore();
+    if (!ready || !DEMO.uid) throw new Error('Firestore not ready');
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), {
+      photoUrl:     photoUrl,
+      photoURL:     photoUrl,
+      profilePhoto: photoUrl
+    }, { merge: true });
+
+    // Sync Firebase Auth profile
+    if (window.auth && window.auth.currentUser) {
+      await updateProfile(window.auth.currentUser, { photoURL: photoUrl });
+    }
+
+    // Update topbar avatar with the final Cloudinary URL
+    var avatarEl = document.getElementById('user-avatar');
+    if (avatarEl) {
+      avatarEl.innerHTML = '<img src="' + photoUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="avatar"/>';
+    }
+
+    showToast('Profile photo updated');
+  } catch (err) {
+    console.error('[Photo upload]', err);
+    showToast('Photo upload failed — try again');
+  }
 }
 
 // ============ SKILLS ============
@@ -1215,7 +1300,17 @@ async function saveWallet() {
 var lockIcon = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 
 function renderNotifPrefs() {
-  document.getElementById('notif-rows').innerHTML = NOTIF_TYPES.map(function(n) {
+  var isBuyer = DEMO.role === 'buyer';
+  var visibleTypes = NOTIF_TYPES.filter(function(n) {
+    if (isBuyer && (n.key === 'paymentReceived' || n.key === 'payoutSent')) return false;
+    return true;
+  }).map(function(n) {
+    if (isBuyer && n.key === 'newMessage') {
+      return Object.assign({}, n, { desc: 'When you receive a new message from a freelancer.' });
+    }
+    return n;
+  });
+  document.getElementById('notif-rows').innerHTML = visibleTypes.map(function(n) {
     var isOn = !!NOTIF_PREFS[n.key];
     var lockedAttrs = n.locked ? ' disabled' : '';
     var toggleCls = 'toggle' + (isOn ? ' on' : '') + (n.locked ? ' disabled' : '');
@@ -1452,6 +1547,20 @@ document.addEventListener('keydown', function(e) {
   closeMobileMenu();
 });
 
+// ============ ROLE UI ============
+function applyRoleUI() {
+  var isBuyer = DEMO.role === 'buyer';
+  // Tab buttons: hide Wallet, Store, Integrations for buyers
+  var hiddenTabs = ['wallet', 'store', 'integrations'];
+  hiddenTabs.forEach(function(t) {
+    var btn = document.getElementById('tab-btn-' + t);
+    if (btn) btn.style.display = isBuyer ? 'none' : '';
+  });
+  // Profile tab: hide freelancer-only fields for buyers
+  var flFields = document.getElementById('freelancer-profile-fields');
+  if (flFields) flFields.style.display = isBuyer ? 'none' : '';
+}
+
 // ============ BOOT ============
 window._boot = function(user, role) {
   DEMO.uid  = user.uid;
@@ -1468,6 +1577,7 @@ window._boot = function(user, role) {
   document.getElementById('profile-display-name').textContent = DEMO.name;
   document.getElementById('f-name').value = DEMO.name;
 
+  applyRoleUI();
   buildNav(user.uid);
   renderSkills();
   updateCharCount();
@@ -1515,11 +1625,17 @@ async function loadProfile() {
       renderNotifPrefs();
     }
 
-    if (data.photoUrl) {
+    var existingPhoto = data.photoUrl || data.photoURL || data.profilePhoto;
+    if (existingPhoto) {
       var img = document.getElementById('photo-img');
-      img.src = data.photoUrl;
+      img.src = existingPhoto;
       img.style.display = 'block';
       document.getElementById('photo-initials').style.display = 'none';
+      // Also update topbar avatar
+      var avatarEl = document.getElementById('user-avatar');
+      if (avatarEl) {
+        avatarEl.innerHTML = '<img src="' + existingPhoto + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="avatar"/>';
+      }
     }
 
     // Pro badge
@@ -1569,8 +1685,8 @@ if ('serviceWorker' in navigator) {
 
 <script type="module">
   import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged, signOut }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs }
+  import { getAuth, onAuthStateChanged, signOut, updateProfile }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, limit, onSnapshot }
                                                                     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   import { getMessaging, getToken }                                 from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js';
 
@@ -1595,6 +1711,21 @@ if ('serviceWorker' in navigator) {
   window._fsSettings = { doc, getDoc, setDoc, collection, query, where, getDocs };
   // Firebase Messaging — used by requestPushPermission()
   try { window._messaging = getMessaging(app); } catch(e) { window._messaging = null; }
+
+  // Expose on window so shared.js (non-module) can use them for bell dot + FCM
+  window.auth            = auth;
+  window.messaging       = window._messaging;
+  window.onAuthStateChanged = onAuthStateChanged;
+  window.fsQuery         = query;
+  window.fsCollection    = collection;
+  window.fsWhere         = where;
+  window.fsLimit         = limit;
+  window.fsOnSnapshot    = onSnapshot;
+  window.fsGetToken      = getToken;
+  window.fsGetDoc        = getDoc;
+  window.fsDoc           = doc;
+  window.fsSetDoc        = setDoc;
+  buildNav(null);
 
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }

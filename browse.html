@@ -10,18 +10,21 @@
 <meta name="apple-mobile-web-app-title" content="Kreddlo" />
 <link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
   <title>Browse Verified Freelancers — Kreddlo</title>
-  <meta name="description" content="Find skilled KYC-verified freelancers across design, development, writing, marketing and more. Every professional on Kreddlo is identity-verified." />
+  <meta id="meta-description" name="description" content="Find skilled KYC-verified freelancers across design, development, writing, marketing and more. Every professional on Kreddlo is identity-verified." />
   <meta property="og:title" content="Browse Verified Freelancers - Kreddlo" />
   <meta property="og:description" content="Find skilled KYC-verified freelancers across design, development, writing, marketing and more." />
   <meta property="og:url" content="https://kreddlo.com/browse.html" />
   <meta property="og:image" content="/assets/kreddlo-og-banner.png" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="canonical" href="https://kreddlo.com/browse.html" />
+  <link id="canonical" rel="canonical" href="https://kreddlo.com/browse.html" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CDN -->
@@ -390,6 +393,9 @@
     window.auth    = getAuth(app);
     window._fsQuery = { collection, query, where, getDocs, orderBy, limit };
 
+    // Signal that Firebase is ready — replaces setTimeout polling
+    window.dispatchEvent(new Event('kreddlo-firebase-ready'));
+
     // Load social links from Firestore config
     (async () => {
       try {
@@ -519,7 +525,7 @@
 
       <!-- Logo -->
       <a href="index.html" style="text-decoration:none;flex-shrink:0;">
-        <img src="assets/kreddlo-logo.png" alt="Kreddlo" width="110" height="34"
+        <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="110" height="34"
              onerror="this.outerHTML='<span style=\'font-size:21px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
       </a>
 
@@ -798,6 +804,12 @@
       #freelancer-grid { grid-template-columns: 1fr 1fr; gap: 18px; }
       #products-grid   { grid-template-columns: 1fr 1fr; gap: 18px; }
     }
+    @media (max-width: 1023px) {
+      /* Logged-in desktop nav (Dashboard pill + avatar) is desktop-only —
+         on mobile this overflowed the topbar and pushed the hamburger
+         off-screen. Mobile users get Dashboard via the slide-in menu. */
+      #nav-auth-desktop { display: none !important; }
+    }
     @media (min-width: 1024px) {
       #freelancer-grid { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
       #products-grid   { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
@@ -952,43 +964,39 @@
     }
 
     /* ────────────────────────────────────
-       FIRESTORE FETCH
+       FIREBASE READY — callback based, no polling
     ──────────────────────────────────── */
-    function waitForFirebase(cb, attempts = 0) {
+    function whenFirebaseReady(cb) {
       if (window.db && window._fsQuery) { cb(); return; }
-      if (attempts > 40) {
-        // Firebase didn't load — show empty state
-        renderCards([]);
-        return;
-      }
-      setTimeout(() => waitForFirebase(cb, attempts + 1), 150);
+      window.addEventListener('kreddlo-firebase-ready', cb, { once: true });
     }
 
-    waitForFirebase(async () => {
+    whenFirebaseReady(async () => {
       try {
-        const { collection, query, where, getDocs } = window._fsQuery;
+        const { collection, query, where, getDocs, orderBy, limit } = window._fsQuery;
         const db = window.db;
 
+        // Fetch verified freelancers.
+        // NOTE: profileComplete may not be set on all accounts so we only
+        // filter on role + kycStatus (both reliably written). Client-side
+        // we then skip anyone missing a name/title so junk docs don't show.
         const q = query(
           collection(db, 'users'),
-          where('role',            '==', 'freelancer'),
-          where('kycStatus',       '==', 'verified'),
-          where('profileComplete', '==', true)
+          where('role',      '==', 'freelancer'),
+          where('kycStatus', '==', 'verified'),
+          limit(100)
         );
 
         const snap = await getDocs(q);
-        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        if (docs.length === 0) {
-          renderCards([]);
-          return;
-        }
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(f => f.name || f.title); // skip incomplete profiles
 
         allFreelancers = sortFreelancers(docs);
         renderCards(filterFreelancers());
 
       } catch (err) {
-        console.error('Firestore fetch error:', err);
+        console.error('Firestore freelancers fetch error:', err);
         renderCards([]);
       }
     });
@@ -997,25 +1005,23 @@
        PRODUCTS FETCH
     ──────────────────────────────────── */
     function loadProducts() {
-      waitForFirebase(async () => {
+      whenFirebaseReady(async () => {
         try {
-          const { collection, query, where, getDocs, orderBy, limit } = window._fsQuery;
+          const { collection, query, where, getDocs, limit } = window._fsQuery;
           const db = window.db;
 
+          // Simple query on active field only — no composite index needed.
+          // Sort by salesCount client-side to avoid missing Firestore index.
           const q = query(
             collection(db, 'products'),
             where('active', '==', true),
-            orderBy('salesCount', 'desc'),
-            limit(20)
+            limit(60)
           );
 
           const snap = await getDocs(q);
-          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-          if (docs.length === 0) {
-            renderProductCards([]);
-            return;
-          }
+          const docs = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (b.salesCount || b.totalSales || 0) - (a.salesCount || a.totalSales || 0));
 
           allProducts    = docs;
           productsLoaded = true;
@@ -1142,7 +1148,7 @@
       const isPremium  = f.premiumStatus === 'active';
       const skills     = (f.skills || []).slice(0, 3);
       const initials   = (f.name || 'U').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-      const profileUrl = `profile.html?username=${encodeURIComponent(f.username || f.id)}`;
+      const profileUrl = `profile.html?uid=${encodeURIComponent(f.id)}`;
       const price      = f.startingPrice ? `From $${Number(f.startingPrice).toLocaleString()}` : '';
 
       const card = document.createElement('a');
@@ -1153,7 +1159,7 @@
       // Avatar
       let avatarHTML;
       if (f.profilePhoto) {
-        avatarHTML = `<img src="${escHtml(f.profilePhoto)}" alt="${escHtml(f.name || '')}" class="avatar" loading="lazy"
+        avatarHTML = `<img src="${escHtml(f.profilePhoto)}" alt="${escHtml(f.name || '')}" class="avatar" loading="lazy" decoding="async"
           onerror="this.outerHTML='<div class=\\'avatar-placeholder\\'>${escHtml(initials)}</div>'" />`;
       } else {
         avatarHTML = `<div class="avatar-placeholder">${escHtml(initials)}</div>`;
@@ -1299,7 +1305,7 @@
       const buyUrl = `p.html?slug=${encodeURIComponent(p.slug || p.id)}`;
 
       const coverHtml = p.coverUrl
-        ? `<img class="prod-cover" src="${escHtml(p.coverUrl)}" alt="${escHtml(p.title || '')}" loading="lazy" onerror="this.outerHTML='<div class=\\'prod-cover-placeholder\\'>${productCoverIcon()}</div>'">`
+        ? `<img class="prod-cover" src="${escHtml(p.coverUrl)}" alt="${escHtml(p.title || '')}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'prod-cover-placeholder\\'>${productCoverIcon()}</div>'">`
         : `<div class="prod-cover-placeholder">${productCoverIcon()}</div>`;
 
       const card = document.createElement('div');

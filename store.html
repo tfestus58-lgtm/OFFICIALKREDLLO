@@ -19,6 +19,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
 <!-- Firebase -->
@@ -704,7 +707,7 @@ async function renderStore(seller, products) {
   // Avatar
   var initials = displayName.split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase();
   var avatarHtml = seller.photoURL
-    ? '<img class="store-avatar fu fu-1" src="' + esc(seller.photoURL) + '" alt="' + esc(displayName) + '" loading="eager"/>'
+    ? '<img class="store-avatar fu fu-1" src="' + esc(seller.photoURL) + '" alt="' + esc(displayName) + '" loading="eager" decoding="async"/>'
     : '<div class="store-avatar-init fu fu-1">' + initials + '</div>';
 
   // Verified badge
@@ -810,7 +813,7 @@ function renderProducts(products) {
     var slug     = p.slug || p.id;
 
     var coverHtml = p.coverImage
-      ? '<img class="prod-cover" src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" loading="lazy"/>'
+      ? '<img class="prod-cover" src="' + esc(p.coverImage) + '" alt="' + esc(p.title) + '" loading="lazy" decoding="async"/>'
       : '<div class="prod-cover-placeholder"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.18)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
 
     var actionsHtml;

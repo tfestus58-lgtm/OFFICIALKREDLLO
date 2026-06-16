@@ -12,6 +12,9 @@
   <title>Verify Your Email — Kreddlo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     /* ── RESET ── */
@@ -516,6 +519,11 @@
           document.getElementById('code-input').classList.add('success');
           btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Verified';
           setTimeout(function() {
+            // Buyers skip KYC entirely — go straight to their dashboard.
+            if (data.role === 'buyer') {
+              window.location.href = 'buyer-dashboard.html';
+              return;
+            }
             var _nextParam = new URLSearchParams(window.location.search).get('next');
             window.location.href = 'verify.html' + (_nextParam ? '?next=' + encodeURIComponent(_nextParam) : '');
           }, 800);
