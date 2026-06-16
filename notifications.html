@@ -325,6 +325,10 @@ function buildNav(role) {
       const uid = window._currentUid;
       if (uid) href = 'store.html?uid=' + uid;
     }
+    if (l.label === 'Profile') {
+      const uid = window._currentUid;
+      if (uid) href = 'profile.html?uid=' + uid;
+    }
     const isActive = current === l.href || current === '' && l.href === 'dashboard.html';
     return '<a href="' + href + '" class="nav-link' + (isActive ? ' active' : '') + '">' + l.icon + '<span>' + l.label + '</span></a>';
   }).join('');
@@ -474,6 +478,7 @@ function filterNotifs(type, btn) {
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 window._boot = function(user, role, db, firestoreModules) {
+  window._currentUid = user.uid;
   buildNav(role || 'freelancer');
 
   const { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch } = firestoreModules;

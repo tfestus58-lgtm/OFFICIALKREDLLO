@@ -164,6 +164,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   #sidebar{display:flex!important}
   #hamburger{display:none!important}
   #main-wrap{margin-left:248px}
+  #section-c{grid-template-columns:1fr 1fr!important}
+  #stats-grid{grid-template-columns:repeat(4,1fr)!important}
 }
 @media(min-width:768px){
   #page-content{padding:32px!important}
@@ -204,8 +206,8 @@ html, body {
   overflow-x: hidden;
 }
 @media (min-width: 1024px) {
-  #main-wrap { width: auto; max-width: none; }
-  #page-content { padding: 32px !important; width: auto !important; max-width: 100% !important; }
+  #main-wrap { width: calc(100% - 248px); max-width: none; overflow-x: visible; }
+  #page-content { padding: 32px !important; width: 100% !important; max-width: none !important; margin: 0 !important; box-sizing: border-box; }
 }
 
 /* 4. STAT CARDS — mobile font scaling so text fits */
@@ -456,7 +458,7 @@ header > div:last-child {
   </header>
 
   <!-- PAGE CONTENT -->
-  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+  <main id="page-content" style="flex:1;padding:22px 18px;width:100%;position:relative;">
     <div class="blob-n"></div>
     <div class="blob-g"></div>
     <div style="position:relative;z-index:1;">
@@ -528,7 +530,7 @@ header > div:last-child {
       </div>
 
       <!-- SECTION B: Stat cards -->
-      <div class="fu fu-2" style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:26px;">
+      <div id="stats-grid" class="fu fu-2" style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:26px;">
 
         <div class="stat-card" style="background:linear-gradient(135deg,rgba(13,33,69,0.04),rgba(255,255,255,0.85));border:1px solid rgba(255,255,255,0.55);box-shadow:0 4px 24px rgba(13,33,69,0.06);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -882,7 +884,8 @@ function buildNav(uid) {
   var cur = (window.location.pathname.split('/').pop() || 'dashboard.html');
   var html = NAV.map(function(n) {
     var href = n.href;
-    if (n.label === 'Store' && uid) href = '/store.html?uid=' + uid;
+    if (n.label === 'Store'   && uid) href = '/store.html?uid='   + uid;
+    if (n.label === 'Profile' && uid) href = '/profile.html?uid=' + uid;
     var active = cur === n.href.replace('/','') ? ' active' : '';
     return '<a href="'+href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
   }).join('');

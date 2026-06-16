@@ -142,11 +142,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 @media(min-width:1024px){
   #sidebar{display:flex!important}
   #hamburger{display:none!important}
-  #main-wrap{margin-left:248px}
+  #main-wrap{margin-left:248px;width:calc(100% - 248px);max-width:none;overflow-x:visible}
   #projects-grid{grid-template-columns:1fr 1fr!important}
 }
 @media(min-width:768px){
-  #page-content{padding:32px!important}
+  #page-content{padding:32px!important;width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box}
   .search-wrap{width:auto!important;max-width:240px!important}
   .proj-card{padding:24px!important}
 }
@@ -273,7 +273,7 @@ body { overflow-x: hidden !important; }
   </header>
 
   <!-- PAGE CONTENT -->
-  <main id="page-content" style="flex:1;padding:22px 18px;max-width:1200px;width:100%;margin:0 auto;position:relative;">
+  <main id="page-content" style="flex:1;padding:22px 18px;width:100%;position:relative;">
     <div class="blob-n"></div>
     <div class="blob-g"></div>
     <div style="position:relative;z-index:1;">

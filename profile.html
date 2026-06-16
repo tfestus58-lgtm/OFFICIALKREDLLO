@@ -591,6 +591,12 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         Share Profile
       </button>
+
+      <!-- Visit Store button -->
+      <a id="visit-store-btn" href="#" style="display:none;width:100%;box-sizing:border-box;margin-top:10px;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:12px;background:none;border:1.5px solid rgba(13,33,69,0.14);font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);cursor:pointer;font-family:inherit;text-decoration:none;transition:border-color .2s,color .2s;" onmouseover="this.style.borderColor='#0d2145';this.style.color='#0d2145'" onmouseout="this.style.borderColor='rgba(13,33,69,0.14)';this.style.color='rgba(13,33,69,0.55)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+        Visit Store
+      </a>
     </div>
 
 
@@ -1234,6 +1240,13 @@
       document.querySelectorAll('.hire-btn-name').forEach(el => {
         el.textContent = displayName.split(' ')[0];
       });
+
+      // Visit Store button — set href and show it
+      const storeBtn = document.getElementById('visit-store-btn');
+      if (storeBtn && uid) {
+        storeBtn.href = '/store.html?uid=' + encodeURIComponent(uid);
+        storeBtn.style.display = 'flex';
+      }
 
       // Contract provider fields
       const provName = document.getElementById('c-provider-name');
