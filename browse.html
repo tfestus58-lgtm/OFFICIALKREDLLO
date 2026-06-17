@@ -393,7 +393,12 @@
     window.auth    = getAuth(app);
     window._fsQuery = { collection, query, where, getDocs, orderBy, limit };
 
-    // Signal that Firebase is ready — replaces setTimeout polling
+    // Set a flag AND dispatch the event — the flag ensures whenFirebaseReady()
+    // works correctly even if the non-module script hasn't registered its
+    // listener yet when this module fires (ES modules are deferred so the
+    // regular script block below may run before or after this one depending
+    // on browser/network timing — the flag makes it order-independent).
+    window._firebaseReady = true;
     window.dispatchEvent(new Event('kreddlo-firebase-ready'));
 
     // Load social links from Firestore config
@@ -1109,7 +1114,7 @@
        FIREBASE READY — callback based, no polling
     ──────────────────────────────────── */
     function whenFirebaseReady(cb) {
-      if (window.db && window._fsQuery) { cb(); return; }
+      if (window._firebaseReady && window.db && window._fsQuery) { cb(); return; }
       window.addEventListener('kreddlo-firebase-ready', cb, { once: true });
     }
 
@@ -1489,7 +1494,16 @@
        BUILD A SINGLE PRODUCT CARD
     ──────────────────────────────────── */
     function buildProductCard(p) {
-      const price = typeof p.price === 'number' ? '$' + p.price.toFixed(2) : (p.price ? '$' + p.price : '—');
+      const _priceVal = p.cardPrice != null ? p.cardPrice : p.price;
+      const _priceCur = p.currency || 'USD';
+      let price;
+      try {
+        price = _priceVal != null
+          ? new Intl.NumberFormat('en', { style: 'currency', currency: _priceCur }).format(_priceVal)
+          : '—';
+      } catch (_) {
+        price = _priceVal != null ? _priceCur + ' ' + Number(_priceVal).toFixed(2) : '—';
+      }
       const type  = productTypeLabel(p.productType);
       const sales = p.salesCount || p.totalSales || 0;
       const buyUrl = `p.html?slug=${encodeURIComponent(p.slug || p.id)}`;
