@@ -57,6 +57,62 @@ firebase deploy --only firestore:indexes
 
 ---
 
+## Required Composite Index — Browse Freelancers Query
+
+Used by: `browse.html` (Freelancers tab)
+
+| Field        | Collection | Order |
+|--------------|------------|-------|
+| `role`       | users      | ASC   |
+| `kycStatus`  | users      | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "users",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "role",      "order": "ASCENDING" },
+    { "fieldPath": "kycStatus", "order": "ASCENDING" }
+  ]
+}
+```
+
+Note: `browse.html` now falls back to a role-only query and filters
+`kycStatus` client-side if this index is missing or still building, so the
+page will not silently show "no freelancers found" — but creating this index
+is still recommended for performance once you have many users.
+
+## Required Composite Index — Browse / Store Products Query
+
+Used by: `browse.html` (Products tab) and `store.html`
+
+| Field    | Collection | Order |
+|----------|------------|-------|
+| `uid`    | products   | ASC   |
+| `status` | products   | ASC   |
+
+(`browse.html`'s Products tab only filters on `status`, which is single-field
+and always indexed automatically; the `uid` + `status` compound index is
+needed for `store.html`, which filters a single seller's products by status.)
+
+```json
+{
+  "collectionGroup": "products",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "uid",    "order": "ASCENDING" },
+    { "fieldPath": "status", "order": "ASCENDING" }
+  ]
+}
+```
+
+Note: both `browse.html` and `store.html` fall back to an unfiltered/partial
+fetch with client-side filtering if this index is missing, so a product that
+exists will not incorrectly show as "not found" — but creating this index is
+still recommended for performance.
+
 ## Symptom if index is missing
 
 The `scheduled-subscriptions` function will log an error like:

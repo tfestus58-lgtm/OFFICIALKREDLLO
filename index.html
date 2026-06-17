@@ -3,6 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Mobile app redirect: if running inside Capacitor native wrapper, skip the landing page -->
+  <script>
+    (function () {
+      try {
+        var isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+        if (!isCap) {
+          // Also catch cases where Capacitor bridge hasn't fully initialised yet
+          // by checking the user-agent for the custom scheme Capacitor injects
+          var ua = navigator.userAgent || '';
+          isCap = /capacitor/i.test(ua);
+        }
+        if (isCap) {
+          window.location.replace('/login.html');
+        }
+      } catch (e) { /* fail silently — show landing page as fallback */ }
+    })();
+  </script>
   <meta id="meta-description" name="description" content="Kreddlo is the Fiverr and Upwork alternative built for global freelancers. Unlike Selar, Gumroad or Payhip, Kreddlo combines KYC verification, escrow contracts and automatic payouts — better than Payoneer or Wise for freelance income." />
   <link id="canonical" rel="canonical" href="https://kreddlo.com/" />
 <link rel="manifest" href="/manifest.json" />

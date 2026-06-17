@@ -111,6 +111,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .btn-toggle-inactive{background:#fff3cd;color:#856404}
 .btn-toggle-inactive:hover{background:#fde8a0}
 .btn-toggle-spinning{opacity:.55;pointer-events:none}
+.btn-delete{background:rgba(220,38,38,0.08);color:#b91c1c}.btn-delete:hover{background:rgba(220,38,38,0.16)}
 
 /* ── Empty state ── */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;gap:16px}
@@ -642,7 +643,7 @@ header > div:last-child {
 import { initializeApp }                           from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut }    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, query, where, getDocs,
-         orderBy, addDoc, doc, getDoc, setDoc,
+         orderBy, addDoc, doc, getDoc, setDoc, deleteDoc,
          serverTimestamp }                         from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ── Config ──
@@ -1874,6 +1875,7 @@ function typeLabel(t) { return TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() 
 
 // ── Build one product card HTML ──
 function buildCard(id, d) {
+  const isOwner  = _currentUser && d.uid === _currentUser.uid;
   const isActive = d.status !== 'inactive' && d.status !== 'draft';
   const sales    = d.totalSales || d.salesCount || 0;
   const _priceVal = d.cardPrice != null ? d.cardPrice : d.price;
@@ -1915,6 +1917,7 @@ function buildCard(id, d) {
       </span>
     </div>
     <div class="prod-actions">
+      ${isOwner ? `
       <button class="btn-sm btn-edit" onclick="openEditModal('${escHtml(id)}')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit
@@ -1923,6 +1926,11 @@ function buildCard(id, d) {
         ${toggleDot}
         ${toggleLabel}
       </button>
+      <button class="btn-sm btn-delete" onclick="deleteProduct('${escHtml(id)}')" title="Delete product">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Delete
+      </button>
+      ` : ''}
     </div>
   </div>
 </div>`;
@@ -1962,6 +1970,36 @@ async function toggleStatus(productId, currentlyActive) {
   }
 }
 window.toggleStatus = toggleStatus;
+
+// ── Delete a product (soft-delete via status:'deleted') ──
+async function deleteProduct(productId) {
+  if (!_currentUser) { showToast('Not signed in. Please reload.'); return; }
+
+  const confirmed = window.confirm('Delete this product? This cannot be undone and it will disappear from Browse immediately.');
+  if (!confirmed) return;
+
+  try {
+    // Verify ownership before writing
+    const productSnap = await getDoc(doc(db, 'products', productId));
+    if (!productSnap.exists()) { showToast('Product not found.'); return; }
+    if (productSnap.data().uid !== _currentUser.uid) {
+      showToast('You do not have permission to delete this product.');
+      return;
+    }
+
+    await deleteDoc(doc(db, 'products', productId));
+
+    // Remove card from UI immediately
+    const card = document.getElementById('card-' + productId);
+    if (card) card.remove();
+
+    showToast('Product deleted.');
+  } catch (err) {
+    console.error('[dashboard-products] deleteProduct error:', err);
+    showToast('Could not delete product. Please try again.');
+  }
+}
+window.deleteProduct = deleteProduct;
 
 // ── Fetch all data — stats + grid in one query ──
 async function fetchStats(uid) {
@@ -2059,7 +2097,7 @@ onAuthStateChanged(auth, async user => {
       return;
     }
 
-    _currentUserPlan = profile.plan === 'pro' ? 'pro' : 'free';
+    _currentUserPlan = (profile.plan === 'pro' && profile.premiumStatus === 'active') ? 'pro' : 'free';
 
     // ── Fetch platform settings (for currency gating etc.) ──
     try {

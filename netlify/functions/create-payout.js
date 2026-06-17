@@ -273,8 +273,7 @@ exports.handler = async function (event) {
             expectedFeePct = cfgData.withdrawalFeePercent;
           }
           // Pro users get a reduced fee rate
-          const isPro = (userData.plan === 'pro' || userData.premiumStatus === 'active')
-                        && userData.planStatus === 'active';
+          const isPro = userData.plan === 'pro' && userData.premiumStatus === 'active';
           if (isPro && typeof cfgData.withdrawalFeePercentPro === 'number') {
             expectedFeePct = cfgData.withdrawalFeePercentPro;
           }

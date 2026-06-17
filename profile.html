@@ -903,11 +903,11 @@
         <span id="pay-base" style="font-size:13px;font-weight:700;color:#0d2145;"></span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e2e8f0;">
-        <span style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.60);">Platform Fee (9%)</span>
+        <span id="pay-fee-label" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.60);">Platform Fee (9%)</span>
         <span id="pay-fee" style="font-size:13px;font-weight:700;color:#0d2145;"></span>
       </div>
       <div id="pay-protection-row" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #e2e8f0;">
-        <span style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.60);">Project Protection (2%)</span>
+        <span id="pay-protection-label" style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.60);">Project Protection (2%)</span>
         <span id="pay-protection" style="font-size:13px;font-weight:700;color:#2d8a5e;"></span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;">
@@ -1305,9 +1305,41 @@
   let activeSigOpt = 'a';
   let uploadedSig = null;
 
+  // Live platform fee config — defaults match the figures previously
+  // hardcoded in the markup, so nothing changes visually until/unless an
+  // admin actually updates config/platform in Firestore.
+  let PLATFORM_FEE_PCT    = 9;
+  let PROTECTION_FEE_PCT  = 2;
+  let _platformFeeLoaded  = false;
+
+  function loadPlatformFeeConfig() {
+    if (_platformFeeLoaded) return Promise.resolve();
+    if (!window.db || !window._fsProfile) return Promise.resolve();
+    const { doc, getDoc } = window._fsProfile;
+    return getDoc(doc(window.db, 'config', 'platform')).then(snap => {
+      if (snap.exists()) {
+        const d = snap.data();
+        if (typeof d.platformFeePercent === 'number')       PLATFORM_FEE_PCT   = d.platformFeePercent;
+        if (typeof d.projectProtectionPercent === 'number') PROTECTION_FEE_PCT = d.projectProtectionPercent;
+      }
+      _platformFeeLoaded = true;
+      // Reflect into the static fee labels next to the checkout breakdown
+      const feeLabel  = document.getElementById('pay-fee-label');
+      const protLabel = document.getElementById('pay-protection-label');
+      if (feeLabel)  feeLabel.textContent  = 'Platform Fee (' + PLATFORM_FEE_PCT + '%)';
+      if (protLabel) protLabel.textContent = 'Project Protection (' + PROTECTION_FEE_PCT + '%)';
+      // Recompute the totals in case the modal is already open with stale defaults
+      if (typeof window.updatePaymentTotal === 'function') window.updatePaymentTotal();
+    }).catch(err => {
+      console.warn('[profile] platform fee config load failed, using defaults:', err.message);
+      _platformFeeLoaded = true;
+    });
+  }
+
   window.openHireModal = function() {
     document.getElementById('hire-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
+    loadPlatformFeeConfig();
     goStep(1);
   };
   window.closeHireModal = function() {
@@ -1371,8 +1403,8 @@
   // ── Payment total ─────────────────────────────────────────────────────
   window.updatePaymentTotal = function() {
     const base       = projectData.budget || 0;
-    const fee        = base * 0.09;
-    const protection = base * 0.02;
+    const fee        = base * (PLATFORM_FEE_PCT / 100);
+    const protection = base * (PROTECTION_FEE_PCT / 100);
     const protect    = document.getElementById('protection-toggle').checked;
     const total      = base + fee + (protect ? protection : 0);
     const fmt = v => '$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});

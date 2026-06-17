@@ -486,26 +486,26 @@
 
             <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-green/30 transition-colors">
               <div>
-                <p class="text-[14px] font-600 text-navy">3-Day Boost</p>
-                <p class="text-[12px] text-navy/45 font-400">72 hours at the top</p>
+                <p class="text-[14px] font-600 text-navy">24-Hour Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">24 hours at the top</p>
               </div>
-              <span class="text-[15px] font-700 text-navy">$5</span>
+              <span id="boost-price-24h" class="text-[15px] font-700 text-navy fee-skel fee-skel-sm">$5</span>
             </div>
 
             <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer border border-green/30 hover:border-green/50 transition-colors">
               <div>
-                <p class="text-[14px] font-600 text-navy">7-Day Boost</p>
-                <p class="text-[12px] text-navy/45 font-400">One week at the top</p>
+                <p class="text-[14px] font-600 text-navy">3-Day Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">72 hours at the top</p>
               </div>
-              <span class="text-[15px] font-700 text-navy">$10</span>
+              <span id="boost-price-3d" class="text-[15px] font-700 text-navy fee-skel fee-skel-sm">$12</span>
             </div>
 
             <div class="glass rounded-xl px-4 py-3.5 flex items-center justify-between cursor-pointer hover:border-green/30 transition-colors">
               <div>
-                <p class="text-[14px] font-600 text-navy">30-Day Boost</p>
-                <p class="text-[12px] text-navy/45 font-400">Full month at the top</p>
+                <p class="text-[14px] font-600 text-navy">7-Day Boost</p>
+                <p class="text-[12px] text-navy/45 font-400">One week at the top</p>
               </div>
-              <span class="text-[15px] font-700 text-navy">$35</span>
+              <span id="boost-price-7d" class="text-[15px] font-700 text-navy fee-skel fee-skel-sm">$25</span>
             </div>
           </div>
 
@@ -609,16 +609,16 @@
           <div class="fee-card-row"><span class="fee-card-meta">Buyer (optional)</span><span class="fee-card-amount"><span id="fee-card-protection" class="fee-skel fee-skel-sm">2–3%</span> of project total</span></div>
         </div>
         <div class="glass fee-card">
+          <p class="fee-card-name">Profile Boost (24 hours)</p>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span id="fee-card-boost-24h" class="fee-card-amount fee-skel fee-skel-sm">$5 one-time</span></div>
+        </div>
+        <div class="glass fee-card">
           <p class="fee-card-name">Profile Boost (3 days)</p>
-          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$5 one-time</span></div>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span id="fee-card-boost-3d" class="fee-card-amount fee-skel fee-skel-sm">$12 one-time</span></div>
         </div>
         <div class="glass fee-card">
           <p class="fee-card-name">Profile Boost (7 days)</p>
-          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$10 one-time</span></div>
-        </div>
-        <div class="glass fee-card">
-          <p class="fee-card-name">Profile Boost (30 days)</p>
-          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span class="fee-card-amount">$35 one-time</span></div>
+          <div class="fee-card-row"><span class="fee-card-meta">Freelancer (optional)</span><span id="fee-card-boost-7d" class="fee-card-amount fee-skel fee-skel-sm">$25 one-time</span></div>
         </div>
         <div class="glass fee-card">
           <p class="fee-card-name">KYC Verification</p>
@@ -670,19 +670,19 @@
                 <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-protection" class="fee-skel fee-skel-sm">2–3%</span> of project total</td>
               </tr>
               <tr class="hover:bg-white/40 transition-colors">
+                <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (24 hours)</td>
+                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-boost-24h" class="fee-skel fee-skel-sm">$5</span> one-time</td>
+              </tr>
+              <tr class="hover:bg-white/40 transition-colors">
                 <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (3 days)</td>
                 <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
-                <td class="px-6 py-4 text-[14px] font-600 text-navy">$5 one-time</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-boost-3d" class="fee-skel fee-skel-sm">$12</span> one-time</td>
               </tr>
               <tr class="hover:bg-white/40 transition-colors">
                 <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (7 days)</td>
                 <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
-                <td class="px-6 py-4 text-[14px] font-600 text-navy">$10 one-time</td>
-              </tr>
-              <tr class="hover:bg-white/40 transition-colors">
-                <td class="px-6 py-4 text-[14px] font-600 text-navy">Profile Boost (30 days)</td>
-                <td class="px-6 py-4 text-[14px] text-navy/60 font-400">Freelancer (optional)</td>
-                <td class="px-6 py-4 text-[14px] font-600 text-navy">$35 one-time</td>
+                <td class="px-6 py-4 text-[14px] font-600 text-navy"><span id="fee-table-boost-7d" class="fee-skel fee-skel-sm">$25</span> one-time</td>
               </tr>
               <tr class="hover:bg-white/40 transition-colors">
                 <td class="px-6 py-4 text-[14px] font-600 text-navy">KYC Verification</td>
@@ -915,7 +915,8 @@
       var FEE_DEFAULTS = {
         platformFeeMin: 8, platformFeeMax: 10, platformFeeExample: 9,
         protectionFeeMin: 2, protectionFeeMax: 3, protectionFeeExample: 2.5,
-        withdrawalFeeFree: 5, withdrawalFeePro: 3
+        withdrawalFeeFree: 5, withdrawalFeePro: 3,
+        boostPrice24h: 5, boostPrice3d: 12, boostPrice7d: 25
       };
 
       function fmtPct(n) {
@@ -926,6 +927,12 @@
       }
       function fmtRange(min, max) {
         return fmtPct(min).replace('%', '') + '\u2013' + fmtPct(max);
+      }
+      function fmtMoney(n) {
+        var num = Number(n);
+        if (!isFinite(num)) return '$' + n;
+        var str = (Math.round(num * 100) / 100).toString();
+        return '$' + str;
       }
       function setFee(id, text) {
         var el = document.getElementById(id);
@@ -939,6 +946,9 @@
         var protectionRange = fmtRange(fees.protectionFeeMin, fees.protectionFeeMax);
         var withdrawalFree  = fmtPct(fees.withdrawalFeeFree);
         var withdrawalPro   = fmtPct(fees.withdrawalFeePro);
+        var boost24h        = fmtMoney(fees.boostPrice24h);
+        var boost3d         = fmtMoney(fees.boostPrice3d);
+        var boost7d         = fmtMoney(fees.boostPrice7d);
 
         // Freelancer plan cards
         setFee('fee-free-withdrawal-cut', withdrawalFree);
@@ -952,6 +962,11 @@
         setFee('fee-protection-platform-example', fmtPct(fees.platformFeeExample));
         setFee('fee-protection-example', fmtPct(fees.protectionFeeExample));
 
+        // Boost Add-On card
+        setFee('boost-price-24h', boost24h);
+        setFee('boost-price-3d', boost3d);
+        setFee('boost-price-7d', boost7d);
+
         // Fee table (desktop)
         setFee('fee-table-platform', platformRange);
         setFee('fee-table-withdrawal-free', withdrawalFree);
@@ -959,6 +974,9 @@
         setFee('fee-table-protection', protectionRange);
         setFee('fee-table-product-platform', platformRange);   // same as Service Platform Fee
         setFee('fee-table-bank-withdrawal', withdrawalFree);    // same as Crypto Withdrawal Fee
+        setFee('fee-table-boost-24h', boost24h);
+        setFee('fee-table-boost-3d', boost3d);
+        setFee('fee-table-boost-7d', boost7d);
 
         // Mobile fee card list
         setFee('fee-card-platform', platformRange);
@@ -967,6 +985,9 @@
         setFee('fee-card-protection', protectionRange);
         setFee('fee-card-product-platform', platformRange);    // same as Service Platform Fee
         setFee('fee-card-bank-withdrawal', withdrawalFree);     // same as Crypto Withdrawal Fee
+        setFee('fee-card-boost-24h', boost24h + ' one-time');
+        setFee('fee-card-boost-3d', boost3d + ' one-time');
+        setFee('fee-card-boost-7d', boost7d + ' one-time');
       }
 
       function loadPlatformFees() {
@@ -1000,6 +1021,17 @@
             if (typeof d.earlyPayoutFeePercent === 'number') {
               fees.withdrawalFeePro = d.earlyPayoutFeePercent;
             }
+            if (typeof d.boostPrice24h === 'number') fees.boostPrice24h = d.boostPrice24h;
+            if (typeof d.boostPrice3d  === 'number') fees.boostPrice3d  = d.boostPrice3d;
+            if (typeof d.boostPrice7d  === 'number') fees.boostPrice7d  = d.boostPrice7d;
+
+            // Store gateway flags for submitProUpgrade to use
+            window._proGatewaySettings = {
+              stripeEnabled:   !!d.stripeEnabled,
+              paystackEnabled: !!d.paystackEnabled,
+              cryptoEnabled:   !!d.cryptoEnabled,
+            };
+            _applyGatewayVisibility(window._proGatewaySettings);
           }
           renderFees(fees);
         }).catch(function (err) {
@@ -1059,19 +1091,17 @@
 
     <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 16px;">Choose your payment method:</p>
 
-    <!-- Gateway options -->
+    <!-- Gateway options — visibility controlled by admin settings -->
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-      <button onclick="submitProUpgrade('stripe')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#635bff" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card (Stripe)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Visa, Mastercard, Amex</p></div>
+      <!-- Card / Bank Transfer: shown only when stripe OR paystack is enabled; auto-routes to the right processor -->
+      <button id="pro-btn-card" onclick="submitProUpgrade('card')" class="pro-gateway-btn" style="display:none;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card / Bank Transfer</p><p id="pro-card-sub" style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Visa, Mastercard &amp; more</p></div>
       </button>
-      <button onclick="submitProUpgrade('paystack')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00c3f7" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card / Transfer (Paystack)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Best for Africa — NGN, GHS, KES</p></div>
-      </button>
-      <button onclick="submitProUpgrade('crypto')" class="pro-gateway-btn" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
+      <!-- Crypto: shown only when crypto is enabled -->
+      <button id="pro-btn-crypto" onclick="submitProUpgrade('crypto')" class="pro-gateway-btn" style="display:none;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f7931a" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 9h4a2 2 0 010 4H9v-4zm0 4h4.5a2 2 0 010 4H9v-4z"/></svg>
-        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Crypto (NOWPayments)</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">BTC, ETH, USDT, 300+ coins</p></div>
+        <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Crypto</p><p style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">BTC, ETH, USDT, 300+ coins</p></div>
       </button>
     </div>
 
@@ -1083,6 +1113,60 @@
 <script>
 // ── Pro Upgrade flow ──
 var _proUpgradePeriod = 'monthly';
+
+// African country codes — Paystack serves these natively
+var _AFRICAN_TIMEZONES = ['Africa/Lagos','Africa/Accra','Africa/Nairobi','Africa/Johannesburg',
+  'Africa/Cairo','Africa/Casablanca','Africa/Tunis','Africa/Abidjan','Africa/Dakar',
+  'Africa/Addis_Ababa','Africa/Kampala','Africa/Dar_es_Salaam','Africa/Kigali','Africa/Luanda'];
+
+function _isAfricanUser() {
+  try {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return _AFRICAN_TIMEZONES.indexOf(tz) !== -1;
+  } catch(e) { return false; }
+}
+
+// Show/hide the two gateway buttons based on admin panel settings
+function _applyGatewayVisibility(settings) {
+  var cardBtn   = document.getElementById('pro-btn-card');
+  var cryptoBtn = document.getElementById('pro-btn-crypto');
+  var cardSub   = document.getElementById('pro-card-sub');
+
+  if (!cardBtn || !cryptoBtn) return;
+
+  var hasCard = settings.stripeEnabled || settings.paystackEnabled;
+
+  // Show card button only if at least one card processor is enabled
+  cardBtn.style.display = hasCard ? 'flex' : 'none';
+
+  // Update subtitle to reflect what's available without naming the processor
+  if (hasCard && cardSub) {
+    if (settings.stripeEnabled && settings.paystackEnabled) {
+      cardSub.textContent = 'Visa, Mastercard, bank transfer & more';
+    } else if (settings.paystackEnabled) {
+      cardSub.textContent = 'Card, bank transfer & more';
+    } else {
+      cardSub.textContent = 'Visa, Mastercard, Amex';
+    }
+  }
+
+  // Show crypto button only if crypto is enabled
+  cryptoBtn.style.display = settings.cryptoEnabled ? 'flex' : 'none';
+}
+
+// Resolve which actual gateway to use for a "card" payment
+function _resolveCardGateway(settings) {
+  var african = _isAfricanUser();
+  // International (non-African) users → Stripe first, Paystack fallback
+  if (!african) {
+    if (settings.stripeEnabled)   return 'stripe';
+    if (settings.paystackEnabled) return 'paystack';
+  }
+  // African users → Paystack first, Stripe fallback
+  if (settings.paystackEnabled) return 'paystack';
+  if (settings.stripeEnabled)   return 'stripe';
+  return null; // neither enabled (button should be hidden but guard anyway)
+}
 
 // ── Handle return from Stripe and auto-open upgrade modal ──
 (function() {
@@ -1182,6 +1266,18 @@ function setProPeriod(period) {
 async function submitProUpgrade(gateway) {
   var user = window.auth && window.auth.currentUser;
   if (!user) { window.location.href = '/signup.html?next=upgrade'; return; }
+
+  // Resolve 'card' to the correct processor based on admin settings + user location
+  if (gateway === 'card') {
+    var settings = window._proGatewaySettings || {};
+    gateway = _resolveCardGateway(settings);
+    if (!gateway) {
+      var errorEl2 = document.getElementById('pro-modal-error');
+      errorEl2.textContent = 'Card payment is currently unavailable. Please try crypto or contact support.';
+      errorEl2.style.display = 'block';
+      return;
+    }
+  }
 
   var errorEl   = document.getElementById('pro-modal-error');
   var loadingEl = document.getElementById('pro-modal-loading');

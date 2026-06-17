@@ -1052,7 +1052,7 @@ window.openProjModal = function(idx) {
   document.getElementById('pm-date').textContent   = p.createdAt
     ? (p.createdAt.toDate ? p.createdAt.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : p.createdAt)
     : '--';
-  document.getElementById('pm-net').textContent    = '$'+Number(p.netAmount || amt * 0.975).toFixed(2);
+  document.getElementById('pm-net').textContent    = '$'+Number(p.netAmount != null ? p.netAmount : amt * (1 - _dashWithdrawalFeePct / 100)).toFixed(2);
   document.getElementById('pm-desc').textContent   = p.description || p.projectDescription || 'No description provided.';
   document.getElementById('project-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -1064,9 +1064,32 @@ window.closeProjModal = function() {
 
 // ── Withdraw modal ────────────────────────────────────────────────────────────
 var _userBalance = 0;
+
+// Live withdrawal fee config — default matches the rate previously
+// hardcoded here, so nothing changes visually unless an admin updates
+// config/platform in Firestore.
+var _dashWithdrawalFeePct = 2.5;
+var _dashFeeConfigLoaded  = false;
+function loadDashboardFeeConfig() {
+  if (_dashFeeConfigLoaded) return Promise.resolve();
+  if (!window.db || !window.fsGetDoc || !window.fsDoc) return Promise.resolve();
+  return window.fsGetDoc(window.fsDoc(window.db, 'config', 'platform')).then(function(snap) {
+    if (snap.exists()) {
+      var d = snap.data();
+      if (typeof d.withdrawalFeePercent === 'number') _dashWithdrawalFeePct = d.withdrawalFeePercent;
+    }
+    _dashFeeConfigLoaded = true;
+  }).catch(function(e) {
+    console.warn('[dashboard] fee config load failed, using default:', e.message);
+    _dashFeeConfigLoaded = true;
+  });
+}
+loadDashboardFeeConfig();
+
 window.openWithdrawModal = function() {
   document.getElementById('withdraw-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
+  loadDashboardFeeConfig().then(function() { window.calcFee(); });
 };
 window.closeWithdrawModal = function() {
   document.getElementById('withdraw-modal').classList.remove('open');
@@ -1076,7 +1099,7 @@ window.calcFee = function() {
   var amt   = parseFloat(document.getElementById('w-amount').value) || 0;
   var block = document.getElementById('fee-block');
   if (amt > 0) {
-    var fee = amt * 0.025;
+    var fee = amt * (_dashWithdrawalFeePct / 100);
     document.getElementById('f-amount').textContent = '$'+amt.toFixed(2);
     document.getElementById('f-fee').textContent    = '-$'+fee.toFixed(2);
     document.getElementById('f-net').textContent    = '$'+(amt-fee).toFixed(2);

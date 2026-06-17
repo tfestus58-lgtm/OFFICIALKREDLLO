@@ -649,7 +649,7 @@
       </div>
 
       <!-- Freelancers Grid -->
-      <div id="freelancer-grid" style="display:grid;grid-template-columns:1fr;gap:16px;">
+      <div id="freelancer-grid" style="display:grid;">
 
         <!-- Skeleton cards (3 shown while loading) -->
         <div class="freelancer-card" id="skel-1" aria-hidden="true">
@@ -704,7 +704,7 @@
       </div>
 
       <!-- Products Grid -->
-      <div id="products-grid" style="display:none;grid-template-columns:1fr;gap:16px;">
+      <div id="products-grid" style="display:none;">
         <div class="prod-card" id="prod-skel-1" aria-hidden="true">
           <div class="skeleton prod-cover" style="border-radius:0;"></div>
           <div class="prod-body">
@@ -730,6 +730,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Pagination — shared bar, repopulated for whichever tab (freelancers/products) is active -->
+      <div id="pagination-bar" style="display:none;align-items:center;justify-content:center;gap:6px;margin-top:32px;flex-wrap:wrap;"></div>
 
     </div>
   </section>
@@ -800,6 +803,13 @@
        RESPONSIVE STYLE INJECTION
   ══════════════════════════════════ -->
   <style>
+    /* Mobile-first base (was previously inline on the divs, which —
+       being higher specificity than this stylesheet — silently overrode
+       the 640px/1024px rules below on every screen size, including
+       desktop. Moved here so the cascade below actually takes effect. */
+    #freelancer-grid { grid-template-columns: 1fr; gap: 16px; }
+    #products-grid   { grid-template-columns: 1fr; gap: 16px; }
+
     @media (min-width: 640px) {
       #freelancer-grid { grid-template-columns: 1fr 1fr; gap: 18px; }
       #products-grid   { grid-template-columns: 1fr 1fr; gap: 18px; }
@@ -857,6 +867,12 @@
     let activeProductType = 'all';
     let searchQuery      = '';
     let activeTab        = 'freelancers';
+
+    /* Pagination — fixed page size, separate page counter per tab so
+       switching tabs doesn't lose your place on the other list. */
+    const PAGE_SIZE = 24;
+    let freelancerPage = 1;
+    let productPage    = 1;
 
     /* ────────────────────────────────────
        DOM REFS
@@ -943,24 +959,150 @@
       if (e.key === 'Escape') closeMobileMenu();
     });
 
-    /* ────────────────────────────────────
-       SORT HELPER
-       Boosted (boostedUntil > now) first, ordered by boostedUntil DESC
-       Non-boosted ordered by createdAt DESC
-    ──────────────────────────────────── */
+    /* ════════════════════════════════════════════════════════════
+       RANKING ALGORITHM
+       ════════════════════════════════════════════════════════════
+       Goal: no listing — boosted or not, new or old — should be able
+       to camp at the top (or stay buried at the bottom) forever.
+       Score = rating signal + recency signal, then boosted listings
+       get a multiplier (not an automatic override), then near-tied
+       scores get a small daily-rotating shuffle.
+
+       This intentionally does NOT use a "views" or "engagement" counter
+       — no such field exists anywhere in this codebase yet (verified:
+       no write path tracks profile/product views). Adding a fake
+       engagement signal with no real data behind it would be worse
+       than leaving it out. If view-tracking is built later, add a
+       third weighted term here rather than reworking this function.
+    ──────────────────────────────────────────────────────────────── */
+
+    const RANK_WEIGHTS = {
+      rating:   0.8,   // weight of the confidence-weighted rating signal (dominant — this is the "do the proper things" signal)
+      recency:  0.2,   // weight of the time-decayed "new listing" signal — enough to give new listings a fair look, not enough to outrank a proven track record
+      recencyHalfLifeDays: 10,   // recency bump fades to half by ~10 days, mostly gone by ~30 — it's a launch window, not a standing advantage
+      boostMaxMultiplier:  1.5,  // a freshly-boosted listing's score is multiplied by up to this much — capped so a paid boost can't bury a much better-scored free listing
+      jitterWindow: 0.05,        // scores within this fraction of each other are eligible to swap order
+      jitterStrength: 0.04,      // max size of the daily shuffle nudge
+    };
+
+    // One seed per calendar day (UTC) — same shuffle all day, changes tomorrow.
+    // This is what makes near-tied listings rotate over time instead of one
+    // of them freezing in place at the top or bottom permanently.
+    function dailySeed() {
+      const d = new Date();
+      return Number(`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`);
+    }
+
+    // Deterministic pseudo-random in [0,1) from a seed + a listing id —
+    // same listing gets the same jitter all day, but a different one
+    // tomorrow, and different listings don't get identical jitter.
+    function seededJitter(id, seed) {
+      let h = seed;
+      const s = String(id) + seed;
+      for (let i = 0; i < s.length; i++) {
+        h = (h * 31 + s.charCodeAt(i)) >>> 0;
+      }
+      return (h % 10000) / 10000; // → [0, 1)
+    }
+
+    // Confidence-weighted rating: pulls the average toward a neutral
+    // midpoint (3.5) when there are few reviews, so one 5-star review
+    // can't outrank someone with 200 reviews averaging 4.8. Converges
+    // to the true average as totalReviews grows. Profiles with zero
+    // reviews get exactly the neutral midpoint (neither rewarded nor
+    // punished for being new — recency below handles new-listing visibility).
+    function confidenceRating(avgRating, totalReviews) {
+      const NEUTRAL = 3.5;
+      const CONFIDENCE_REVIEWS = 10; // ~10 reviews before the raw average dominates
+      const r  = Number(avgRating)   || 0;
+      const n  = Number(totalReviews) || 0;
+      const weighted = (r * n + NEUTRAL * CONFIDENCE_REVIEWS) / (n + CONFIDENCE_REVIEWS);
+      return weighted / 5; // normalize to 0–1
+    }
+
+    // Exponential decay from createdAt — new listings start near 1 and
+    // fade toward 0 over time, giving new freelancers/products a fair,
+    // temporary visibility window without it being permanent.
+    function recencyScore(createdAtTimestamp) {
+      const ms = createdAtTimestamp && createdAtTimestamp.toMillis ? createdAtTimestamp.toMillis() : 0;
+      if (!ms) return 0;
+      const ageDays  = Math.max(0, (Date.now() - ms) / 86400000);
+      const halfLife = RANK_WEIGHTS.recencyHalfLifeDays;
+      return Math.pow(0.5, ageDays / halfLife); // 1 at age 0, 0.5 at one half-life, etc.
+    }
+
+    // Boost is read-only here (nothing in this codebase currently writes
+    // boostedUntil — see notes shared separately). When the purchase flow
+    // is built, this naturally takes effect with no further changes needed.
+    // Multiplier scales DOWN as the boost approaches expiry instead of
+    // cutting off sharply, and is capped so a boost can't bury a much
+    // better-scored non-boosted listing entirely.
+    function boostMultiplier(boostedUntilTimestamp, boostStartedAtTimestamp) {
+      const untilMs = boostedUntilTimestamp && boostedUntilTimestamp.toMillis ? boostedUntilTimestamp.toMillis() : 0;
+      if (!untilMs || untilMs <= Date.now()) return 1;
+
+      const startMs = boostStartedAtTimestamp && boostStartedAtTimestamp.toMillis
+        ? boostStartedAtTimestamp.toMillis()
+        : untilMs - (7 * 86400000); // assume a 7-day boost if no start time was recorded
+
+      const totalSpan   = Math.max(1, untilMs - startMs);
+      const remaining    = Math.max(0, untilMs - Date.now());
+      const fractionLeft = Math.min(1, remaining / totalSpan);
+
+      return 1 + (RANK_WEIGHTS.boostMaxMultiplier - 1) * fractionLeft;
+    }
+
+    function freelancerScore(f) {
+      const base =
+        RANK_WEIGHTS.rating  * confidenceRating(f.averageRating, f.totalReviews) +
+        RANK_WEIGHTS.recency * recencyScore(f.createdAt);
+      return base * boostMultiplier(f.boostedUntil, f.boostStartedAt);
+    }
+
+    function productScore(p) {
+      // Products have no per-product rating field today (reviews roll up
+      // only to the seller's user doc — verified in submit-review.js).
+      // Sales is normalized with a log curve so one runaway bestseller
+      // doesn't make every other product's sales count round to zero —
+      // it just means each additional sale matters slightly less,
+      // which is the same reasoning as the rating-confidence weighting above.
+      // Reuses RANK_WEIGHTS.rating as the "merit" weight (same role as
+      // rating plays for freelancers — proven performance vs. recency).
+      const meritWeight = RANK_WEIGHTS.rating;
+      const sales = Number(p.salesCount || p.totalSales || 0);
+      const salesNorm = Math.log10(sales + 1) / Math.log10(20000); // ~0 at 0 sales, ~1 around 20,000 sales — wide enough that realistic top sellers (hundreds to a few thousand) still differentiate from each other
+      const base =
+        meritWeight * Math.min(1, salesNorm) +
+        RANK_WEIGHTS.recency * recencyScore(p.createdAt);
+      return base * boostMultiplier(p.boostedUntil, p.boostStartedAt);
+    }
+
+    // Sorts by score, then applies the daily jitter only to items whose
+    // scores are within RANK_WEIGHTS.jitterWindow of each other — so the
+    // shuffle reorders near-ties, not the whole list top to bottom.
+    function applyRankedSort(docs, scoreFn) {
+      const seed = dailySeed();
+      const scored = docs.map(d => ({ doc: d, score: scoreFn(d) }));
+      scored.sort((a, b) => b.score - a.score);
+
+      for (let i = 0; i < scored.length - 1; i++) {
+        const a = scored[i], b = scored[i + 1];
+        if (Math.abs(a.score - b.score) <= RANK_WEIGHTS.jitterWindow) {
+          const swapChance = seededJitter(a.doc.id + '|' + b.doc.id, seed);
+          if (swapChance < RANK_WEIGHTS.jitterStrength) {
+            scored[i] = b; scored[i + 1] = a;
+          }
+        }
+      }
+      return scored.map(s => s.doc);
+    }
+
     function sortFreelancers(docs) {
-      const now = Date.now();
-      const boosted    = docs.filter(f => f.boostedUntil && f.boostedUntil.toMillis && f.boostedUntil.toMillis() > now);
-      const nonBoosted = docs.filter(f => !(f.boostedUntil && f.boostedUntil.toMillis && f.boostedUntil.toMillis() > now));
+      return applyRankedSort(docs, freelancerScore);
+    }
 
-      boosted.sort((a, b) => b.boostedUntil.toMillis() - a.boostedUntil.toMillis());
-      nonBoosted.sort((a, b) => {
-        const at = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
-        const bt = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
-        return bt - at;
-      });
-
-      return [...boosted, ...nonBoosted];
+    function sortProducts(docs) {
+      return applyRankedSort(docs, productScore);
     }
 
     /* ────────────────────────────────────
@@ -987,9 +1129,27 @@
           limit(100)
         );
 
-        const snap = await getDocs(q);
+        let snap;
+        try {
+          snap = await getDocs(q);
+        } catch (qErr) {
+          console.warn('[browse] freelancers compound query failed, falling back to role-only fetch:', qErr);
+          // Fallback: a missing/rebuilding composite index or a transient
+          // rules hiccup would otherwise throw and surface as a false
+          // "no freelancers found" even though verified freelancers exist.
+          // Query on role alone (single-field, always indexed) and filter
+          // kycStatus client-side so the page stays resilient.
+          const qRoleOnly = query(
+            collection(db, 'users'),
+            where('role', '==', 'freelancer'),
+            limit(200)
+          );
+          snap = await getDocs(qRoleOnly);
+        }
+
         const docs = snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
+          .filter(f => f.kycStatus === 'verified')
           .filter(f => f.name || f.title); // skip incomplete profiles
 
         allFreelancers = sortFreelancers(docs);
@@ -1010,20 +1170,30 @@
           const { collection, query, where, getDocs, limit } = window._fsQuery;
           const db = window.db;
 
-          // Simple query on active field only — no composite index needed.
-          // Sort by salesCount client-side to avoid missing Firestore index.
+          // Products store their visibility flag as status: 'active' | 'inactive'
+          // (not a boolean 'active' field) — query the real schema.
           const q = query(
             collection(db, 'products'),
-            where('active', '==', true),
+            where('status', '==', 'active'),
             limit(60)
           );
 
-          const snap = await getDocs(q);
+          let snap;
+          try {
+            snap = await getDocs(q);
+          } catch (qErr) {
+            console.warn('[browse] products status query failed, falling back to unfiltered fetch:', qErr);
+            // Fallback: fetch broadly and filter client-side so a transient
+            // index/rules issue doesn't surface as a false "no products found".
+            const qFallback = query(collection(db, 'products'), limit(100));
+            snap = await getDocs(qFallback);
+          }
+
           const docs = snap.docs
             .map(d => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => (b.salesCount || b.totalSales || 0) - (a.salesCount || a.totalSales || 0));
+            .filter(p => p.status !== 'inactive' && p.status !== 'draft' && p.status !== 'deleted');
 
-          allProducts    = docs;
+          allProducts    = sortProducts(docs);
           productsLoaded = true;
           renderProductCards(filterProducts());
 
@@ -1128,16 +1298,27 @@
           </button>
         `;
         grid.appendChild(empty);
+        renderPagination(0, 0);
         return;
       }
 
+      // Clamp page in case filtering shrank the list below the current page
+      // (e.g. user was on page 5, then typed a search that leaves only 2 pages)
+      const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+      if (freelancerPage > totalPages) freelancerPage = totalPages;
+
+      const start = (freelancerPage - 1) * PAGE_SIZE;
+      const pageItems = freelancers.slice(start, start + PAGE_SIZE);
+
       const now = Date.now();
-      freelancers.forEach((f, i) => {
+      pageItems.forEach((f, i) => {
         const card = buildCard(f, now);
         card.classList.add('real-card', 'fade-up');
         card.style.animationDelay = `${Math.min(i * 0.06, 0.42)}s`;
         grid.appendChild(card);
       });
+
+      renderPagination(freelancerPage, totalPages);
     }
 
     /* ────────────────────────────────────
@@ -1284,15 +1465,24 @@
           </button>
         `;
         productsGrid.appendChild(empty);
+        renderPagination(0, 0);
         return;
       }
 
-      products.forEach((p, i) => {
+      const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+      if (productPage > totalPages) productPage = totalPages;
+
+      const start = (productPage - 1) * PAGE_SIZE;
+      const pageItems = products.slice(start, start + PAGE_SIZE);
+
+      pageItems.forEach((p, i) => {
         const card = buildProductCard(p);
         card.classList.add('real-card', 'fade-up');
         card.style.animationDelay = `${Math.min(i * 0.06, 0.42)}s`;
         productsGrid.appendChild(card);
       });
+
+      renderPagination(productPage, totalPages);
     }
 
     /* ────────────────────────────────────
@@ -1338,8 +1528,10 @@
     searchInput.addEventListener('input', () => {
       searchQuery = searchInput.value;
       if (activeTab === 'products') {
+        productPage = 1;
         renderProductCards(filterProducts());
       } else {
+        freelancerPage = 1;
         renderCards(filterFreelancers());
       }
     });
@@ -1349,8 +1541,10 @@
     function triggerSearch() {
       searchQuery = searchInput.value;
       if (activeTab === 'products') {
+        productPage = 1;
         renderProductCards(filterProducts());
       } else {
+        freelancerPage = 1;
         renderCards(filterFreelancers());
       }
     }
@@ -1361,6 +1555,7 @@
       document.querySelectorAll('#filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       activeCategory = pill.dataset.category;
+      freelancerPage = 1;
       renderCards(filterFreelancers());
     });
 
@@ -1370,6 +1565,7 @@
       document.querySelectorAll('#product-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       activeProductType = pill.dataset.productType;
+      productPage = 1;
       renderProductCards(filterProducts());
     });
 
@@ -1379,16 +1575,82 @@
 
       if (activeTab === 'products') {
         activeProductType = 'all';
+        productPage = 1;
         document.querySelectorAll('#product-filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
         document.querySelector('#product-filter-bar [data-product-type="all"]').classList.add('active');
         renderProductCards(filterProducts());
       } else {
         activeCategory = 'all';
+        freelancerPage = 1;
         document.querySelectorAll('#filter-bar .filter-pill').forEach(p => p.classList.remove('active'));
         document.querySelector('#filter-bar [data-category="all"]').classList.add('active');
         renderCards(filterFreelancers());
       }
     }
+
+    /* ────────────────────────────────────
+       PAGINATION
+       Windowed display (first, last, current ±2, with … gaps) so a
+       catalog of thousands of pages never renders thousands of buttons.
+       Always shows Prev/Next; numbers reflect whichever tab is active.
+    ──────────────────────────────────── */
+    function pageWindow(current, total) {
+      const pages = new Set([1, total, current, current - 1, current - 2, current + 1, current + 2]);
+      return [...pages].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+    }
+
+    function renderPagination(current, totalPages) {
+      const bar = document.getElementById('pagination-bar');
+      if (totalPages <= 1) {
+        bar.style.display = 'none';
+        bar.innerHTML = '';
+        return;
+      }
+      bar.style.display = 'flex';
+
+      const pillBase = 'border:1.5px solid #e2e8f0;background:#fff;color:rgba(13,33,69,0.65);font-size:13px;font-weight:600;border-radius:50px;min-width:36px;height:36px;padding:0 12px;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease;';
+      const activeStyle = 'border-color:#2d8a5e;background:#2d8a5e;color:#fff;box-shadow:0 4px 12px rgba(45,138,94,0.28);';
+      const disabledStyle = 'opacity:0.4;cursor:not-allowed;';
+
+      let html = '';
+
+      html += `<button ${current === 1 ? 'disabled' : ''} onclick="goToPage(${current - 1})"
+        style="${pillBase}${current === 1 ? disabledStyle : ''}" aria-label="Previous page">‹</button>`;
+
+      const pages = pageWindow(current, totalPages);
+      let lastRendered = 0;
+      pages.forEach(p => {
+        if (p - lastRendered > 1) {
+          html += `<span style="color:rgba(13,33,69,0.35);font-size:13px;padding:0 4px;">…</span>`;
+        }
+        const isActive = p === current;
+        html += `<button onclick="goToPage(${p})" style="${pillBase}${isActive ? activeStyle : ''}"
+          aria-label="Page ${p}" aria-current="${isActive ? 'page' : 'false'}">${p}</button>`;
+        lastRendered = p;
+      });
+
+      html += `<button ${current === totalPages ? 'disabled' : ''} onclick="goToPage(${current + 1})"
+        style="${pillBase}${current === totalPages ? disabledStyle : ''}" aria-label="Next page">›</button>`;
+
+      bar.innerHTML = html;
+    }
+
+    // Shared Prev/Next/number handler — updates whichever page counter
+    // belongs to the currently active tab, then re-renders that list only
+    // (the underlying ranked/filtered data doesn't change, just the slice).
+    function goToPage(p) {
+      if (activeTab === 'products') {
+        productPage = p;
+        renderProductCards(filterProducts());
+      } else {
+        freelancerPage = p;
+        renderCards(filterFreelancers());
+      }
+      // Scroll the results back into view so paging doesn't leave the user
+      // staring at whatever scroll position they were at on the old page.
+      document.getElementById('results-count')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    window.goToPage = goToPage;
 
     /* ────────────────────────────────────
        HTML ESCAPE

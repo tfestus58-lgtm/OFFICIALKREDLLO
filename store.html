@@ -628,9 +628,25 @@ document.addEventListener('firebase-ready', async function() {
     _isOwner = !!(window._storeAuthUser && window._storeAuthUser.uid === _seller.id);
 
     // Load products
-    var pq = qry(col(db, 'products'), whr('sellerId', '==', _seller.id), whr('active', '==', true));
-    var pSnap = await gds(pq);
-    var products = pSnap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    // NOTE: products store the owner uid in field 'uid' (not 'sellerId') and
+    // their visibility flag in field 'status' ('active' | 'inactive'), not a
+    // boolean 'active' field. Query against the real schema so a seller's
+    // own published products actually show up on their store page.
+    var pq = qry(col(db, 'products'), whr('uid', '==', _seller.id), whr('status', '==', 'active'));
+    var pSnap;
+    try {
+      pSnap = await gds(pq);
+    } catch (pErr) {
+      console.error('[store] products query failed, retrying without status filter:', pErr);
+      // Fallback: fetch all of this seller's products and filter client-side.
+      // This keeps the store working even if an index/rule issue blocks the
+      // compound query, instead of silently showing "no products".
+      var pq2 = qry(col(db, 'products'), whr('uid', '==', _seller.id));
+      pSnap = await gds(pq2);
+    }
+    var products = pSnap.docs
+      .map(function(d) { return Object.assign({ id: d.id }, d.data()); })
+      .filter(function(p) { return p.status !== 'inactive' && p.status !== 'draft'; });
 
     renderStore(_seller, products);
   } catch(e) {
@@ -695,7 +711,7 @@ async function renderStore(seller, products) {
   try {
     var rq = window._fs.query(
       window._fs.collection(window._db, 'reviews'),
-      window._fs.where('sellerId', '==', seller.id)
+      window._fs.where('targetUid', '==', seller.id)
     );
     var rSnap = await window._fs.getDocs(rq);
     reviewCount = rSnap.size;

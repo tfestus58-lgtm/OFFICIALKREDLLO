@@ -1641,7 +1641,7 @@ async function loadProfile() {
 
     // Pro badge
     var badge = document.getElementById('verified-badge');
-    if (data.plan === 'pro') {
+    if (data.plan === 'pro' && data.premiumStatus === 'active') {
       badge.style.display = 'inline-flex';
     } else {
       badge.style.display = 'none';

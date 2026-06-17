@@ -704,11 +704,37 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ══════════════════════════════════════════
+//  LIVE PLATFORM FEE CONFIG (config/platform)
+// ══════════════════════════════════════════
+// Defaults match the rates previously hardcoded here, so display is
+// unchanged unless an admin has actually updated config/platform.
+var _platformFeePct   = 2.5;
+var _protectionFeePct = 1.0;
+var _feeConfigLoaded  = false;
+
+async function loadPlatformFeeConfigForPayments() {
+  if (_feeConfigLoaded) return;
+  if (!window.db || !window._fsQ || !window._fsQ.getDoc || !window._fsQ.doc) return;
+  try {
+    var snap = await window._fsQ.getDoc(window._fsQ.doc(window.db, 'config', 'platform'));
+    if (snap.exists()) {
+      var d = snap.data();
+      if (typeof d.withdrawalFeePercent === 'number')      _platformFeePct   = d.withdrawalFeePercent;
+      if (typeof d.projectProtectionPercent === 'number')  _protectionFeePct = d.projectProtectionPercent;
+    }
+  } catch (e) {
+    console.warn('[buyer-payments] platform fee config load failed, using defaults:', e.message);
+  }
+  _feeConfigLoaded = true;
+}
+
+// ══════════════════════════════════════════
 //  LOAD BUYER PAYMENTS FROM FIRESTORE
 // ══════════════════════════════════════════
 async function loadBuyerPayments(uid) {
   if (!window.db || !window._fsQ) return;
   var fsQ = window._fsQ;
+  await loadPlatformFeeConfigForPayments();
   try {
     // Query projects where buyer is the logged-in user
     var q = fsQ.query(
@@ -749,8 +775,8 @@ async function loadBuyerPayments(uid) {
         var ts = data.createdAt;
         var dateStr = ts ? new Date(ts.toDate ? ts.toDate() : ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
         var amt = data.amount || data.netAmount || 0;
-        var fee = parseFloat((amt * 0.025).toFixed(2));
-        var protection = parseFloat((amt * 0.01).toFixed(2));
+        var fee = parseFloat((amt * (_platformFeePct / 100)).toFixed(2));
+        var protection = parseFloat((amt * (_protectionFeePct / 100)).toFixed(2));
         return {
           id:         d.id,
           project:    data.title || 'Untitled Project',
@@ -771,14 +797,15 @@ async function loadBuyerPayments(uid) {
       var ts = data.createdAt;
       var dateStr = ts ? new Date(ts.toDate ? ts.toDate() : ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '—';
       var amt = data.amount || 0;
+      var prodFee = parseFloat((amt * (_platformFeePct / 100)).toFixed(2));
       return {
         id:         d.id,
         project:    data.productTitle || 'Product Purchase',
         freelancer: data.sellerName   || 'Seller',
         amount:     amt,
-        fee:        parseFloat((amt * 0.025).toFixed(2)),
+        fee:        prodFee,
         protection: 0,
-        total:      parseFloat((amt * 1.025).toFixed(2)),
+        total:      parseFloat((amt + prodFee).toFixed(2)),
         method:     data.paymentMethod || 'Card / Crypto',
         date:       dateStr,
         status:     data.paymentStatus === 'paid' ? 'completed' : 'pending'

@@ -9,6 +9,7 @@ const DEFAULTS = {
   platformFeePercent:        2.5,
   projectProtectionPercent:  1.0,
   withdrawalFeePercent:      1.5,
+  withdrawalFeePercentPro:   0.5,
   earlyPayoutFeePercent:     2.0,
   holdingPeriodDays:         7,
   minWithdrawalUsd:          10,

@@ -117,6 +117,8 @@ exports.handler = async (event) => {
       /* 1. Update Firestore */
       await db.collection('users').doc(uid).update({
         premiumStatus: 'inactive',
+        plan:          'free',
+        planStatus:    'inactive',
         updatedAt:     FieldValue.serverTimestamp(),
       });
       console.log(`uid ${uid} — premiumStatus set to inactive.`);

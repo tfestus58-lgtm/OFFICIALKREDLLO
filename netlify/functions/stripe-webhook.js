@@ -443,6 +443,7 @@ async function handleProUpgrade({ db, uid, billingPeriod, subscriptionId, gatewa
     await db.collection('users').doc(uid).update({
       plan:             'pro',
       premiumStatus:    'active',
+      planStatus:       'active',
       premiumStartDate: now,
       premiumEndDate:   endDate,
       updatedAt:        require('firebase-admin/firestore').FieldValue.serverTimestamp(),

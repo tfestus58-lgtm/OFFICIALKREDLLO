@@ -789,6 +789,10 @@ input[type=range]::-moz-range-thumb {
             <input type="number" id="set-withdrawal-fee" class="input-field" value="1.5" min="0" max="100" step="0.1"/>
           </div>
           <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Pro Withdrawal Fee (%)</label>
+            <input type="number" id="set-withdrawal-fee-pro" class="input-field" value="0.5" min="0" max="100" step="0.1"/>
+          </div>
+          <div>
             <label class="lbl" style="display:block;margin-bottom:8px;">Early Payout Fee (%)</label>
             <input type="number" id="set-early-payout-fee" class="input-field" value="2.0" min="0" max="100" step="0.1"/>
           </div>
@@ -1856,6 +1860,7 @@ var SETTINGS_FIELDS = [
   { id: 'set-platform-fee',      min: 0, max: 100,   key: 'platformFeePercent',       parse: parseFloat },
   { id: 'set-protection-fee',    min: 0, max: 100,   key: 'projectProtectionPercent', parse: parseFloat },
   { id: 'set-withdrawal-fee',    min: 0, max: 100,   key: 'withdrawalFeePercent',     parse: parseFloat },
+  { id: 'set-withdrawal-fee-pro', min: 0, max: 100, key: 'withdrawalFeePercentPro',  parse: parseFloat },
   { id: 'set-early-payout-fee',  min: 0, max: 100,   key: 'earlyPayoutFeePercent',    parse: parseFloat },
   { id: 'set-boost-24h',         min: 0, max: null,  key: 'boostPrice24h',            parse: parseFloat },
   { id: 'set-boost-3d',          min: 0, max: null,  key: 'boostPrice3d',             parse: parseFloat },

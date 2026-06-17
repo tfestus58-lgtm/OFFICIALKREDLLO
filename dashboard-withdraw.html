@@ -1634,7 +1634,7 @@ window._boot = async function(user) {
       if (walletInput && liveWalletAddress) walletInput.value = liveWalletAddress;
 
       // Early payout — pro/premium only
-      var isPro = (d.plan === 'pro' || d.premiumStatus === 'active') && d.planStatus === 'active';
+      var isPro = d.plan === 'pro' && d.premiumStatus === 'active';
       var epSection = document.getElementById('early-payout-section');
       if (epSection && !isPro) epSection.style.display = 'none';
       // Store isPro for use in fee config block below
