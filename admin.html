@@ -14,9 +14,9 @@
 <title>Admin Panel - Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -193,6 +193,10 @@ body {
 .action-ban:hover { background: rgba(200,30,30,0.18); }
 .action-banned { background: rgba(13,33,69,0.07); color: rgba(13,33,69,0.55); opacity: 0.5; cursor: default; }
 .action-banned:hover { transform: none; }
+.action-freeze { background: rgba(99,60,180,0.10); color: #633cb4; }
+.action-freeze:hover { background: rgba(99,60,180,0.18); }
+.action-freeze.unfreeze { background: rgba(45,138,94,0.10); color: #2d8a5e; }
+.action-freeze.unfreeze:hover { background: rgba(45,138,94,0.18); }
 
 /* Users table */
 #users-table-desktop .users-row { display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #f0f2f6; transition: background .15s; }
@@ -346,6 +350,14 @@ body {
   height: 14px;
   border: 2px solid rgba(255,255,255,0.4);
   border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(13,33,69,0.12);
+  border-top-color: #0d2145;
   border-radius: 50%;
   animation: spin .7s linear infinite;
 }
@@ -906,6 +918,112 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
+    <!-- NOTIFY USERS SECTION -->
+    <div id="section-notify" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Notify Users</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Send an in-app notification to a single user or broadcast to a group. Messages appear instantly in the recipient's notification feed.</p>
+      </div>
+
+      <div class="glass" style="padding:24px;max-width:640px;">
+
+        <!-- Target selector -->
+        <div style="margin-bottom:18px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#0d2145;margin-bottom:10px;">Who should receive this?</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="filter-pill active" data-notif-target="single" onclick="setNotifTarget('single', this)">Single User</button>
+            <button class="filter-pill" data-notif-target="freelancers" onclick="setNotifTarget('freelancers', this)">All Freelancers</button>
+            <button class="filter-pill" data-notif-target="affiliates" onclick="setNotifTarget('affiliates', this)">All Affiliates</button>
+            <button class="filter-pill" data-notif-target="everyone" onclick="setNotifTarget('everyone', this)">Everyone</button>
+          </div>
+        </div>
+
+        <!-- Single-user picker -->
+        <div id="notif-single-picker" style="margin-bottom:18px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#0d2145;margin-bottom:8px;">Find user</label>
+          <input id="notif-user-search" type="text" class="input-field" placeholder="Search by name, email, or paste a UID" oninput="searchNotifUsers()" autocomplete="off"/>
+          <div id="notif-user-results" style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:12px;display:none;background:rgba(13,33,69,0.02);"></div>
+          <div id="notif-user-chip" style="display:none;margin-top:10px;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#e8f5ef;border-radius:12px;">
+            <div>
+              <div id="notif-user-chip-name" style="font-size:13px;font-weight:700;color:#0d2145;"></div>
+              <div id="notif-user-chip-email" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.55);"></div>
+            </div>
+            <button type="button" class="action-btn action-ban" style="flex-shrink:0;" onclick="clearNotifUser()">Remove</button>
+          </div>
+        </div>
+
+        <!-- Message fields -->
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#0d2145;margin-bottom:8px;">Title</label>
+          <input id="notif-title" type="text" class="input-field" placeholder="e.g. Scheduled maintenance tonight" maxlength="120"/>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#0d2145;margin-bottom:8px;">Message</label>
+          <textarea id="notif-body" class="input-field" rows="4" placeholder="Write the notification body..." maxlength="500" style="resize:vertical;font-family:inherit;"></textarea>
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:13px;font-weight:700;color:#0d2145;margin-bottom:8px;">Link URL <span style="font-weight:500;color:rgba(13,33,69,0.42);">(optional — opens when tapped)</span></label>
+          <input id="notif-url" type="text" class="input-field" placeholder="e.g. /dashboard-earnings.html"/>
+        </div>
+
+        <!-- Recipient preview + send -->
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding-top:14px;border-top:1px solid #f0f2f6;">
+          <p id="notif-recipient-count" style="font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);margin:0;">Select a user to notify.</p>
+          <button class="btn-green" id="notif-send-btn" style="padding:12px 32px;" onclick="sendAdminNotification()">Send Notification</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PRODUCTS SECTION -->
+    <div id="section-products" class="admin-section">
+      <div style="margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Products</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Review and moderate marketplace listings. Removing a product hides it from buyers but preserves all existing order and contract history.</p>
+      </div>
+
+      <!-- Search + filter bar -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+        <div style="flex:1;min-width:200px;position:relative;">
+          <svg style="position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.40)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="products-search" type="search" class="input-field" placeholder="Search by title or seller…" style="padding-left:36px;" oninput="filterAdminProducts()" autocomplete="off"/>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="filter-pill active" data-prod-filter="all"    onclick="setProductFilter('all',this)">All</button>
+          <button class="filter-pill"        data-prod-filter="active" onclick="setProductFilter('active',this)">Active</button>
+          <button class="filter-pill"        data-prod-filter="removed" onclick="setProductFilter('removed',this)">Removed</button>
+        </div>
+      </div>
+
+      <!-- Desktop table -->
+      <div id="admin-products-desktop" class="glass" style="display:none;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:3fr 2fr 1fr 1fr 120px;padding:12px 20px;background:rgba(13,33,69,0.02);border-bottom:1px solid #f0f2f6;font-size:12px;font-weight:700;color:rgba(13,33,69,0.45);text-transform:uppercase;letter-spacing:.5px;">
+          <div>Product</div>
+          <div>Seller</div>
+          <div>Type</div>
+          <div>Status</div>
+          <div style="text-align:right;">Action</div>
+        </div>
+        <div id="admin-products-rows"></div>
+      </div>
+
+      <!-- Mobile cards -->
+      <div id="admin-products-mobile" style="display:flex;flex-direction:column;gap:12px;"></div>
+
+      <!-- Empty -->
+      <div id="admin-products-empty" style="display:none;padding:60px 24px;text-align:center;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No products found</p>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Try adjusting your search or filter.</p>
+      </div>
+
+      <!-- Loading -->
+      <div id="admin-products-loading" style="padding:60px 24px;text-align:center;">
+        <div class="spinner" style="margin:0 auto 16px;"></div>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Loading products…</p>
+      </div>
+    </div>
+
     <!-- SETTINGS SECTION -->
     <div id="section-settings" class="admin-section">
       <div style="margin-bottom:20px;">
@@ -952,6 +1070,16 @@ input[type=range]::-moz-range-thumb {
           <div>
             <label class="lbl" style="display:block;margin-bottom:8px;">Payout Holding Period (days)</label>
             <input type="number" id="set-holding-days" class="input-field" value="3" min="0" max="30" step="1"/>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Product Sale Holding Period (days)</label>
+            <input type="number" id="set-product-holding-days" class="input-field" value="0" min="0" max="30" step="1"/>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">How long product-sale proceeds are held before a seller can withdraw them. 0 = instant.</p>
+          </div>
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Affiliate Commission Holding Period (days)</label>
+            <input type="number" id="set-affiliate-holding-days" class="input-field" value="0" min="0" max="30" step="1"/>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">How long affiliate commissions are held before an affiliate can withdraw them. 0 = instant.</p>
           </div>
           <div>
             <label class="lbl" style="display:block;margin-bottom:8px;">Referral Credit Amount (€)</label>
@@ -1094,6 +1222,8 @@ var ADMIN_NAV = [
   { id: 'payouts', label: 'Payouts', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' },
   { id: 'kyc', label: 'KYC Review', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
   { id: 'affiliate', label: 'Affiliate', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' },
+  { id: 'notify', label: 'Notify Users', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { id: 'products', label: 'Products', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' },
   { id: 'settings', label: 'Settings', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
 ];
 
@@ -1133,6 +1263,12 @@ function showSection(id) {
   }
   if (id === 'affiliate') {
     renderAffiliateView();
+  }
+  if (id === 'notify') {
+    updateNotifRecipientCount();
+  }
+  if (id === 'products') {
+    if (_adminProducts.length === 0) loadAdminProducts();
   }
 }
 
@@ -1258,9 +1394,12 @@ function actionButtons(u) {
   var banBtn = u.banned
     ? '<button class="action-btn action-banned" disabled>Banned</button>'
     : '<button class="action-btn action-ban" onclick="banUser(\'' + u.uid + '\')">Ban</button>';
+  var freezeLabel = u.payoutsFrozen ? 'Unfreeze Payouts' : 'Freeze Payouts';
+  var freezeClass = u.payoutsFrozen ? 'action-freeze unfreeze' : 'action-freeze';
+  var freezeBtn = '<button class="action-btn ' + freezeClass + '" onclick="toggleFreeze(\'' + u.uid + '\')">' + freezeLabel + '</button>';
   return '<button class="action-btn action-view" onclick="openUserModal(\'' + u.uid + '\')">View</button>' +
     '<button class="action-btn ' + suspendClass + '" onclick="toggleSuspend(\'' + u.uid + '\')">' + suspendLabel + '</button>' +
-    banBtn;
+    banBtn + freezeBtn;
 }
 
 function renderUsersTable(list) {
@@ -1321,10 +1460,20 @@ function openUserModal(uid) {
   var moneyLabel = u.role === 'freelancer' ? 'Total Earnings' : 'Total Spent';
   var moneyValue = u.role === 'freelancer' ? u.totalEarnings : u.totalSpent;
   var suspendLabel = u.suspended ? 'Unsuspend User' : 'Suspend User';
+  var freezeLabel  = u.payoutsFrozen ? 'Unfreeze Payouts' : 'Freeze Payouts';
+  var freezeBtnStyle = u.payoutsFrozen
+    ? 'width:100%;background:rgba(45,138,94,0.10);color:#2d8a5e;border:1.5px solid rgba(45,138,94,0.25);border-radius:10px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;'
+    : 'width:100%;background:rgba(99,60,180,0.08);color:#633cb4;border:1.5px solid rgba(99,60,180,0.20);border-radius:10px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;';
+  var freezeStatusBadge = u.payoutsFrozen
+    ? '<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,60,180,0.10);color:#633cb4;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>Payouts Frozen</span>'
+    : '';
 
   var html =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">' +
-      '<h3 style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">' + u.name + '</h3>' +
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<h3 style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">' + u.name + '</h3>' +
+        freezeStatusBadge +
+      '</div>' +
       '<button onclick="closeUserModal()" style="width:36px;height:36px;border-radius:50%;background:rgba(13,33,69,0.06);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;">' +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
       '</button>' +
@@ -1338,10 +1487,12 @@ function openUserModal(uid) {
       '<div><div class="lbl">' + moneyLabel + '</div><div style="font-weight:700;font-size:14px;margin-top:4px;">\u20AC' + (moneyValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</div></div>' +
       '<div><div class="lbl">Projects</div><div style="font-weight:700;font-size:14px;margin-top:4px;">' + u.projectCount + '</div></div>' +
       '<div><div class="lbl">Account Status</div><div style="margin-top:4px;">' + accountStatus(u) + '</div></div>' +
+      '<div><div class="lbl">Payout Status</div><div style="margin-top:4px;">' + (u.payoutsFrozen ? '<span class="badge badge-red">Frozen</span>' : '<span class="badge badge-green">Active</span>') + '</div></div>' +
     '</div>' +
     '<div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>' +
     '<div style="display:flex;flex-direction:column;gap:10px;" class="modal-actions">' +
       '<button class="btn-secondary" style="width:100%;" onclick="toggleSuspend(\'' + u.uid + '\'); closeUserModal();">' + suspendLabel + '</button>' +
+      '<button style="' + freezeBtnStyle + '" onclick="toggleFreeze(\'' + u.uid + '\'); closeUserModal();">' + freezeLabel + '</button>' +
       '<button class="btn-navy" style="width:100%;" onclick="closeUserModal()">Close</button>' +
     '</div>';
 
@@ -1453,6 +1604,251 @@ async function banUser(uid) {
     });
   } catch (err) {
     console.warn('Ban notification failed (non-fatal):', err.message);
+  }
+}
+
+/* ============ FREEZE / UNFREEZE PAYOUTS ============ */
+async function toggleFreeze(uid) {
+  var u = USERS.find(function(x) { return x.uid === uid; });
+  if (!u) return;
+
+  var willFreeze = !u.payoutsFrozen;
+
+  if (willFreeze) {
+    var ok = confirm('Freeze payouts for ' + u.name + '? They will not be able to withdraw funds until unfrozen.');
+    if (!ok) return;
+  }
+
+  // Optimistic UI update
+  u.payoutsFrozen = willFreeze;
+  filterUsers();
+  showToast(willFreeze ? 'Payouts frozen' : 'Payouts unfrozen');
+
+  // Persist to Firestore
+  if (window.firestore && window.db) {
+    try {
+      var _f = window.firestore;
+      await _f.updateDoc(_f.doc(window.db, 'users', uid), {
+        payoutsFrozen: willFreeze,
+      });
+    } catch (err) {
+      console.error('Firestore freeze update failed:', err);
+      showToast('Firestore update failed — check console');
+      // Revert optimistic update
+      u.payoutsFrozen = !willFreeze;
+      filterUsers();
+      return;
+    }
+  }
+
+  // Notify the user
+  try {
+    await fetch('/.netlify/functions/send-smart-notification', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userUid:    uid,
+        title:      willFreeze ? 'Withdrawals Paused' : 'Withdrawals Restored',
+        body:       willFreeze
+          ? 'Your withdrawal ability has been temporarily paused by the platform. Please contact support for assistance.'
+          : 'Your withdrawal ability has been restored. You can now withdraw your funds as normal.',
+        url:        (window.location.origin || '') + '/dashboard-withdraw.html',
+        templateId: willFreeze ? 'payouts-frozen' : 'payouts-unfrozen',
+        emailMode:  'always',
+        emailData:  { name: u.name || 'there' },
+      }),
+    });
+  } catch (err) {
+    console.warn('Freeze notification failed (non-fatal):', err.message);
+  }
+}
+
+/* ============ NOTIFY USERS (ADMIN BROADCAST) ============ */
+var notifTarget = 'single';       // 'single' | 'freelancers' | 'affiliates' | 'everyone'
+var notifSelectedUser = null;     // { uid, name, email } or null
+var notifSending = false;
+
+function setNotifTarget(mode, btn) {
+  notifTarget = mode;
+  document.querySelectorAll('[data-notif-target]').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+
+  var picker = document.getElementById('notif-single-picker');
+  picker.style.display = (mode === 'single') ? 'block' : 'none';
+
+  updateNotifRecipientCount();
+}
+
+function searchNotifUsers() {
+  var q = document.getElementById('notif-user-search').value.trim().toLowerCase();
+  var resultsEl = document.getElementById('notif-user-results');
+
+  if (!q) {
+    resultsEl.style.display = 'none';
+    resultsEl.innerHTML = '';
+    return;
+  }
+
+  // Allow pasting a raw UID directly
+  var direct = USERS.find(function(u) { return u.uid.toLowerCase() === q; });
+
+  var matches = USERS.filter(function(u) {
+    return u.name.toLowerCase().indexOf(q) !== -1 || u.email.toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 8);
+
+  if (direct && matches.indexOf(direct) === -1) matches.unshift(direct);
+
+  if (matches.length === 0) {
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = '<div style="padding:14px;font-size:13px;font-weight:500;color:rgba(13,33,69,0.45);">No matching users.</div>';
+    return;
+  }
+
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = matches.map(function(u) {
+    return '<div style="padding:11px 14px;border-bottom:1px solid rgba(13,33,69,0.06);cursor:pointer;" ' +
+      'onmouseover="this.style.background=\'rgba(13,33,69,0.04)\'" onmouseout="this.style.background=\'transparent\'" ' +
+      'onclick="selectNotifUser(\'' + u.uid + '\')">' +
+      '<div style="font-size:13px;font-weight:700;color:#0d2145;">' + u.name + '</div>' +
+      '<div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);">' + u.email + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function selectNotifUser(uid) {
+  var u = USERS.find(function(x) { return x.uid === uid; });
+  if (!u) return;
+  notifSelectedUser = { uid: u.uid, name: u.name, email: u.email };
+
+  document.getElementById('notif-user-search').value = '';
+  document.getElementById('notif-user-results').style.display = 'none';
+  document.getElementById('notif-user-results').innerHTML = '';
+
+  document.getElementById('notif-user-chip-name').textContent = u.name;
+  document.getElementById('notif-user-chip-email').textContent = u.email;
+  document.getElementById('notif-user-chip').style.display = 'flex';
+
+  updateNotifRecipientCount();
+}
+
+function clearNotifUser() {
+  notifSelectedUser = null;
+  document.getElementById('notif-user-chip').style.display = 'none';
+  updateNotifRecipientCount();
+}
+
+function getNotifRecipients() {
+  if (notifTarget === 'single') {
+    return notifSelectedUser ? [notifSelectedUser.uid] : [];
+  }
+  if (notifTarget === 'freelancers') {
+    return USERS.filter(function(u) { return u.role === 'freelancer' && !u.banned; }).map(function(u) { return u.uid; });
+  }
+  if (notifTarget === 'affiliates') {
+    return USERS.filter(function(u) { return u.affiliateEnabled === true && !u.banned; }).map(function(u) { return u.uid; });
+  }
+  if (notifTarget === 'everyone') {
+    return USERS.filter(function(u) { return !u.banned; }).map(function(u) { return u.uid; });
+  }
+  return [];
+}
+
+function updateNotifRecipientCount() {
+  var label = document.getElementById('notif-recipient-count');
+  if (!label) return;
+
+  if (notifTarget === 'single') {
+    label.textContent = notifSelectedUser
+      ? 'Will notify ' + notifSelectedUser.name + ' only.'
+      : 'Select a user to notify.';
+    return;
+  }
+
+  var count = getNotifRecipients().length;
+  var groupLabel = notifTarget === 'freelancers' ? 'freelancer' : (notifTarget === 'affiliates' ? 'affiliate' : 'user');
+  label.textContent = count === 1
+    ? 'Will notify 1 ' + groupLabel + '.'
+    : 'Will notify ' + count.toLocaleString('en-US') + ' ' + groupLabel + (count === 1 ? '' : 's') + '.';
+}
+
+async function sendAdminNotification() {
+  if (notifSending) return;
+
+  var title = document.getElementById('notif-title').value.trim();
+  var body  = document.getElementById('notif-body').value.trim();
+  var url   = document.getElementById('notif-url').value.trim();
+
+  if (!title) { showToast('Please enter a title'); return; }
+  if (!body)  { showToast('Please enter a message'); return; }
+
+  if (notifTarget === 'single' && !notifSelectedUser) {
+    showToast('Please select a user first');
+    return;
+  }
+
+  var recipients = getNotifRecipients();
+  if (recipients.length === 0) {
+    showToast('No matching recipients found');
+    return;
+  }
+
+  var confirmMsg = notifTarget === 'single'
+    ? 'Send this notification to ' + notifSelectedUser.name + '?'
+    : 'Broadcast this notification to ' + recipients.length.toLocaleString('en-US') + ' user' + (recipients.length === 1 ? '' : 's') + '?';
+  if (!confirm(confirmMsg)) return;
+
+  if (!window.firestore || !window.db) {
+    showToast('Database not available — check console');
+    return;
+  }
+
+  notifSending = true;
+  var sendBtn = document.getElementById('notif-send-btn');
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Sending...';
+
+  var _f = window.firestore;
+
+  try {
+    // Batched Firestore writes for the in-app feed entry, chunked to stay
+    // under Firestore's 500-operation-per-batch limit. This is the single
+    // source of truth for all targets (single user or broadcast) — no
+    // duplicate writes, and every doc carries type:'admin' consistently.
+    var CHUNK = 450;
+    var totalWritten = 0;
+    for (var i = 0; i < recipients.length; i += CHUNK) {
+      var chunk = recipients.slice(i, i + CHUNK);
+      var batch = _f.writeBatch(window.db);
+      chunk.forEach(function(uid) {
+        var docRef = _f.doc(_f.collection(window.db, 'users', uid, 'notifications'));
+        batch.set(docRef, {
+          title:     title,
+          body:      body,
+          type:      'admin',
+          url:       url || null,
+          read:      false,
+          createdAt: _f.serverTimestamp(),
+        });
+      });
+      await batch.commit();
+      totalWritten += chunk.length;
+    }
+
+    showToast('Notification sent to ' + totalWritten.toLocaleString('en-US') + ' user' + (totalWritten === 1 ? '' : 's'));
+
+    // Reset form
+    document.getElementById('notif-title').value = '';
+    document.getElementById('notif-body').value = '';
+    document.getElementById('notif-url').value = '';
+    clearNotifUser();
+
+  } catch (err) {
+    console.error('sendAdminNotification failed:', err);
+    showToast('Failed to send — check console');
+  } finally {
+    notifSending = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send Notification';
   }
 }
 
@@ -2031,6 +2427,8 @@ var SETTINGS_FIELDS = [
   { id: 'set-boost-3d',          min: 0, max: null,  key: 'boostPrice3d',             parse: parseFloat },
   { id: 'set-boost-7d',          min: 0, max: null,  key: 'boostPrice7d',             parse: parseFloat },
   { id: 'set-holding-days',      min: 0, max: 30,    key: 'holdingPeriodDays',        parse: parseInt   },
+  { id: 'set-product-holding-days',   min: 0, max: 30,    key: 'productSaleHoldingDays',   parse: parseInt   },
+  { id: 'set-affiliate-holding-days', min: 0, max: 30,    key: 'affiliateHoldingDays',     parse: parseInt   },
   { id: 'set-referral-credit',   min: 0, max: null,  key: 'referralCreditAmount',     parse: parseFloat },
   { id: 'set-max-product-price',        min: 1, max: 50000,  key: 'maxProductPriceUsd',           parse: parseInt   },
   { id: 'set-affiliate-withdraw-fee',   min: 0, max: 100,    key: 'affiliateWithdrawFeePercent',  parse: parseFloat },
@@ -2221,10 +2619,13 @@ function loadUsers() {
           totalSpent: u.totalSpent || 0,
           projectCount: u.projectCount || 0,
           suspended: !!u.suspended,
-          banned: !!u.banned
+          banned: !!u.banned,
+          payoutsFrozen: !!u.payoutsFrozen,
+          affiliateEnabled: !!u.affiliateEnabled
         });
       });
       filterUsers();
+      if (typeof updateNotifRecipientCount === 'function') updateNotifRecipientCount();
     })
     .catch(function(err) {
       console.warn('loadUsers error:', err);
@@ -2719,6 +3120,164 @@ function flagAffiliateDispute() {
     });
 }
 
+/* ============ ADMIN PRODUCTS ============ */
+var _adminProducts = [];
+var _adminProductFilter = 'all';
+
+function setProductFilter(filter, btn) {
+  _adminProductFilter = filter;
+  document.querySelectorAll('[data-prod-filter]').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderAdminProducts();
+}
+
+function filterAdminProducts() {
+  renderAdminProducts();
+}
+
+function _productTypeLabel(t) {
+  var map = {
+    'digital-download':'Download','manual':'Manual','link':'Link',
+    'template':'Template','ebook':'eBook','video-course':'Video Course',
+    'coaching':'Coaching','courses':'Course','external':'External'
+  };
+  return map[t] || (t ? t.charAt(0).toUpperCase()+t.slice(1) : 'Digital');
+}
+
+function renderAdminProducts() {
+  var search = (document.getElementById('products-search') || {}).value || '';
+  var q = search.trim().toLowerCase();
+
+  var list = _adminProducts.filter(function(p) {
+    var removed = p.status === 'removed_by_admin';
+    if (_adminProductFilter === 'active'  && removed)  return false;
+    if (_adminProductFilter === 'removed' && !removed) return false;
+    if (q) {
+      var inTitle  = (p.title || '').toLowerCase().indexOf(q) !== -1;
+      var inSeller = (p.sellerName || p.uid || '').toLowerCase().indexOf(q) !== -1;
+      if (!inTitle && !inSeller) return false;
+    }
+    return true;
+  });
+
+  var desktopEl  = document.getElementById('admin-products-desktop');
+  var mobileEl   = document.getElementById('admin-products-mobile');
+  var emptyEl    = document.getElementById('admin-products-empty');
+  var loadingEl  = document.getElementById('admin-products-loading');
+  var rowsEl     = document.getElementById('admin-products-rows');
+
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  if (list.length === 0) {
+    if (desktopEl) desktopEl.style.display = 'none';
+    if (mobileEl)  mobileEl.innerHTML = '';
+    if (emptyEl)   emptyEl.style.display = 'block';
+    return;
+  }
+
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  /* ── Desktop ── */
+  if (desktopEl && window.innerWidth >= 768) {
+    desktopEl.style.display = 'block';
+    if (mobileEl) mobileEl.innerHTML = '';
+    if (rowsEl) {
+      rowsEl.innerHTML = list.map(function(p) {
+        var removed = p.status === 'removed_by_admin';
+        var statusBadge = removed
+          ? '<span class="badge badge-red">Removed</span>'
+          : '<span class="badge badge-green">Active</span>';
+        var actionBtn = removed
+          ? '<button class="action-btn action-freeze unfreeze" onclick="toggleProductRemoval(\'' + p.id + '\',true)">Restore</button>'
+          : '<button class="action-btn action-ban" onclick="toggleProductRemoval(\'' + p.id + '\',false)">Remove</button>';
+        return '<div style="display:grid;grid-template-columns:3fr 2fr 1fr 1fr 120px;align-items:center;padding:14px 20px;border-bottom:1px solid #f0f2f6;transition:background .15s;" onmouseover="this.style.background=\'rgba(13,33,69,0.02)\'" onmouseout="this.style.background=\'\'">' +
+          '<div><div style="font-size:13px;font-weight:700;color:#0d2145;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;">' + escHtml(p.title||'Untitled') + '</div><div style="font-size:11px;color:rgba(13,33,69,0.45);margin-top:2px;">' + escHtml(p.id) + '</div></div>' +
+          '<div style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.70);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(p.sellerName||p.uid||'—') + '</div>' +
+          '<div style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.60);">' + _productTypeLabel(p.deliveryType||p.type) + '</div>' +
+          '<div>' + statusBadge + '</div>' +
+          '<div style="text-align:right;">' + actionBtn + '</div>' +
+          '</div>';
+      }).join('');
+    }
+  } else {
+    /* ── Mobile ── */
+    if (desktopEl) desktopEl.style.display = 'none';
+    if (mobileEl) {
+      mobileEl.innerHTML = list.map(function(p) {
+        var removed = p.status === 'removed_by_admin';
+        var statusBadge = removed
+          ? '<span class="badge badge-red">Removed</span>'
+          : '<span class="badge badge-green">Active</span>';
+        var actionBtn = removed
+          ? '<button class="action-btn action-freeze unfreeze" style="width:100%;" onclick="toggleProductRemoval(\'' + p.id + '\',true)">Restore Listing</button>'
+          : '<button class="action-btn action-ban" style="width:100%;" onclick="toggleProductRemoval(\'' + p.id + '\',false)">Remove Listing</button>';
+        return '<div class="glass" style="padding:16px;">' +
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;">' +
+            '<div style="flex:1;min-width:0;">' +
+              '<div style="font-size:14px;font-weight:700;color:#0d2145;word-break:break-word;">' + escHtml(p.title||'Untitled') + '</div>' +
+              '<div style="font-size:11px;color:rgba(13,33,69,0.45);margin-top:2px;word-break:break-all;">' + escHtml(p.id) + '</div>' +
+            '</div>' +
+            statusBadge +
+          '</div>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;font-weight:500;color:rgba(13,33,69,0.60);margin-bottom:12px;">' +
+            '<span>Seller: ' + escHtml(p.sellerName||p.uid||'Unknown') + '</span>' +
+            '<span>·</span>' +
+            '<span>Type: ' + _productTypeLabel(p.deliveryType||p.type) + '</span>' +
+          '</div>' +
+          actionBtn +
+          '</div>';
+      }).join('');
+    }
+  }
+}
+
+async function loadAdminProducts() {
+  var loadingEl = document.getElementById('admin-products-loading');
+  if (loadingEl) loadingEl.style.display = 'block';
+
+  try {
+    var db = window.db;
+    var f  = window.firestore;
+    var snap = await f.getDocs(f.query(f.collection(db, 'products'), f.limit(200)));
+    _adminProducts = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    renderAdminProducts();
+  } catch (err) {
+    console.error('[admin products] load error:', err);
+    var loadingEl2 = document.getElementById('admin-products-loading');
+    if (loadingEl2) loadingEl2.innerHTML = '<p style="color:#c81e1e;font-size:14px;font-weight:500;">Failed to load products. Please refresh.</p>';
+  }
+}
+
+async function toggleProductRemoval(productId, restore) {
+  var p = _adminProducts.find(function(x) { return x.id === productId; });
+  if (!p) return;
+
+  var action = restore ? 'restore' : 'remove';
+  var label  = restore ? p.title + ' restored — buyers can see it again.' : p.title + ' removed from marketplace.';
+
+  if (!restore && !confirm('Remove "' + (p.title||'this product') + '" from the marketplace? Buyers will no longer be able to find or purchase it. Existing orders and contracts are unaffected.')) return;
+
+  var newStatus = restore ? (p._prevStatus || 'active') : 'removed_by_admin';
+
+  try {
+    var db = window.db;
+    var f  = window.firestore;
+    if (!restore) { p._prevStatus = p.status; }
+    await f.updateDoc(f.doc(db, 'products', productId), { status: newStatus });
+    p.status = newStatus;
+    showToast(label);
+    renderAdminProducts();
+  } catch (err) {
+    console.error('[admin products] toggleProductRemoval error:', err);
+    showToast('Action failed. Please try again.');
+  }
+}
+
+/* Re-render on resize so mobile/desktop table toggles correctly */
+window.addEventListener('resize', function() {
+  if (_adminProducts.length > 0) renderAdminProducts();
+});
+
 /* ============ BOOT ============ */
 var _kycUnsubscribe = null; /* store onSnapshot cleanup fn */
 
@@ -2811,7 +3370,8 @@ if ('serviceWorker' in navigator) {
   import { initializeApp }                                          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, onAuthStateChanged, signOut }                   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, doc, getDoc, collection, query, where,
-           orderBy, limit, getDocs, setDoc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+           orderBy, limit, getDocs, setDoc, updateDoc, onSnapshot,
+           writeBatch, serverTimestamp }                            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
   var app = initializeApp({
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
@@ -2837,6 +3397,8 @@ if ('serviceWorker' in navigator) {
     setDoc:     function() { return setDoc.apply(null, arguments); },
     updateDoc:  function() { return updateDoc.apply(null, arguments); },
     onSnapshot: function() { return onSnapshot.apply(null, arguments); },
+    writeBatch: function() { return writeBatch.apply(null, arguments); },
+    serverTimestamp: function() { return serverTimestamp.apply(null, arguments); },
   };
   window._signOut = signOut;
 </script>

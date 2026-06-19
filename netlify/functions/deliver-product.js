@@ -17,6 +17,7 @@
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
 const { verifyCaller }                 = require('./_verify-auth');
+const { getSettings }                  = require('./get-settings');
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -189,17 +190,52 @@ exports.handler = async (event) => {
       salesCount: FieldValue.increment(1),
     });
 
-    /* ── Credit seller balance (per-currency map) ── */
+    /* ── Credit seller balance (per-currency map), subject to admin-configured
+       holding period (Item 9). Funds are routed through a `product-earnings`
+       record rather than hitting availableBalance directly, so create-payout.js
+       and create-bank-payout.js — which already gate withdrawals on
+       availableBalance / balances.{CURRENCY} — automatically reject anything
+       still inside the holding window without needing any changes themselves. ── */
     const sellerAmount  = (typeof body.sellerAmount === 'number' && body.sellerAmount > 0)
       ? body.sellerAmount
       : (order.sellerAmount || 0);
     const orderCurrency = (order.currency || 'USD').toUpperCase();
     const amountFormatted = new Intl.NumberFormat('en', { style: 'currency', currency: orderCurrency }).format(sellerAmount);
-    await db.collection('users').doc(order.sellerUid).update({
-      totalSales:                            FieldValue.increment(1),
-      [`balances.${orderCurrency}`]:         FieldValue.increment(sellerAmount),
-      availableBalance:                      FieldValue.increment(sellerAmount),
-      totalEarned:                           FieldValue.increment(sellerAmount),
+
+    const settings        = await getSettings(db);
+    const holdingDays     = Number(settings.productSaleHoldingDays) || 0;
+    const deliveredAt     = new Date();
+    const clearsAt        = new Date(deliveredAt.getTime() + holdingDays * 24 * 60 * 60 * 1000);
+    const isCleared        = holdingDays <= 0; // 0 days = instant, same as legacy behaviour
+
+    /* totalSales / totalEarned are gross, all-time stats and update immediately
+       regardless of holding period — only the spendable balance is gated. */
+    const sellerUserUpdate = {
+      totalSales:  FieldValue.increment(1),
+      totalEarned: FieldValue.increment(sellerAmount),
+    };
+    if (isCleared) {
+      sellerUserUpdate[`balances.${orderCurrency}`] = FieldValue.increment(sellerAmount);
+      sellerUserUpdate.availableBalance             = FieldValue.increment(sellerAmount);
+    } else {
+      sellerUserUpdate[`pendingBalances.${orderCurrency}`] = FieldValue.increment(sellerAmount);
+      sellerUserUpdate.pendingBalance                      = FieldValue.increment(sellerAmount);
+    }
+    await db.collection('users').doc(order.sellerUid).update(sellerUserUpdate);
+
+    /* Auditable earning record — the scheduled-clear-earnings.js job flips
+       `cleared` to true once `clearsAt` has passed and moves the amount from
+       pendingBalance(s) to availableBalance/balances. */
+    await db.collection('product-earnings').add({
+      sellerUid:   order.sellerUid,
+      orderId,
+      productId:   order.productId,
+      amount:      sellerAmount,
+      currency:    orderCurrency,
+      cleared:     isCleared,
+      clearsAt:    clearsAt,
+      deliveredAt: FieldValue.serverTimestamp(),
+      createdAt:   FieldValue.serverTimestamp(),
     });
 
     /* ── Schedule review-request email (48 hours = 2880 minutes) ── */

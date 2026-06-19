@@ -15,6 +15,9 @@
 [functions."scheduled-subscriptions"]
   schedule = "0 0 * * *"
 
+[functions."scheduled-clear-earnings"]
+  schedule = "0 * * * *"
+
 [functions."process-email-queue"]
   schedule = "*/5 * * * *"
 
@@ -183,3 +186,9 @@
   from = "/nowpayments-webhook"
   to   = "/.netlify/functions/nowpayments-webhook"
   status = 200
+
+# ── 404 catch-all (must be last) ─────────────────────────────────────────────
+[[redirects]]
+  from   = "/*"
+  to     = "/404.html"
+  status = 404

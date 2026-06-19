@@ -123,3 +123,55 @@ scheduled-subscriptions: delivery query failed (may need composite index): 9 FAI
 
 Firebase will also print a URL in the same log line that you can click to
 auto-create the index directly from the console.
+
+---
+
+## Required Composite Index — Product Earnings Clearing Query
+
+Used by: `netlify/functions/scheduled-clear-earnings.js` (Item 9 — earnings holding period)
+
+| Field      | Collection       | Order |
+|------------|------------------|-------|
+| `cleared`  | product-earnings | ASC   |
+| `clearsAt` | product-earnings | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "product-earnings",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "cleared",  "order": "ASCENDING" },
+    { "fieldPath": "clearsAt", "order": "ASCENDING" }
+  ]
+}
+```
+
+## Required Composite Index — Affiliate Earnings Clearing Query
+
+Used by: `netlify/functions/scheduled-clear-earnings.js` (Item 9 — earnings holding period)
+
+| Field      | Collection         | Order |
+|------------|---------------------|-------|
+| `cleared`  | affiliate-earnings | ASC   |
+| `clearsAt` | affiliate-earnings | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "affiliate-earnings",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "cleared",  "order": "ASCENDING" },
+    { "fieldPath": "clearsAt", "order": "ASCENDING" }
+  ]
+}
+```
+
+Note: if either of these indexes is missing, `scheduled-clear-earnings.js`
+logs the error and simply skips that half of the job on that run (non-fatal
+to the other one) — it will catch up automatically once the index finishes
+building, since `clearsAt` only ever moves further into the past for
+already-existing unfulfilled records.

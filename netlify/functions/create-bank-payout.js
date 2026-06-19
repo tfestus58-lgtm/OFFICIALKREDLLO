@@ -5,30 +5,30 @@
  * Supports multi-currency balances (NGN, USD, GBP, EUR, GHS, KES, ZAR, etc.)
  *
  * Flow:
- *  1. Validate & parse request body (now includes withdrawalCurrency)
- *  2. Verify Paystack and/or Stripe is enabled in config/platform
+ *  1. Validate & parse request body (includes withdrawalCurrency)
+ *  2. Verify Flutterwave and/or Stripe is enabled in config/platform
  *  3. Verify user exists, is a freelancer, KYC verified, sufficient balance
  *     in the requested currency (reads from user.balances map)
  *  4. Create a /payouts document (type: 'bank', status: 'pending')
- *  5. If Paystack is enabled and currency is Paystack-supported:
- *       - Create a Paystack transfer recipient
- *       - Initiate a Paystack transfer (automated)
- *     If international currency (USD, EUR, GBP, etc.):
- *       - Mark as 'pending_manual' — requires manual Stripe Connect / wire
- *     On any Paystack lookup failure:
+ *  5. If Flutterwave is enabled and currency is FLW-supported:
+ *       - Look up bank code via FLW /v3/banks/:country
+ *       - Initiate a Flutterwave transfer (bank details sent directly — no recipient step)
+ *     If international currency (USD, EUR, GBP, etc.) not natively supported:
+ *       - Mark as 'pending_manual' — requires manual wire processing
+ *     On any Flutterwave API failure:
  *       - Mark as 'pending_review' for manual processing
  *  6. Deduct amount from user's balances.{currency} + increment totalWithdrawn
  *  7. Send a withdrawal confirmation notification
  *  8. Return payout ID + status to the client
  *
  * Environment variables required (set in Netlify dashboard):
- *   PAYSTACK_SECRET_KEY       — Paystack secret key (sk_live_... or sk_test_...)
+ *   FLW_SECRET_KEY            — Flutterwave secret key (FLWSECK_TEST-... or FLWSECK-...)
  *   FIREBASE_SERVICE_ACCOUNT  — Full Firebase service account JSON as one-line string
  *   PLATFORM_URL              — e.g. https://kreddlo.com
  */
 
-const { getSettings }    = require('./get-settings');
-const { verifyCaller }   = require('./_verify-auth');
+const { getSettings }  = require('./get-settings');
+const { verifyCaller } = require('./_verify-auth');
 
 /* ─────────────────────────────────────────────
    FIREBASE ADMIN (loaded lazily so cold starts
@@ -82,33 +82,62 @@ function maskAccount(num) {
   return '••••' + s.slice(-4);
 }
 
+const FLW_BASE = 'https://api.flutterwave.com/v3';
+
 /**
- * Currencies Paystack can natively transfer to bank accounts.
+ * Currencies Flutterwave can natively transfer to bank accounts.
+ * Covers Nigeria, Ghana, Kenya, Uganda, Tanzania, Rwanda, South Africa,
+ * Côte d'Ivoire, Senegal, and more.
  * Everything else is routed as pending_manual.
+ *
+ * Docs: https://developer.flutterwave.com/docs/collecting-payments/transfers
  */
-const PAYSTACK_TRANSFER_CURRENCIES = ['NGN', 'GHS', 'ZAR', 'KES'];
-
-const PAYSTACK_BASE = 'https://api.paystack.co';
+const FLW_TRANSFER_CURRENCIES = [
+  'NGN', 'GHS', 'KES', 'UGX', 'TZS', 'RWF',
+  'ZAR', 'XOF', 'XAF', 'MWK', 'ZMW',
+];
 
 /**
- * Look up a Paystack bank_code matching the freeform bank name the
- * freelancer typed in. Uses currency to filter bank list.
- * Returns null if no confident match is found.
+ * Map a currency code to the Flutterwave country code used
+ * when looking up banks via GET /v3/banks/:country
  */
-async function findPaystackBankCode(paystackKey, bankName, currency) {
+const CURRENCY_TO_COUNTRY = {
+  NGN: 'NG',
+  GHS: 'GH',
+  KES: 'KE',
+  UGX: 'UG',
+  TZS: 'TZ',
+  RWF: 'RW',
+  ZAR: 'ZA',
+  XOF: 'CI',   // Côte d'Ivoire uses XOF
+  XAF: 'CM',   // Cameroon uses XAF
+  MWK: 'MW',
+  ZMW: 'ZM',
+};
+
+/**
+ * Look up a Flutterwave bank code matching the freeform bank name
+ * the freelancer typed in. Uses the currency→country mapping above.
+ * Returns null if no confident match is found.
+ *
+ * Docs: GET /v3/banks/:country
+ */
+async function findFlutterwaveBankCode(flwKey, bankName, currency) {
   if (!bankName) return null;
 
-  const curr = (currency || 'NGN').toUpperCase();
-  const res = await fetch(`${PAYSTACK_BASE}/bank?currency=${curr}`, {
-    headers: { Authorization: `Bearer ${paystackKey}` },
+  const countryCode = CURRENCY_TO_COUNTRY[(currency || 'NGN').toUpperCase()];
+  if (!countryCode) return null;
+
+  const res = await fetch(`${FLW_BASE}/banks/${countryCode}`, {
+    headers: { Authorization: `Bearer ${flwKey}` },
   });
 
   if (!res.ok) {
-    throw new Error(`Paystack bank lookup returned status ${res.status}`);
+    throw new Error(`Flutterwave bank lookup returned status ${res.status}`);
   }
 
   const data = await res.json();
-  if (!data.status || !Array.isArray(data.data)) return null;
+  if (data.status !== 'success' || !Array.isArray(data.data)) return null;
 
   const needle = bankName.trim().toLowerCase();
 
@@ -125,63 +154,54 @@ async function findPaystackBankCode(paystackKey, bankName, currency) {
 }
 
 /**
- * Create a Paystack transfer recipient and return the recipient_code.
- * Uses the provided currency (NUBAN for NGN, equivalent for GHS/ZAR/KES).
+ * Initiate a Flutterwave bank transfer.
+ * Unlike Paystack, Flutterwave does NOT require a separate recipient creation
+ * step — bank details are sent directly in the transfer request.
+ * Amount is in the base currency unit (no kobo/smallest-unit conversion needed).
+ *
+ * Docs: POST /v3/transfers
  */
-async function createPaystackRecipient(paystackKey, { accountName, accountNumber, bankCode, currency }) {
-  const res = await fetch(`${PAYSTACK_BASE}/transferrecipient`, {
+async function initiateFlutterwaveTransfer(flwKey, {
+  amountLocal,
+  currency,
+  accountNumber,
+  accountName,
+  bankCode,
+  bankName,
+  narration,
+  reference,
+}) {
+  const res = await fetch(`${FLW_BASE}/transfers`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${paystackKey}`,
+      Authorization:  `Bearer ${flwKey}`,
     },
     body: JSON.stringify({
-      type: 'nuban',
-      name: accountName,
-      account_number: accountNumber,
-      bank_code: bankCode,
-      currency: (currency || 'NGN').toUpperCase(),
-    }),
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok || !data.status) {
-    throw new Error(data.message || `Paystack recipient creation failed (status ${res.status})`);
-  }
-
-  return data.data.recipient_code;
-}
-
-/**
- * Initiate a Paystack transfer to a recipient. Amount is in the smallest
- * currency unit (kobo for NGN, pesewas for GHS, etc.), so multiply by 100.
- */
-async function initiatePaystackTransfer(paystackKey, { amountLocal, recipientCode, reason, reference }) {
-  const res = await fetch(`${PAYSTACK_BASE}/transfer`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${paystackKey}`,
-    },
-    body: JSON.stringify({
-      source: 'balance',
-      amount: Math.round(amountLocal * 100),
-      recipient: recipientCode,
-      reason: reason || 'Kreddlo withdrawal',
+      account_bank:    bankCode,
+      account_number:  accountNumber,
+      amount:          amountLocal,   // Flutterwave accepts full decimal, not smallest unit
+      narration:       narration || 'Kreddlo withdrawal',
+      currency:        (currency || 'NGN').toUpperCase(),
       reference,
+      beneficiary_name: accountName,
+      meta: [
+        { metaname: 'bankName', metavalue: bankName },
+        { metaname: 'platform', metavalue: 'kreddlo' },
+      ],
     }),
   });
 
   const data = await res.json().catch(() => ({}));
 
-  if (!res.ok || !data.status) {
-    throw new Error(data.message || `Paystack transfer failed (status ${res.status})`);
+  if (!res.ok || data.status !== 'success') {
+    throw new Error(data.message || `Flutterwave transfer failed (status ${res.status})`);
   }
 
   return {
-    transferCode: data.data.transfer_code || null,
-    paystackStatus: data.data.status || 'pending',
+    transferId:   data.data.id           || null,
+    flwRef:       data.data.reference    || reference,
+    flwStatus:    data.data.status       || 'NEW',
   };
 }
 
@@ -222,16 +242,14 @@ exports.handler = async function (event) {
   }
 
   const {
-    uid: _bodyUid,  // ignored — we use the verified caller uid
-    amount,               // amount in the withdrawal currency
-    withdrawalCurrency,   // currency to withdraw (NGN, USD, GBP, etc.)
+    uid: _bodyUid,      // ignored — we use the verified caller uid
+    amount,             // amount in the withdrawal currency
+    withdrawalCurrency, // currency to withdraw (NGN, USD, GBP, etc.)
     accountName,
     accountNumber,
     bankName,
-    swift,                // SWIFT / IBAN — required for international transfers
-    country,
-    saveDetails,          // boolean — save bank details for future withdrawals
-    fees,                 // { platformFee }
+    saveDetails,        // boolean — save bank details for future withdrawals
+    fees,               // { platformFee }
   } = payload;
 
   // Always use the token-verified uid, not the client-supplied one
@@ -256,19 +274,16 @@ exports.handler = async function (event) {
   if (!bankName || !bankName.trim()) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Bank name is required.' }) };
   }
-  if (!country || !country.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Country is required.' }) };
-  }
 
   const amountLocal = Number(amount);
 
   try {
-    const db       = getDb();
-    const settings = await getSettings(db);
+    const db         = getDb();
+    const settings   = await getSettings(db);
     const FieldValue = require('firebase-admin').firestore.FieldValue;
 
     /* ── Fiat payouts must be enabled by an admin ── */
-    if (!settings.paystackEnabled && !settings.stripeEnabled) {
+    if (!settings.flutterwaveEnabled && !settings.stripeEnabled) {
       return { statusCode: 403, body: JSON.stringify({ error: 'Bank withdrawals are not currently enabled.' }) };
     }
 
@@ -351,104 +366,121 @@ exports.handler = async function (event) {
       accountName:   accountName.trim(),
       accountNumber: accountNumber.trim(),
       bankName:      bankName.trim(),
-      swift:         (swift || '').trim(),
-      country:       country.trim(),
+      // Country is no longer collected from the user (Bug 5 simplification).
+      // Derived from the withdrawal currency for routing/record-keeping until
+      // the dynamic Flutterwave bank picker (Bug 6) supplies it directly.
+      country:       CURRENCY_TO_COUNTRY[currency] || '',
     };
 
     const payoutData = {
-      userUid:    uid,
-      userName:   userData.name  || '',
-      userEmail:  userData.email || '',
-      amount:     amountLocal,
+      userUid:   uid,
+      userName:  userData.name  || '',
+      userEmail: userData.email || '',
+      amount:    amountLocal,
       currency,
-      type:       'bank',
-      method:     null,       // set below: 'paystack', 'pending_manual', or 'manual'
+      type:      'bank',
+      method:    null,   // set below: 'flutterwave', 'pending_manual', or 'manual'
       bankDetails,
       fees: {
         platformFee,
       },
-      status:     'pending',
-      createdAt:  new Date(),
-      updatedAt:  new Date(),
+      status:    'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const payoutRef = await db.collection('payouts').add(payoutData);
     const payoutId  = payoutRef.id;
 
     /* ────────────────────────────────────────
-       STEP 3 — Route to Paystack or mark for manual processing
+       STEP 3 — Route to Flutterwave or mark for manual processing
 
-       Paystack supports automated transfers for: NGN, GHS, ZAR, KES.
-       All international currencies (USD, EUR, GBP, etc.) are flagged
-       as pending_manual for Stripe Connect / wire processing.
+       Flutterwave supports automated transfers for NGN, GHS, KES, UGX,
+       TZS, RWF, ZAR, XOF, XAF, MWK, ZMW.
+       All other currencies (USD, EUR, GBP, etc.) are flagged as
+       pending_manual for wire/SWIFT processing by the team.
     ──────────────────────────────────────── */
     let method        = 'manual';
     let payoutStatus  = 'pending_review';
-    let transferCode  = null;
+    let transferId    = null;
+    let flwRef        = null;
     let resultMessage = `Bank transfer request of ${formatCurrency(amountLocal, currency)} received. Our team will process this within 1-3 business days.`;
 
-    const isPaystackCurrency = PAYSTACK_TRANSFER_CURRENCIES.includes(currency);
-    const paystackKey = process.env.PAYSTACK_SECRET_KEY;
+    const isFlwCurrency = FLW_TRANSFER_CURRENCIES.includes(currency);
+    const flwKey        = process.env.FLW_SECRET_KEY;
 
-    if (!isPaystackCurrency) {
-      /* ── International currency — queue for manual Stripe/wire processing ── */
-      method       = 'pending_manual';
-      payoutStatus = 'pending_manual';
+    if (!isFlwCurrency) {
+      /* ── International currency — queue for manual wire processing ── */
+      method        = 'pending_manual';
+      payoutStatus  = 'pending_manual';
       resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed manually within 2-5 business days.`;
 
       console.log(`[create-bank-payout] ${currency} withdrawal for ${uid} — queued as pending_manual (international bank transfer).`);
 
-    } else if (settings.paystackEnabled && paystackKey) {
-      /* ── Attempt automated Paystack transfer for supported currencies ── */
+    } else if (settings.flutterwaveEnabled && flwKey) {
+      /* ── Attempt automated Flutterwave transfer for supported currencies ── */
       try {
-        const bankCode = await findPaystackBankCode(paystackKey, bankDetails.bankName, currency);
+        /*
+         * Flutterwave needs a bank_code to route the transfer.
+         * We look it up from their /v3/banks/:country list using the
+         * freeform bank name the freelancer entered.
+         * If we can't match it, we fall back to pending_review (manual team processing).
+         */
+        const bankCode = await findFlutterwaveBankCode(flwKey, bankDetails.bankName, currency);
 
         if (bankCode) {
-          const recipientCode = await createPaystackRecipient(paystackKey, {
-            accountName:   bankDetails.accountName,
-            accountNumber: bankDetails.accountNumber,
-            bankCode,
-            currency,
-          });
-
-          const transferResult = await initiatePaystackTransfer(paystackKey, {
+          const transferResult = await initiateFlutterwaveTransfer(flwKey, {
             amountLocal,
-            recipientCode,
-            reason:    `Kreddlo withdrawal ${payoutId}`,
-            reference: `kreddlo-${uid}-${payoutId}`,
+            currency,
+            accountNumber: bankDetails.accountNumber,
+            accountName:   bankDetails.accountName,
+            bankCode,
+            bankName:      bankDetails.bankName,
+            narration:     `Kreddlo withdrawal ${payoutId}`,
+            reference:     `kreddlo-${uid}-${payoutId}`,
           });
 
-          method        = 'paystack';
+          method        = 'flutterwave';
           payoutStatus  = 'sent';
-          transferCode  = transferResult.transferCode;
+          transferId    = transferResult.transferId;
+          flwRef        = transferResult.flwRef;
           resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} sent to your bank account.`;
+
+          console.log(`[create-bank-payout] Flutterwave transfer initiated — payoutId: ${payoutId}, transferId: ${transferId}, flwRef: ${flwRef}`);
+        } else {
+          /*
+           * Bank code lookup returned null — bank name didn't match any
+           * bank in the FLW list. Fall through to pending_review.
+           */
+          console.warn(`[create-bank-payout] Could not match bank "${bankDetails.bankName}" for ${currency} — falling back to pending_review.`);
         }
-      } catch (paystackErr) {
-        console.error('[create-bank-payout] Paystack transfer failed, falling back to manual review:', paystackErr.message);
+      } catch (flwErr) {
+        console.error('[create-bank-payout] Flutterwave transfer failed, falling back to manual review:', flwErr.message);
         // Falls through — payout is still recorded, balance still deducted, team handles manually.
       }
     }
 
     await payoutRef.update({
       method,
-      status:       payoutStatus,
-      transferCode: transferCode || null,
+      status:      payoutStatus,
+      transferId:  transferId || null,
+      flwRef:      flwRef     || null,
       // For international currencies, add a note for the team
       ...(method === 'pending_manual' ? {
-        note: 'International bank transfer — requires manual processing via Stripe Connect or wire.',
+        note: 'International bank transfer — requires manual processing via wire/SWIFT.',
       } : {}),
       updatedAt: new Date(),
     });
 
     /* ────────────────────────────────────────
-       FIX #1 — Atomic balance reservation via Firestore transaction
+       STEP 4 — Atomic balance deduction via Firestore transaction
        Re-reads balance inside transaction to prevent race conditions.
     ──────────────────────────────────────── */
     let newCurrencyBalance;
     try {
       await db.runTransaction(async (tx) => {
-        const freshSnap    = await tx.get(userRef);
-        const freshData    = freshSnap.data();
+        const freshSnap     = await tx.get(userRef);
+        const freshData     = freshSnap.data();
         const freshBalances = freshData.balances || {};
         if (!Object.keys(freshBalances).length && freshData.availableBalance) {
           freshBalances['USD'] = Number(freshData.availableBalance || 0);
@@ -488,7 +520,7 @@ exports.handler = async function (event) {
        STEP 5 — Send withdrawal confirmation notification
     ──────────────────────────────────────── */
     try {
-      const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+      const platformUrl     = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
       const formattedAmount = formatCurrency(amountLocal, currency);
 
       await fetch(`${platformUrl}/.netlify/functions/send-smart-notification`, {
@@ -498,7 +530,7 @@ exports.handler = async function (event) {
           userUid:    userData.uid || null,
           to:         userData.email || null,
           title:      'Bank Withdrawal Initiated',
-          body:       method === 'paystack'
+          body:       method === 'flutterwave'
             ? `Your withdrawal of ${formattedAmount} has been sent to your bank account.`
             : `Your withdrawal of ${formattedAmount} has been received and is being processed by our team.`,
           url:        `${platformUrl}/dashboard-withdraw.html`,

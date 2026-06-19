@@ -12,9 +12,9 @@
 <title>My Projects — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -209,7 +209,7 @@ body { overflow-x: hidden !important; }
   .modal-box {
     max-width: 100% !important;
     border-radius: 18px !important;
-    padding: 24px 16px !important;
+    padding: 24px 16px 32px !important;
   }
 }
 </style>
@@ -372,7 +372,7 @@ function buildNav(affiliateEnabled) {
   });
   var html = items.map(function(n) {
     var active = cur === n.href.replace('/','') ? ' active' : '';
-    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+    return '<a href="'+n.href+'" class="nav-link'+active+'" onclick="closeMobileMenu()">'+n.icon+n.label+'</a>';
   }).join('');
   document.getElementById('mobile-nav').innerHTML = html;
   document.getElementById('desktop-nav').innerHTML = html;
@@ -389,11 +389,6 @@ function closeMobileMenu() {
   document.getElementById('mobile-dim').classList.remove('open');
   document.body.style.overflow = '';
 }
-
-// ============ LOGOUT ============
-function handleLogout() { showToast('Signed out (demo mode)'); }
-document.getElementById('mb-signout').onclick = handleLogout;
-document.getElementById('dt-signout').onclick = handleLogout;
 
 // ============ TOAST ============
 function showToast(msg) {
@@ -790,6 +785,7 @@ window._boot = function(user, userData) {
   document.getElementById('user-avatar').textContent =
     parts.length >= 2 ? parts[0][0]+parts[parts.length-1][0] : DEMO_USER.name.slice(0,2).toUpperCase();
 
+  var affiliateEnabled = userData && userData.affiliateEnabled === true;
   buildNav(affiliateEnabled);
   document.getElementById('bell-dot').style.display = 'block';
   loadBuyerProjects(user.uid).then(function() {

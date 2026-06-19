@@ -13,9 +13,9 @@
 <meta name="robots" content="noindex,nofollow"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -278,6 +278,7 @@ body { overflow-x: hidden !important; }
         <button class="filter-tab" onclick="filterNotifs('payment', this)">Payments</button>
         <button class="filter-tab" onclick="filterNotifs('project', this)">Projects</button>
         <button class="filter-tab" onclick="filterNotifs('account', this)">Account</button>
+        <button class="filter-tab" onclick="filterNotifs('admin', this)">Admin</button>
       </div>
 
       <!-- NOTIFICATIONS LIST -->
@@ -434,6 +435,7 @@ const TYPE_CONFIG = {
   payment: { label:'Payment', color:'#2d8a5e', bg:'#e8f5ef' },
   project: { label:'Project', color:'#1a56db', bg:'#e8f0fe' },
   account: { label:'Account', color:'#856404', bg:'#fff3cd' },
+  admin:   { label:'Admin',   color:'#7c3aed', bg:'#f3e8ff' },
 };
 function relTime(ts) {
   const diff = (Date.now() - ts) / 1000;

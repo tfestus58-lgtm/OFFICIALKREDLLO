@@ -12,9 +12,9 @@
 <title>Affiliate Dashboard — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link rel="dns-prefetch" href="https://www.gstatic.com"/>
-<link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -193,20 +193,43 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
       <!-- MAIN CONTENT: enrolled -->
       <div id="enrolled-state" style="display:none;">
 
-        <!-- Balance + Withdraw row -->
-        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;">
-          <div>
-            <p class="lbl" style="margin:0 0 4px;">Available Balance</p>
-            <div style="display:flex;align-items:baseline;gap:8px;">
-              <span id="bal-amount" style="font-size:32px;font-weight:800;color:#0d2145;letter-spacing:-1px;" class="sk" style="min-width:120px;height:36px;">&nbsp;</span>
-              <span id="bal-currency" style="font-size:14px;font-weight:600;color:rgba(13,33,69,0.45);">USD</span>
+        <!-- Payouts frozen notice -->
+        <div id="payouts-frozen-notice" style="display:none;align-items:center;gap:12px;background:rgba(99,60,180,0.08);border:1.5px solid rgba(99,60,180,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#633cb4" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
+          <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
+        </div>
+
+        <!-- Balance + Withdraw row — split into crypto / fiat buckets -->
+        <div style="margin-bottom:22px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+            <!-- Crypto balance card -->
+            <div class="stat-card" style="border-left:3px solid #2d8a5e;">
+              <p class="lbl" style="margin:0 0 4px;">Crypto Balance</p>
+              <div style="display:flex;align-items:baseline;gap:6px;">
+                <span id="bal-crypto-amount" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;">—</span>
+                <span id="bal-crypto-currency" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.45);">USD</span>
+              </div>
+              <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);margin:4px 0 0;">From crypto purchases</p>
+              <button class="btn-green" onclick="openWithdrawModal('crypto')" style="margin-top:10px;padding:8px 14px;font-size:12px;width:100%;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Withdraw Crypto
+              </button>
             </div>
-            <p id="bal-pending" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:4px 0 0;"></p>
+            <!-- Fiat balance card -->
+            <div class="stat-card" style="border-left:3px solid #0d2145;">
+              <p class="lbl" style="margin:0 0 4px;">Fiat Balance</p>
+              <div style="display:flex;align-items:baseline;gap:6px;">
+                <span id="bal-fiat-amount" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;">—</span>
+                <span id="bal-fiat-currency" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.45);">USD</span>
+              </div>
+              <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);margin:4px 0 0;">From card / bank purchases</p>
+              <button class="btn-primary" onclick="openWithdrawModal('bank')" style="margin-top:10px;padding:8px 14px;font-size:12px;width:100%;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Withdraw to Bank
+              </button>
+            </div>
           </div>
-          <button id="withdraw-btn" class="btn-green" onclick="openWithdrawModal()" style="margin-top:4px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Withdraw
-          </button>
+          <p id="bal-pending" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;"></p>
         </div>
 
         <!-- Stats grid -->
@@ -280,6 +303,7 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
                   <tr>
                     <th>Date</th>
                     <th>Product</th>
+                    <th>Type</th>
                     <th style="text-align:right;">Commission</th>
                     <th style="text-align:right;">Status</th>
                   </tr>
@@ -361,10 +385,104 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
       </div>
     </div>
 
-    <!-- Wallet note -->
-    <div style="background:#fff3cd;border:1px solid #f6c843;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
-      <p style="font-size:12px;font-weight:500;color:#856404;margin:0;line-height:1.5;">Payout will be sent to the withdrawal wallet set in your <a href="/dashboard-settings.html" style="color:#856404;font-weight:700;">Settings</a>. Ensure it is correct before proceeding.</p>
+    <!-- Payout method tabs -->
+    <div style="display:flex;gap:8px;margin-bottom:18px;">
+      <button id="wd-tab-crypto" onclick="switchWdTab('crypto')" style="flex:1;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border:1.5px solid #2d8a5e;background:#2d8a5e;color:#fff;transition:all .15s;">Crypto Wallet</button>
+      <button id="wd-tab-bank" onclick="switchWdTab('bank')" style="flex:1;padding:9px 12px;border-radius:10px;font-size:12px;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;color:rgba(13,33,69,0.55);transition:all .15s;">Bank Transfer</button>
+    </div>
+
+    <!-- Currency selector — swaps between crypto coins and fiat currencies per tab -->
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:8px;">Withdrawal Currency</label>
+
+      <!-- Crypto currencies (shown when Crypto Wallet tab is active) -->
+      <div id="wd-crypto-currencies" style="display:flex;flex-wrap:wrap;gap:7px;">
+        <button class="wd-cur-btn wd-cur-selected" data-cur="USDT" onclick="selectWdCurrency('USDT')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #2d8a5e;background:#e8f5ef;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:#2d8a5e;cursor:pointer;transition:all .15s;">USDT</button>
+        <button class="wd-cur-btn" data-cur="USDC" onclick="selectWdCurrency('USDC')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">USDC</button>
+        <button class="wd-cur-btn" data-cur="BTC" onclick="selectWdCurrency('BTC')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">BTC</button>
+        <button class="wd-cur-btn" data-cur="ETH" onclick="selectWdCurrency('ETH')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">ETH</button>
+        <button class="wd-cur-btn" data-cur="BNB" onclick="selectWdCurrency('BNB')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">BNB</button>
+        <button class="wd-cur-btn" data-cur="SOL" onclick="selectWdCurrency('SOL')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">SOL</button>
+        <button class="wd-cur-btn" data-cur="TRX" onclick="selectWdCurrency('TRX')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">TRX</button>
+        <button class="wd-cur-btn" data-cur="XRP" onclick="selectWdCurrency('XRP')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">XRP</button>
+        <button class="wd-cur-btn" data-cur="LTC" onclick="selectWdCurrency('LTC')" style="padding:7px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;color:rgba(13,33,69,0.55);cursor:pointer;transition:all .15s;">LTC</button>
+      </div>
+
+      <!-- Fiat currencies (shown when Bank Transfer tab is active) -->
+      <div id="wd-fiat-currencies" style="display:none;">
+        <select id="wd-fiat-select" onchange="onWdFiatChange()" style="width:100%;padding:13px 38px 13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\") no-repeat right 14px center;-webkit-appearance:none;appearance:none;cursor:pointer;transition:border-color .2s;">
+          <option value="NGN">NGN — Nigerian Naira</option>
+          <option value="GHS">GHS — Ghanaian Cedi</option>
+          <option value="KES">KES — Kenyan Shilling</option>
+          <option value="UGX">UGX — Ugandan Shilling</option>
+          <option value="TZS">TZS — Tanzanian Shilling</option>
+          <option value="ZAR">ZAR — South African Rand</option>
+          <option value="XOF">XOF — West African CFA Franc</option>
+          <option value="XAF">XAF — Central African CFA Franc</option>
+          <option value="RWF">RWF — Rwandan Franc</option>
+          <option value="ETB">ETB — Ethiopian Birr</option>
+          <option value="USD">USD — US Dollar</option>
+          <option value="GBP">GBP — British Pound</option>
+          <option value="EUR">EUR — Euro</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Crypto payout section -->
+    <div id="wd-section-crypto">
+      <div style="background:#fff3cd;border:1px solid #f6c843;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <p style="font-size:12px;font-weight:500;color:#856404;margin:0;line-height:1.5;">Payout will be sent to the withdrawal wallet set in your <a href="/dashboard-settings.html" style="color:#856404;font-weight:700;">Settings</a>. Ensure it is correct before proceeding.</p>
+      </div>
+    </div>
+
+    <!-- Bank payout section -->
+    <div id="wd-section-bank" style="display:none;">
+
+      <!-- Saved bank details display -->
+      <div id="wd-bank-saved" style="display:none;background:#f8f9fb;border:1.5px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:rgba(13,33,69,0.5);text-transform:uppercase;letter-spacing:.04em;">Saved Bank Account</span>
+          <button onclick="editBankDetails()" style="font-size:11px;font-weight:700;color:#2d8a5e;background:none;border:none;cursor:pointer;padding:0;font-family:'Plus Jakarta Sans',sans-serif;">Edit</button>
+        </div>
+        <div id="wd-bank-saved-name" style="font-size:14px;font-weight:800;color:#0d2145;margin-bottom:2px;">—</div>
+        <div id="wd-bank-saved-bank" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.55);">—</div>
+        <div id="wd-bank-saved-acct" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.55);">—</div>
+      </div>
+
+      <!-- Bank entry form -->
+      <div id="wd-bank-form">
+        <!-- Bank selector -->
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Bank</label>
+          <div style="position:relative;">
+            <select id="wd-bank-select" onchange="onWdBankChange()" style="width:100%;padding:13px 38px 13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\") no-repeat right 14px center;-webkit-appearance:none;appearance:none;cursor:pointer;transition:border-color .2s;">
+              <option value="">Loading banks…</option>
+            </select>
+          </div>
+        </div>
+        <!-- Account number -->
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Number</label>
+          <input id="wd-acct-number" type="tel" maxlength="10" placeholder="e.g. 0123456789" onblur="lookupAccountName()" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;transition:border-color .2s;background:#fff;" />
+        </div>
+        <!-- Account name (auto-filled) -->
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Name <span id="wd-acct-lookup-spinner" style="display:none;font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);">Looking up…</span></label>
+          <input id="wd-acct-name" type="text" readonly placeholder="Auto-filled after lookup" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#0d2145;outline:none;background:rgba(13,33,69,0.03);cursor:default;" />
+        </div>
+        <!-- Save checkbox -->
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;">
+          <input type="checkbox" id="wd-save-bank" checked style="width:16px;height:16px;accent-color:#2d8a5e;cursor:pointer;flex-shrink:0;" />
+          <label for="wd-save-bank" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.55);cursor:pointer;">Save bank details for future withdrawals</label>
+        </div>
+        <div id="wd-bank-lookup-error" style="display:none;font-size:12px;font-weight:600;color:#c81e1e;margin-bottom:10px;padding:10px 12px;background:#fde8e8;border-radius:10px;"></div>
+      </div>
+
+      <div style="background:#e8f5ef;border:1px solid rgba(45,138,94,0.2);border-radius:12px;padding:12px 14px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <p style="font-size:12px;font-weight:500;color:#2d8a5e;margin:0;line-height:1.5;">Bank payout is processed via Flutterwave. Transfers typically arrive within 1–2 business days.</p>
+      </div>
     </div>
 
     <div style="display:flex;gap:10px;">
@@ -415,11 +533,22 @@ window.fsGetDoc         = getDoc;
 window.fsDoc            = doc;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-var _uid          = null;
-var _userRole     = null;
-var _affiliateBal = 0;
-var _settings     = {};
+var _uid              = null;
+var _userRole         = null;
+var _affiliateBal     = 0;   // total (crypto + fiat)
+var _affiliateCryptoBal = 0; // withdrawable via crypto only
+var _affiliateFiatBal   = 0; // withdrawable via bank only
+var _settings         = {};
 var _walletAddr   = null;
+var _wdTab        = 'crypto'; // 'crypto' | 'bank'
+var _wdCurrency   = 'USDT';  // selected withdrawal currency
+var _bankList     = [];       // [{ code, name }] from Flutterwave
+var _bankListLoaded = false;
+var _bankListCurrency = null; // currency the cached _bankList was fetched for
+var _savedBankCode   = null;
+var _savedBankName   = null;
+var _savedAcctNumber = null;
+var _savedAcctName   = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(n, cur) {
@@ -532,6 +661,10 @@ async function loadAffiliateDashboard(uid) {
   var userData = userSnap.exists() ? userSnap.data() : {};
   _affiliateBal  = Number(userData.affiliateBalance)     || 0;
   _walletAddr    = userData.walletAddress                || null;
+  _savedBankCode   = userData.affiliateBankCode   || null;
+  _savedBankName   = userData.affiliateBankName   || null;
+  _savedAcctNumber = userData.affiliateAccountNumber || null;
+  _savedAcctName   = userData.affiliateAccountName   || null;
   var totalEarned= Number(userData.affiliateTotalEarned) || 0;
   var totalPaid  = Number(userData.affiliateTotalPaid)   || 0;
 
@@ -539,29 +672,59 @@ async function loadAffiliateDashboard(uid) {
   var initials = ((userData.displayName || userData.name || 'U').trim().charAt(0) || 'U').toUpperCase();
   document.getElementById('user-avatar').textContent = initials;
 
-  // Balance header
-  document.getElementById('bal-amount').textContent   = _affiliateBal.toFixed(2);
-  document.getElementById('bal-currency').textContent = cur;
-
-  // Pending = totalEarned - totalPaid - available (approximate from balance)
-  var pendingEst = Math.max(0, totalEarned - totalPaid - _affiliateBal);
-  if (pendingEst > 0) {
-    document.getElementById('bal-pending').textContent = cur + ' ' + pendingEst.toFixed(2) + ' pending';
+  // Pending clearance (Item 9 — admin-configurable affiliate holding period).
+  // affiliatePendingBalance is the real held-funds figure written by the
+  // payment webhooks; fall back to the old estimate for any legacy records
+  // written before this field existed.
+  var pendingClearance = userData.affiliatePendingBalance != null
+    ? Number(userData.affiliatePendingBalance) || 0
+    : Math.max(0, totalEarned - totalPaid - _affiliateBal);
+  if (pendingClearance > 0) {
+    document.getElementById('bal-pending').textContent = cur + ' ' + pendingClearance.toFixed(2) + ' clearing — available once the holding period ends';
+  } else {
+    document.getElementById('bal-pending').textContent = '';
   }
 
   // Stats — query affiliate-earnings
   var earningsColl  = collection(db, 'affiliate-earnings');
   var earningsQ     = query(earningsColl, where('affiliateUid', '==', uid), orderBy('createdAt', 'desc'), limit(100));
   var earningsSnap  = await getDocs(earningsQ);
-  var earningDocs   = [];
+  var earningDocs     = [];
   var totalPendingAmt = 0, totalConversions = 0;
+  var cryptoPendingAmt = 0, fiatPendingAmt = 0;
   earningsSnap.forEach(function(d) {
     var e = d.data();
     e._id = d.id;
     earningDocs.push(e);
     totalConversions++;
-    if (e.status === 'pending') totalPendingAmt += Number(e.amount) || 0;
+    if (e.status === 'pending') {
+      var amt = Number(e.amount) || 0;
+      totalPendingAmt += amt;
+      if (e.paymentMethod === 'crypto') cryptoPendingAmt += amt;
+      else fiatPendingAmt += amt;
+    }
   });
+
+  // Compute per-bucket balances from pending earnings
+  // (total balance is the authoritative figure from Firestore; we split it
+  //  proportionally using pending earnings as a proxy for bucket share)
+  // For simplicity and accuracy: sum pending by bucket, available balance
+  // is the full affiliateBalance (may mix legacy records without paymentMethod)
+  _affiliateCryptoBal = cryptoPendingAmt;
+  _affiliateFiatBal   = fiatPendingAmt;
+  // If no pending bucket split is available, fall back to full balance in each
+  if (_affiliateCryptoBal + _affiliateFiatBal < _affiliateBal) {
+    var legacyRemainder = _affiliateBal - (_affiliateCryptoBal + _affiliateFiatBal);
+    // Distribute legacy remainder (no paymentMethod tag) to both buckets proportionally
+    // For safety, show it in fiat since most legacy earnings were card/Flutterwave
+    _affiliateFiatBal += legacyRemainder;
+  }
+
+  // Update the two balance cards
+  document.getElementById('bal-crypto-amount').textContent   = _affiliateCryptoBal.toFixed(2);
+  document.getElementById('bal-crypto-currency').textContent = cur;
+  document.getElementById('bal-fiat-amount').textContent     = _affiliateFiatBal.toFixed(2);
+  document.getElementById('bal-fiat-currency').textContent   = cur;
 
   // Stat cards
   document.getElementById('stat-total').textContent       = fmt(totalEarned, cur);
@@ -622,10 +785,16 @@ async function loadAffiliateDashboard(uid) {
       var statusBadge = e.status === 'paid'
         ? '<span class="badge badge-green">Paid</span>'
         : '<span class="badge badge-amber">Pending</span>';
+      var methodBadge = e.paymentMethod === 'crypto'
+        ? '<span class="badge badge-navy">Crypto</span>'
+        : (e.paymentMethod === 'fiat'
+          ? '<span class="badge badge-green">Fiat</span>'
+          : '<span class="badge" style="background:#f0f2f6;color:rgba(13,33,69,0.55);">—</span>');
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td style="color:rgba(13,33,69,0.60);white-space:nowrap;">' + fmtDate(e.createdAt) + '</td>' +
-        '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escHtml(e.productTitle || e.productId || '—') + '</td>' +
+        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escHtml(e.productTitle || e.productId || '—') + '</td>' +
+        '<td>' + methodBadge + '</td>' +
         '<td style="text-align:right;font-weight:700;color:#2d8a5e;">' + fmt(e.amount, e.currency || cur) + '</td>' +
         '<td style="text-align:right;">' + statusBadge + '</td>';
       etbody.appendChild(tr);
@@ -663,17 +832,33 @@ async function loadAffiliateDashboard(uid) {
 }
 
 // ── Withdraw modal ────────────────────────────────────────────────────────────
-window.openWithdrawModal = function() {
-  var cur = _settings.platformCurrency || 'USD';
+window.openWithdrawModal = function(defaultTab) {
+  // Block if payouts are frozen
+  if (window._payoutsFrozen) {
+    showToast('Withdrawals temporarily paused by platform. Please contact support.');
+    return;
+  }
   var feePct = Number(_settings.affiliateWithdrawFeePercent) || 2;
 
-  document.getElementById('wd-available').textContent  = cur + ' ' + _affiliateBal.toFixed(2);
-  document.getElementById('wd-fee-pct').textContent    = feePct;
-  document.getElementById('wd-fee-display').textContent= '—';
-  document.getElementById('wd-net-display').textContent= '—';
-  document.getElementById('wd-amount-input').value     = '';
-  document.getElementById('wd-error').style.display    = 'none';
-  document.getElementById('wd-confirm-btn').disabled   = false;
+  document.getElementById('wd-fee-pct').textContent     = feePct;
+  document.getElementById('wd-fee-display').textContent = '—';
+  document.getElementById('wd-net-display').textContent = '—';
+  document.getElementById('wd-amount-input').value      = '';
+  document.getElementById('wd-error').style.display     = 'none';
+  document.getElementById('wd-confirm-btn').disabled    = false;
+  document.getElementById('wd-confirm-btn').textContent = 'Withdraw';
+
+  // Open on the tab matching the bucket the user clicked
+  var tab = (defaultTab === 'bank') ? 'bank' : 'crypto';
+  _wdCurrency = (tab === 'crypto') ? 'USDT' : 'NGN';
+  switchWdTab(tab);
+
+  // Pre-populate bank section if saved details exist
+  populateSavedBankDisplay();
+
+  // Load bank list for bank tab
+  loadAffiliateBankList();
+
   document.getElementById('withdraw-modal').classList.add('open');
 };
 
@@ -681,8 +866,158 @@ window.closeWithdrawModal = function() {
   document.getElementById('withdraw-modal').classList.remove('open');
 };
 
+window.switchWdTab = function(tab) {
+  _wdTab = tab;
+  var isCrypto = (tab === 'crypto');
+  document.getElementById('wd-tab-crypto').style.background    = isCrypto ? '#2d8a5e' : '#fff';
+  document.getElementById('wd-tab-crypto').style.color         = isCrypto ? '#fff' : 'rgba(13,33,69,0.55)';
+  document.getElementById('wd-tab-crypto').style.borderColor   = isCrypto ? '#2d8a5e' : '#e2e8f0';
+  document.getElementById('wd-tab-bank').style.background      = !isCrypto ? '#2d8a5e' : '#fff';
+  document.getElementById('wd-tab-bank').style.color           = !isCrypto ? '#fff' : 'rgba(13,33,69,0.55)';
+  document.getElementById('wd-tab-bank').style.borderColor     = !isCrypto ? '#2d8a5e' : '#e2e8f0';
+  document.getElementById('wd-section-crypto').style.display   = isCrypto ? 'block' : 'none';
+  document.getElementById('wd-section-bank').style.display     = !isCrypto ? 'block' : 'none';
+  document.getElementById('wd-error').style.display            = 'none';
+
+  // Swap currency selectors
+  document.getElementById('wd-crypto-currencies').style.display = isCrypto ? 'flex' : 'none';
+  document.getElementById('wd-fiat-currencies').style.display   = !isCrypto ? 'block' : 'none';
+
+  // Reset currency to sensible default for the tab
+  if (isCrypto) {
+    _wdCurrency = 'USDT';
+    refreshCryptoCurrencyBtns('USDT');
+  } else {
+    _wdCurrency = document.getElementById('wd-fiat-select').value || 'NGN';
+  }
+
+  // Update available balance display to reflect the active bucket
+  var bucketBal = (tab === 'bank') ? _affiliateFiatBal : _affiliateCryptoBal;
+  document.getElementById('wd-available').textContent = _wdCurrency + ' ' + bucketBal.toFixed(2);
+  updateWithdrawCalc();
+};
+
+function refreshCryptoCurrencyBtns(selected) {
+  var btns = document.querySelectorAll('#wd-crypto-currencies .wd-cur-btn');
+  btns.forEach(function(btn) {
+    var isSelected = btn.getAttribute('data-cur') === selected;
+    btn.style.background   = isSelected ? '#e8f5ef' : '#fff';
+    btn.style.borderColor  = isSelected ? '#2d8a5e' : '#e2e8f0';
+    btn.style.color        = isSelected ? '#2d8a5e' : 'rgba(13,33,69,0.55)';
+  });
+}
+
+window.selectWdCurrency = function(cur) {
+  _wdCurrency = cur;
+  refreshCryptoCurrencyBtns(cur);
+  // crypto tab is always active when selecting crypto currencies
+  document.getElementById('wd-available').textContent = cur + ' ' + _affiliateCryptoBal.toFixed(2);
+  updateWithdrawCalc();
+};
+
+window.onWdFiatChange = function() {
+  _wdCurrency = document.getElementById('wd-fiat-select').value || 'NGN';
+  document.getElementById('wd-available').textContent = _wdCurrency + ' ' + _affiliateFiatBal.toFixed(2);
+  updateWithdrawCalc();
+  // Bank list depends on currency/country — refetch when the user
+  // switches the fiat currency so the dropdown matches their bank's country.
+  loadAffiliateBankList(_wdCurrency);
+};
+
+function populateSavedBankDisplay() {
+  var hasSaved = _savedBankCode && _savedAcctNumber && _savedAcctName;
+  var savedDiv = document.getElementById('wd-bank-saved');
+  var formDiv  = document.getElementById('wd-bank-form');
+  if (hasSaved) {
+    document.getElementById('wd-bank-saved-name').textContent = _savedAcctName || '—';
+    document.getElementById('wd-bank-saved-bank').textContent = _savedBankName || '—';
+    document.getElementById('wd-bank-saved-acct').textContent = 'Account: ' + _savedAcctNumber;
+    savedDiv.style.display = 'block';
+    formDiv.style.display  = 'none';
+  } else {
+    savedDiv.style.display = 'none';
+    formDiv.style.display  = 'block';
+  }
+}
+
+window.editBankDetails = function() {
+  document.getElementById('wd-bank-saved').style.display = 'none';
+  document.getElementById('wd-bank-form').style.display  = 'block';
+  // Pre-fill form with saved values
+  if (_savedBankCode) {
+    var sel = document.getElementById('wd-bank-select');
+    sel.value = _savedBankCode;
+  }
+  if (_savedAcctNumber) document.getElementById('wd-acct-number').value = _savedAcctNumber;
+  if (_savedAcctName)   document.getElementById('wd-acct-name').value   = _savedAcctName;
+};
+
+async function loadAffiliateBankList(currency) {
+  currency = currency || _wdCurrency || 'NGN';
+  // Refetch if currency changed since the last successful load — banks are
+  // country-specific, so a cached NGN list must not be reused for KES, etc.
+  if (_bankListLoaded && _bankListCurrency === currency) return;
+  try {
+    var idToken = await auth.currentUser.getIdToken();
+    var res = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(currency), {
+      headers: { 'Authorization': 'Bearer ' + idToken }
+    });
+    if (!res.ok) throw new Error('Failed');
+    var data = await res.json();
+    _bankList = data.banks || [];
+    _bankListLoaded = true;
+    _bankListCurrency = currency;
+    var sel = document.getElementById('wd-bank-select');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Select bank…</option>' +
+      _bankList.map(function(b) {
+        return '<option value="' + escHtml(b.code) + '">' + escHtml(b.name) + '</option>';
+      }).join('');
+    // Re-select saved bank if any
+    if (_savedBankCode) sel.value = _savedBankCode;
+  } catch(e) {
+    _bankListLoaded = false;
+    var sel = document.getElementById('wd-bank-select');
+    if (sel) sel.innerHTML = '<option value="">Failed to load banks — try again</option>';
+  }
+}
+
+window.onWdBankChange = function() {
+  // Clear account name when bank changes
+  document.getElementById('wd-acct-name').value = '';
+  document.getElementById('wd-bank-lookup-error').style.display = 'none';
+};
+
+window.lookupAccountName = async function() {
+  var bankCode = document.getElementById('wd-bank-select').value;
+  var acctNum  = (document.getElementById('wd-acct-number').value || '').trim();
+  var nameEl   = document.getElementById('wd-acct-name');
+  var spinner  = document.getElementById('wd-acct-lookup-spinner');
+  var errEl    = document.getElementById('wd-bank-lookup-error');
+
+  errEl.style.display = 'none';
+  if (!bankCode || acctNum.length < 10) return;
+
+  spinner.style.display = 'inline';
+  nameEl.value = '';
+  try {
+    var idToken = await auth.currentUser.getIdToken();
+    var res = await fetch('/.netlify/functions/resolve-bank-account?bankCode=' + encodeURIComponent(bankCode) + '&accountNumber=' + encodeURIComponent(acctNum) + '&currency=' + encodeURIComponent(_wdCurrency || 'NGN'), {
+      headers: { 'Authorization': 'Bearer ' + idToken }
+    });
+    var data = await res.json();
+    if (!res.ok || !data.accountName) throw new Error(data.error || 'Could not verify account');
+    nameEl.value = data.accountName;
+  } catch(e) {
+    errEl.textContent = e.message || 'Could not look up account name. Check the number and bank.';
+    errEl.style.display = 'block';
+  } finally {
+    spinner.style.display = 'none';
+  }
+};
+
 window.updateWithdrawCalc = function() {
-  var cur    = _settings.platformCurrency || 'USD';
+  var cur    = _wdCurrency || 'USDT';
   var feePct = Number(_settings.affiliateWithdrawFeePercent) || 2;
   var amt    = parseFloat(document.getElementById('wd-amount-input').value) || 0;
   var fee    = parseFloat((amt * feePct / 100).toFixed(2));
@@ -696,42 +1031,103 @@ window.confirmWithdraw = async function() {
   var errEl   = document.getElementById('wd-error');
   var btn     = document.getElementById('wd-confirm-btn');
   var amt     = parseFloat(document.getElementById('wd-amount-input').value) || 0;
-  var cur     = _settings.platformCurrency || 'USD';
+  var cur     = _wdCurrency || 'USDT';
   var feePct  = Number(_settings.affiliateWithdrawFeePercent) || 2;
   var minWd   = Number(_settings.minAffiliateWithdrawalUsd) || 5;
+
+  // Use the per-bucket balance for validation — crypto withdrawals draw from
+  // crypto earnings only; bank withdrawals draw from fiat earnings only.
+  var bucketBal = (_wdTab === 'bank') ? _affiliateFiatBal : _affiliateCryptoBal;
 
   errEl.style.display = 'none';
 
   if (amt <= 0) {
     errEl.textContent = 'Please enter a valid amount.';
-    errEl.style.display = 'block';
-    return;
+    errEl.style.display = 'block'; return;
   }
   if (amt < minWd) {
     errEl.textContent = 'Minimum withdrawal is ' + cur + ' ' + minWd.toFixed(2) + '.';
-    errEl.style.display = 'block';
-    return;
+    errEl.style.display = 'block'; return;
   }
-  if (amt > _affiliateBal) {
-    errEl.textContent = 'Amount exceeds your available balance (' + cur + ' ' + _affiliateBal.toFixed(2) + ').';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!_walletAddr) {
-    errEl.innerHTML = 'No withdrawal wallet set. <a href="/dashboard-settings.html" style="color:#c81e1e;font-weight:700;">Add one in Settings.</a>';
-    errEl.style.display = 'block';
-    return;
+  if (amt > bucketBal) {
+    var bucketLabel = (_wdTab === 'bank') ? 'fiat' : 'crypto';
+    errEl.textContent = 'Amount exceeds your available ' + bucketLabel + ' balance (' + cur + ' ' + bucketBal.toFixed(2) + ').';
+    errEl.style.display = 'block'; return;
   }
 
-  btn.disabled     = true;
-  btn.textContent  = 'Processing…';
+  var payload = { amount: amt, currency: cur, feePct: feePct, method: _wdTab };
+
+  if (_wdTab === 'crypto') {
+    if (!_walletAddr) {
+      errEl.innerHTML = 'No withdrawal wallet set. <a href="/dashboard-settings.html" style="color:#c81e1e;font-weight:700;">Add one in Settings.</a>';
+      errEl.style.display = 'block'; return;
+    }
+    payload.walletAddress = _walletAddr;
+  } else {
+    // Bank transfer — resolve from saved display or the form
+    var savedVisible = document.getElementById('wd-bank-saved').style.display !== 'none';
+    var bankCode, bankName, acctNumber, acctName;
+
+    if (savedVisible) {
+      bankCode   = _savedBankCode;
+      bankName   = _savedBankName;
+      acctNumber = _savedAcctNumber;
+      acctName   = _savedAcctName;
+    } else {
+      bankCode   = document.getElementById('wd-bank-select').value;
+      var selEl  = document.getElementById('wd-bank-select');
+      bankName   = selEl.options[selEl.selectedIndex] ? selEl.options[selEl.selectedIndex].text : '';
+      acctNumber = (document.getElementById('wd-acct-number').value || '').trim();
+      acctName   = (document.getElementById('wd-acct-name').value   || '').trim();
+    }
+
+    if (!bankCode) {
+      errEl.textContent = 'Please select a bank.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!acctNumber || acctNumber.length < 10) {
+      errEl.textContent = 'Please enter a valid 10-digit account number.';
+      errEl.style.display = 'block'; return;
+    }
+    if (!acctName) {
+      errEl.textContent = 'Account name not verified. Enter account number and wait for lookup.';
+      errEl.style.display = 'block'; return;
+    }
+
+    payload.bankCode      = bankCode;
+    payload.bankName      = bankName;
+    payload.accountNumber = acctNumber;
+    payload.accountName   = acctName;
+
+    // Save bank details if checkbox checked (and we're in form mode)
+    if (!savedVisible && document.getElementById('wd-save-bank').checked) {
+      try {
+        var { updateDoc, doc: fsDoc2 } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        await updateDoc(fsDoc2(db, 'users', _uid), {
+          affiliateBankCode:      bankCode,
+          affiliateBankName:      bankName,
+          affiliateAccountNumber: acctNumber,
+          affiliateAccountName:   acctName
+        });
+        _savedBankCode   = bankCode;
+        _savedBankName   = bankName;
+        _savedAcctNumber = acctNumber;
+        _savedAcctName   = acctName;
+      } catch(saveErr) {
+        console.warn('[affiliate] Could not save bank details:', saveErr.message);
+      }
+    }
+  }
+
+  btn.disabled    = true;
+  btn.textContent = 'Processing…';
 
   try {
     var idToken = await auth.currentUser.getIdToken();
     var res = await fetch('/.netlify/functions/affiliate-withdraw', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-      body:    JSON.stringify({ amount: amt, currency: cur, feePct: feePct })
+      body:    JSON.stringify(payload)
     });
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Withdrawal failed');
@@ -739,11 +1135,16 @@ window.confirmWithdraw = async function() {
     closeWithdrawModal();
     showToast('Withdrawal submitted! You will receive ' + cur + ' ' + data.netAmount.toFixed(2));
 
-    // Refresh balance display optimistically
+    // Deduct from the correct bucket
     _affiliateBal = Math.max(0, _affiliateBal - amt);
-    document.getElementById('bal-amount').textContent = _affiliateBal.toFixed(2);
+    if (_wdTab === 'bank') {
+      _affiliateFiatBal = Math.max(0, _affiliateFiatBal - amt);
+      document.getElementById('bal-fiat-amount').textContent = _affiliateFiatBal.toFixed(2);
+    } else {
+      _affiliateCryptoBal = Math.max(0, _affiliateCryptoBal - amt);
+      document.getElementById('bal-crypto-amount').textContent = _affiliateCryptoBal.toFixed(2);
+    }
 
-    // Reload payout history row
     setTimeout(function() { location.reload(); }, 1800);
 
   } catch(err) {
@@ -774,6 +1175,20 @@ onAuthStateChanged(auth, async function(user) {
   var userSnap = await getDoc(doc(db, 'users', user.uid));
   var userData = userSnap.exists() ? userSnap.data() : {};
   _userRole    = userData.role || 'freelancer';
+
+  // Payout freeze check
+  window._payoutsFrozen = userData.payoutsFrozen === true;
+  if (window._payoutsFrozen) {
+    // Show frozen notice on any visible withdraw buttons
+    var frozenNotice = document.getElementById('payouts-frozen-notice');
+    if (frozenNotice) frozenNotice.style.display = 'flex';
+    // Disable withdraw buttons
+    document.querySelectorAll('[onclick*="openWithdrawModal"]').forEach(function(btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    });
+  }
 
   // Build nav based on role
   buildNav(user.uid, _userRole);

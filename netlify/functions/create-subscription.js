@@ -3,8 +3,8 @@
  * Path: netlify/functions/create-subscription.js
  *
  * Creates a Pro plan subscription payment session for a given user.
- * Delegates to create-stripe-payment, create-paystack-payment, or
- * create-crypto-payment with payment_purpose: 'pro_upgrade' in metadata.
+ * Delegates to create-stripe-subscription, create-flutterwave-subscription,
+ * or create-crypto-payment with payment_purpose: 'pro_upgrade' in metadata.
  *
  * Flow:
  *  1. Validate request body: { uid, gateway, billingPeriod }
@@ -21,7 +21,7 @@
  * Expected POST body (JSON):
  *   {
  *     uid:           string   — Firebase Auth UID of the subscribing user
- *     gateway:       string   — 'stripe' | 'paystack' | 'crypto'
+ *     gateway:       string   — 'stripe' | 'flutterwave' | 'crypto'
  *     billingPeriod: string   — 'monthly' | 'annual'
  *     userEmail:     string?  — optional, passed to gateway for prefill
  *   }
@@ -96,8 +96,8 @@ exports.handler = async (event) => {
   if (!uid || typeof uid !== 'string' || !uid.trim()) {
     return respond(400, { error: 'uid is required.' });
   }
-  if (!['stripe', 'paystack', 'crypto'].includes(gateway)) {
-    return respond(400, { error: 'gateway must be "stripe", "paystack", or "crypto".' });
+  if (!['stripe', 'flutterwave', 'crypto'].includes(gateway)) {
+    return respond(400, { error: 'gateway must be "stripe", "flutterwave", or "crypto".' });
   }
   if (!['monthly', 'annual'].includes(billingPeriod)) {
     return respond(400, { error: 'billingPeriod must be "monthly" or "annual".' });
@@ -178,8 +178,8 @@ exports.handler = async (event) => {
       });
       checkoutUrl = result.checkoutUrl;
 
-    } else if (gateway === 'paystack') {
-      const result = await callFunction('create-paystack-subscription', {
+    } else if (gateway === 'flutterwave') {
+      const result = await callFunction('create-flutterwave-subscription', {
         subscriptionId,
         uid:          uid.trim(),
         amount:       price,

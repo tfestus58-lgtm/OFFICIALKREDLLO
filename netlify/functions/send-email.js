@@ -489,6 +489,26 @@ function tplEmailVerification({ name = 'there', code = '------' }) {
 }
 
 // ---------------------------------------------------------------------------
+// TEMPLATE: withdrawal-otp — 6-digit OTP sent before a withdrawal is processed
+// ---------------------------------------------------------------------------
+function tplWithdrawalOtp({ name = 'there', code = '------' }) {
+  const preheader = `Your Kreddlo withdrawal code is ${code}. It expires in 10 minutes.`;
+  const body = `
+    ${badge('Withdrawal Verification', BRAND.navy, '#fff')}
+    ${heading('Confirm your withdrawal.')}
+    ${bodyText(`Hi ${name}, we received a withdrawal request on your Kreddlo account. Enter the 6-digit code below to authorise it.`)}
+    ${highlightBox(`
+      <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#2d8a5e;font-family:Arial,Helvetica,sans-serif;">Your withdrawal code</p>
+      <p style="margin:0;font-size:44px;font-weight:800;letter-spacing:10px;color:#0d2145;font-family:Arial,Helvetica,sans-serif;line-height:1.1;">${code}</p>
+      <p style="margin:10px 0 0;font-size:12px;color:rgba(13,33,69,0.50);font-family:Arial,Helvetica,sans-serif;">Expires in 10 minutes &bull; Single use only</p>
+    `)}
+    ${divider()}
+    ${mutedText('If you did not request this withdrawal, contact our support team immediately and do not share this code with anyone.')}
+  `;
+  return { subject: 'Your Kreddlo withdrawal verification code', preheader, body };
+}
+
+// ---------------------------------------------------------------------------
 // TEMPLATE: product-delivery
 // Receives: name, productTitle, deliveryType, deliveryContent, sellerName
 // ---------------------------------------------------------------------------
@@ -557,6 +577,46 @@ function templateProductSale({ name = 'there', buyerName = 'A buyer', buyerEmail
 
 // ---------------------------------------------------------------------------
 // TEMPLATE: new-review
+// Receives: name (client name), invoiceNumber, amount, freelancerName, payLink, dueDate
+// ---------------------------------------------------------------------------
+function templateInvoiceSent({ name = 'there', invoiceNumber = '', amount = '', freelancerName = 'Your Kreddlo freelancer', payLink = 'https://kreddlo.com', dueDate = '' }) {
+  const preheader = `${freelancerName} sent you an invoice for ${amount}.`;
+  const body = `
+    ${badge('Invoice')}
+    ${heading(`You have a new invoice from ${freelancerName}.`)}
+    ${bodyText(`Hi ${name}, ${freelancerName} has sent you an invoice${invoiceNumber ? ` (${invoiceNumber})` : ''} for <strong>${amount}</strong>.`)}
+    ${highlightBox(`
+      ${infoRow('Invoice', invoiceNumber || '—')}
+      ${infoRow('Amount Due', amount)}
+      ${infoRow('Due Date', dueDate || 'On receipt', true)}
+    `)}
+    ${btn('View & Pay Invoice', payLink, BRAND.green)}
+    ${mutedText('No account or sign-up is required to view or pay this invoice.')}
+  `;
+  return { subject: `New invoice from ${freelancerName}${invoiceNumber ? ` — ${invoiceNumber}` : ''}`, preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-paid
+// Sent to the freelancer when their client pays an invoice.
+// Receives: name (freelancer name), invoiceNumber, amount, clientName
+// ---------------------------------------------------------------------------
+function templateInvoicePaid({ name = 'there', invoiceNumber = '', amount = '', clientName = 'Your client' }) {
+  const preheader = `${clientName} paid invoice ${invoiceNumber} — ${amount}.`;
+  const body = `
+    ${badge('Payment Received', BRAND.green, BRAND.greenPale)}
+    ${heading(`${clientName} paid your invoice.`)}
+    ${bodyText(`Hi ${name}, great news — your invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} has been paid in full.`)}
+    ${highlightBox(`
+      ${infoRow('Invoice', invoiceNumber || '—')}
+      ${infoRow('Paid By', clientName)}
+      ${infoRow('Amount', amount, true)}
+    `)}
+    ${btn('View Invoices', 'https://kreddlo.com/dashboard-invoices.html', BRAND.navy)}
+  `;
+  return { subject: `Paid: Invoice ${invoiceNumber || ''} — ${amount}`, preheader, body };
+}
+
 // Receives: name, reviewerName, productTitle, rating, comment
 // ---------------------------------------------------------------------------
 function templateNewReview({ name = 'there', reviewerName = 'Someone', productTitle = 'your product', rating = 5, comment = '' }) {
@@ -608,6 +668,8 @@ function buildEmail(type, data) {
       return templateReferralCredited(data);
     case 'email-verification':
       return tplEmailVerification(data);
+    case 'withdrawal-otp':
+      return tplWithdrawalOtp(data);
     case 'product-delivery':
       return templateProductDelivery(data);
     case 'review-request':
@@ -616,6 +678,10 @@ function buildEmail(type, data) {
       return templateProductSale(data);
     case 'new-review':
       return templateNewReview(data);
+    case 'invoice-sent':
+      return templateInvoiceSent(data);
+    case 'invoice-paid':
+      return templateInvoicePaid(data);
     default:
       return null;
   }

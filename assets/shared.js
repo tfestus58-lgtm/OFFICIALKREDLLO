@@ -560,6 +560,64 @@
 
 })(); // end IIFE
 
+
+/* ══════════════════════════════════════════════════════════════
+   AFFILIATE REF CAPTURE
+   Runs on every page load. If a ?ref=USERID param is present in
+   the URL, it is stored in localStorage under 'kreddlo_affiliate_ref'
+   with a 30-day expiry timestamp. Checkout pages read this value
+   and pass it to create-product-order so commissions are attributed.
+══════════════════════════════════════════════════════════════ */
+(function captureAffiliateRef() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var ref    = params.get('ref');
+
+    if (ref && typeof ref === 'string' && ref.trim().length > 0) {
+      var refData = {
+        ref:       ref.trim(),
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+      };
+      localStorage.setItem('kreddlo_affiliate_ref', JSON.stringify(refData));
+    }
+  } catch (e) {
+    // Non-fatal — localStorage may be unavailable in private mode on some browsers
+    console.warn('shared.js: affiliate ref capture failed:', e.message);
+  }
+})();
+
+/**
+ * getStoredAffiliateRef()
+ * Returns the stored affiliate ref string if it exists and has not expired.
+ * Returns null if absent or expired (and clears expired entries).
+ * Exposed globally so checkout pages can call it before submitting orders.
+ *
+ * @returns {string|null}
+ */
+window.getStoredAffiliateRef = function getStoredAffiliateRef() {
+  try {
+    var raw = localStorage.getItem('kreddlo_affiliate_ref');
+    if (!raw) return null;
+
+    var data = JSON.parse(raw);
+    if (!data || !data.ref || !data.expiresAt) {
+      localStorage.removeItem('kreddlo_affiliate_ref');
+      return null;
+    }
+
+    if (Date.now() > data.expiresAt) {
+      // Expired — clean up and return null
+      localStorage.removeItem('kreddlo_affiliate_ref');
+      return null;
+    }
+
+    return data.ref;
+  } catch (e) {
+    console.warn('shared.js: getStoredAffiliateRef failed:', e.message);
+    return null;
+  }
+};
+
 // ── Centralised VAPID public key ─────────────────────────────────────────────
 // Used by dashboard.html and dashboard-settings.html for FCM push notifications.
 // Source: Firebase Console → Project Settings → Cloud Messaging → Web Push certificates

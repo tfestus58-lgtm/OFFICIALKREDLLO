@@ -15,9 +15,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -403,8 +403,8 @@
             <div class="step-circle">3</div>
             <div class="step-card glass p-6">
               <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 03</p>
-              <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Get Paid Instantly</h3>
-              <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              <h3 id="product-payout-heading" class="text-[17px] font-700 text-navy mb-2 tracking-tight">Get Paid Instantly</h3>
+              <p id="product-payout-copy" class="text-[14px] text-navy/58 font-400 leading-relaxed">
                 Buyers pay and receive delivery automatically. No back and forth required.
               </p>
             </div>
@@ -723,6 +723,18 @@ if ('serviceWorker' in navigator) {
           if (links[name]) { el.href = links[name]; el.style.display = 'flex'; }
           else { el.style.display = 'none'; }
         });
+
+        // Item 9 — reflect the actual configured product-sale holding period
+        // instead of a hardcoded "instant" claim, so this copy can never go stale.
+        const holdingDays = Number(s.productSaleHoldingDays) || 0;
+        const headingEl = document.getElementById('product-payout-heading');
+        const copyEl    = document.getElementById('product-payout-copy');
+        if (holdingDays > 0 && headingEl && copyEl) {
+          headingEl.textContent = 'Get Paid Securely';
+          copyEl.textContent = `Buyers pay and receive delivery automatically. Your earnings clear in ${holdingDays} day${holdingDays === 1 ? '' : 's'} and are then available to withdraw.`;
+        }
+        // If holdingDays is 0, the existing "Get Paid Instantly" copy in the
+        // HTML is already accurate and is left untouched.
       } catch (e) { /* silent fail */ }
     })();
   </script>

@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Kreddlo" />
 <link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
 <title>Buyer Dashboard — Kreddlo</title>
-<link rel="dns-prefetch" href="https://www.gstatic.com"/>
-<link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet"/>
@@ -542,7 +542,7 @@ function buildNav(affiliateEnabled) {
   });
   var html = items.map(function(n) {
     var active = cur === n.href.replace('/','') ? ' active' : '';
-    return '<a href="'+n.href+'" class="nav-link'+active+'">'+n.icon+n.label+'</a>';
+    return '<a href="'+n.href+'" class="nav-link'+active+'" onclick="closeMobileMenu()">'+n.icon+n.label+'</a>';
   }).join('');
   document.getElementById('mobile-nav').innerHTML = html;
   document.getElementById('desktop-nav').innerHTML = html;
@@ -959,8 +959,7 @@ window._boot = async function(user, userData) {
   try {
     var fsQ = window._fsQ;
     var bellSnap = await fsQ.getDocs(fsQ.query(
-      fsQ.collection(window.db, 'notifications'),
-      fsQ.where('uid', '==', user.uid),
+      fsQ.collection(window.db, 'users', user.uid, 'notifications'),
       fsQ.where('read', '==', false),
       fsQ.limit(1)
     ));

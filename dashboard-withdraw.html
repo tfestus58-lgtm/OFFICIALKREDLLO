@@ -12,9 +12,9 @@
 <title>Withdraw Funds — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -318,7 +318,7 @@ header > div:last-child {
   max-width: 500px !important;
   max-height: 90dvh !important;
   overflow-y: auto !important;
-  padding: 22px 18px !important;
+  padding: 22px 18px 32px !important;
 }
 
 /* 16. GLASS CARDS — no overflow */
@@ -600,6 +600,12 @@ header > div:last-child {
           </div>
         </div>
 
+        <!-- Payouts frozen banner -->
+        <div id="payouts-frozen-banner" style="display:none;align-items:center;gap:12px;background:rgba(99,60,180,0.08);border:1.5px solid rgba(99,60,180,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#633cb4" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
+  <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
+</div>
+
         <!-- Error message -->
         <div id="kyc-banner" style="display:none;align-items:center;gap:12px;background:#fff3cd;border:1.5px solid #ffc107;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -645,38 +651,37 @@ header > div:last-child {
             </p>
           </div>
 
-          <!-- Account Holder Name -->
+          <!-- Bank Dropdown (dynamic from Flutterwave) -->
           <div style="margin-bottom:16px;">
-            <label for="input-account-name" class="lbl" style="display:block;margin-bottom:8px;">Account Holder Name</label>
-            <input type="text" id="input-account-name" class="inp" placeholder="Full name on bank account">
+            <label for="input-bank-search" class="lbl" style="display:block;margin-bottom:8px;">Bank</label>
+            <div style="position:relative;">
+              <input type="text" id="input-bank-search" class="inp" placeholder="Search for your bank…" oninput="filterBankList()" autocomplete="off" style="padding-right:36px;">
+              <svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div id="bank-dropdown-list" style="display:none;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(13,33,69,0.10);max-height:200px;overflow-y:auto;margin-top:4px;z-index:100;position:relative;"></div>
+            <div id="bank-selected-display" style="display:none;margin-top:8px;padding:10px 14px;background:#e8f5ef;border-radius:10px;font-size:13px;font-weight:700;color:#2d8a5e;display:flex;align-items:center;justify-content:space-between;">
+              <span id="bank-selected-name"></span>
+              <button onclick="clearBankSelection()" style="background:none;border:none;cursor:pointer;padding:0;color:rgba(13,33,69,0.4);font-size:11px;font-weight:600;">Change</button>
+            </div>
+            <div id="bank-list-loading" style="display:none;font-size:12px;color:rgba(13,33,69,0.5);margin-top:6px;align-items:center;gap:6px;">
+              <div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Loading banks…
+            </div>
           </div>
 
           <!-- Bank Account Number -->
           <div style="margin-bottom:16px;">
-            <label for="input-account-number" class="lbl" style="display:block;margin-bottom:8px;">Bank Account Number</label>
-            <input type="text" id="input-account-number" class="inp" placeholder="Your account number">
+            <label for="input-account-number" class="lbl" style="display:block;margin-bottom:8px;">Account Number</label>
+            <input type="text" id="input-account-number" class="inp" placeholder="Enter your account number" inputmode="numeric" onblur="resolveBankAccount()">
           </div>
 
-          <!-- Bank Name -->
+          <!-- Account Name (auto-filled, read-only) -->
           <div style="margin-bottom:16px;">
-            <label for="input-bank-name" class="lbl" style="display:block;margin-bottom:8px;">Bank Name</label>
-            <input type="text" id="input-bank-name" class="inp" placeholder="e.g. Access Bank, Chase, HSBC">
-          </div>
-
-          <!-- Swift / IBAN -->
-          <div style="margin-bottom:16px;">
-            <label for="input-swift" class="lbl" style="display:block;margin-bottom:8px;">Swift Code or IBAN</label>
-            <input type="text" id="input-swift" class="inp" placeholder="SWIFT code or IBAN number">
-            <p style="font-size:12px;font-weight:400;color:rgba(13,33,69,0.42);margin:6px 0 0;">Required for international bank transfers.</p>
-          </div>
-
-          <!-- Country -->
-          <div style="margin-bottom:20px;">
-            <label for="input-bank-country" class="lbl" style="display:block;margin-bottom:8px;">Country</label>
-            <select id="input-bank-country" onchange="calcBankFees()" class="inp" style="appearance:none;-webkit-appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;cursor:pointer;">
-              <option value="">Select country</option>
-              <option>Afghanistan</option><option>Albania</option><option>Algeria</option><option>Andorra</option><option>Angola</option><option>Antigua and Barbuda</option><option>Argentina</option><option>Armenia</option><option>Australia</option><option>Austria</option><option>Azerbaijan</option><option>Bahamas</option><option>Bahrain</option><option>Bangladesh</option><option>Barbados</option><option>Belarus</option><option>Belgium</option><option>Belize</option><option>Benin</option><option>Bhutan</option><option>Bolivia</option><option>Bosnia and Herzegovina</option><option>Botswana</option><option>Brazil</option><option>Brunei</option><option>Bulgaria</option><option>Burkina Faso</option><option>Burundi</option><option>Cabo Verde</option><option>Cambodia</option><option>Cameroon</option><option>Canada</option><option>Central African Republic</option><option>Chad</option><option>Chile</option><option>China</option><option>Colombia</option><option>Comoros</option><option>Congo</option><option>Costa Rica</option><option>Croatia</option><option>Cuba</option><option>Cyprus</option><option>Czech Republic</option><option>Denmark</option><option>Djibouti</option><option>Dominica</option><option>Dominican Republic</option><option>Ecuador</option><option>Egypt</option><option>El Salvador</option><option>Equatorial Guinea</option><option>Eritrea</option><option>Estonia</option><option>Eswatini</option><option>Ethiopia</option><option>Fiji</option><option>Finland</option><option>France</option><option>Gabon</option><option>Gambia</option><option>Georgia</option><option>Germany</option><option>Ghana</option><option>Greece</option><option>Grenada</option><option>Guatemala</option><option>Guinea</option><option>Guinea-Bissau</option><option>Guyana</option><option>Haiti</option><option>Honduras</option><option>Hungary</option><option>Iceland</option><option>India</option><option>Indonesia</option><option>Iran</option><option>Iraq</option><option>Ireland</option><option>Israel</option><option>Italy</option><option>Jamaica</option><option>Japan</option><option>Jordan</option><option>Kazakhstan</option><option>Kenya</option><option>Kiribati</option><option>Kuwait</option><option>Kyrgyzstan</option><option>Laos</option><option>Latvia</option><option>Lebanon</option><option>Lesotho</option><option>Liberia</option><option>Libya</option><option>Liechtenstein</option><option>Lithuania</option><option>Luxembourg</option><option>Madagascar</option><option>Malawi</option><option>Malaysia</option><option>Maldives</option><option>Mali</option><option>Malta</option><option>Marshall Islands</option><option>Mauritania</option><option>Mauritius</option><option>Mexico</option><option>Micronesia</option><option>Moldova</option><option>Monaco</option><option>Mongolia</option><option>Montenegro</option><option>Morocco</option><option>Mozambique</option><option>Myanmar</option><option>Namibia</option><option>Nauru</option><option>Nepal</option><option>Netherlands</option><option>New Zealand</option><option>Nicaragua</option><option>Niger</option><option>Nigeria</option><option>North Korea</option><option>North Macedonia</option><option>Norway</option><option>Oman</option><option>Pakistan</option><option>Palau</option><option>Palestine</option><option>Panama</option><option>Papua New Guinea</option><option>Paraguay</option><option>Peru</option><option>Philippines</option><option>Poland</option><option>Portugal</option><option>Qatar</option><option>Romania</option><option>Russia</option><option>Rwanda</option><option>Saint Kitts and Nevis</option><option>Saint Lucia</option><option>Saint Vincent and the Grenadines</option><option>Samoa</option><option>San Marino</option><option>Sao Tome and Principe</option><option>Saudi Arabia</option><option>Senegal</option><option>Serbia</option><option>Seychelles</option><option>Sierra Leone</option><option>Singapore</option><option>Slovakia</option><option>Slovenia</option><option>Solomon Islands</option><option>Somalia</option><option>South Africa</option><option>South Korea</option><option>South Sudan</option><option>Spain</option><option>Sri Lanka</option><option>Sudan</option><option>Suriname</option><option>Sweden</option><option>Switzerland</option><option>Syria</option><option>Taiwan</option><option>Tajikistan</option><option>Tanzania</option><option>Thailand</option><option>Timor-Leste</option><option>Togo</option><option>Tonga</option><option>Trinidad and Tobago</option><option>Tunisia</option><option>Turkey</option><option>Turkmenistan</option><option>Tuvalu</option><option>Uganda</option><option>Ukraine</option><option>United Arab Emirates</option><option>United Kingdom</option><option>United States</option><option>Uruguay</option><option>Uzbekistan</option><option>Vanuatu</option><option>Vatican City</option><option>Venezuela</option><option>Vietnam</option><option>Yemen</option><option>Zambia</option><option>Zimbabwe</option>
-            </select>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Account Name</label>
+            <div style="position:relative;">
+              <input type="text" id="input-account-name" class="inp" placeholder="Auto-filled after account number entry" readonly style="background:rgba(13,33,69,0.03);color:rgba(13,33,69,0.6);cursor:default;">
+              <div id="account-name-spinner" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div></div>
+              <svg id="account-name-check" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
           </div>
 
           <!-- Save bank details checkbox -->
@@ -812,6 +817,65 @@ header > div:last-child {
 
 <!-- SWIPE-BACK EDGE HINT -->
 <div id="swipe-hint" class="swipe-hint"></div>
+
+<!-- ===================== OTP MODAL (Withdrawal 2FA — Bug 7) ===================== -->
+<div id="modal-otp" class="modal" onclick="if(event.target===this)cancelOtpModal()">
+  <div class="modal-box" style="max-width:400px;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:#e8f5ef;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#0d2145;">Verify Withdrawal</div>
+          <div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.5);">Check your email for a code</div>
+        </div>
+      </div>
+      <button onclick="cancelOtpModal()" style="width:32px;height:32px;background:rgba(13,33,69,0.06);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Info text -->
+    <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.65);margin:0 0 20px;line-height:1.6;">
+      A 6-digit code has been sent to your registered email address. Enter it below to confirm your withdrawal.
+    </p>
+
+    <!-- 6-digit OTP input -->
+    <div style="margin-bottom:16px;">
+      <label class="lbl" style="display:block;margin-bottom:8px;">Verification Code</label>
+      <input
+        type="text"
+        id="otp-input"
+        class="inp"
+        placeholder="_ _ _ _ _ _"
+        maxlength="6"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        style="font-size:24px;font-weight:800;letter-spacing:10px;text-align:center;padding:14px 20px;"
+        oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6); onOtpInput();"
+      >
+    </div>
+
+    <!-- OTP error -->
+    <div id="otp-error" style="display:none;font-size:13px;font-weight:500;color:#c81e1e;margin-bottom:14px;padding:10px 14px;background:#fde8e8;border-radius:10px;"></div>
+
+    <!-- Timer / resend -->
+    <div style="text-align:center;margin-bottom:20px;">
+      <span id="otp-timer-text" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.5);">Code expires in <strong id="otp-countdown" style="color:#0d2145;">10:00</strong></span>
+      <button id="otp-resend-btn" onclick="resendWithdrawalOtp()" style="display:none;background:none;border:none;cursor:pointer;font-size:13px;font-weight:700;color:#2d8a5e;padding:0;font-family:'Plus Jakarta Sans',sans-serif;">Resend code</button>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;">
+      <button onclick="cancelOtpModal()" class="btn-ghost" style="flex:1;padding:13px;font-size:14px;">Cancel</button>
+      <button id="otp-confirm-btn" onclick="confirmWithdrawalOtp()" class="btn-green" style="flex:2;padding:13px;font-size:14px;font-weight:700;" disabled>
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
@@ -975,6 +1039,19 @@ function renderWithdrawalCurrencySelector() {
 
 function selectWithdrawalCurrency(currency) {
   selectedWithdrawalCurrency = currency;
+  // Reset dynamic bank list so it re-fetches for the new currency's country
+  bankListFetched  = false;
+  allBanks         = [];
+  selectedBankCode = '';
+  selectedBankName = '';
+  var disp = document.getElementById('bank-selected-display');
+  if (disp) disp.style.display = 'none';
+  var search = document.getElementById('input-bank-search');
+  if (search) search.value = '';
+  var list = document.getElementById('bank-dropdown-list');
+  if (list) list.style.display = 'none';
+  var accName = document.getElementById('input-account-name');
+  if (accName) accName.value = '';
   renderWithdrawalCurrencySelector();
 }
 
@@ -1040,6 +1117,145 @@ function activateBalanceCard(type) {
     if (formBank)   formBank.style.display   = 'block';
     if (label) label.textContent = 'Withdraw Fiat Balance';
     fetchBankExchangeRate(); // fetch live rates for local currency display
+    fetchBankList();         // fetch dynamic bank list from Flutterwave
+  }
+}
+
+// ======= DYNAMIC BANK LIST (Bug 6) =======
+let allBanks = [];           // [{ code, name }] from get-bank-list
+let selectedBankCode = '';
+let selectedBankName = '';
+let bankListFetched  = false;
+
+async function fetchBankList() {
+  if (bankListFetched) return;
+  const cur = selectedWithdrawalCurrency || 'NGN';
+  // Only Flutterwave-supported currencies use dynamic list
+  const SUPPORTED = ['NGN','GHS','KES','UGX','TZS','RWF','ZAR','XOF','XAF','MWK','ZMW'];
+  if (!SUPPORTED.includes(cur)) return;
+
+  const loadingEl = document.getElementById('bank-list-loading');
+  if (loadingEl) { loadingEl.style.display = 'flex'; }
+
+  try {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    const res   = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(cur), {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data  = await res.json();
+    if (data.banks && Array.isArray(data.banks)) {
+      allBanks = data.banks;
+      bankListFetched = true;
+      renderBankDropdown(allBanks);
+    }
+  } catch (e) {
+    console.error('[fetchBankList]', e);
+  } finally {
+    if (loadingEl) { loadingEl.style.display = 'none'; }
+  }
+}
+
+function renderBankDropdown(banks) {
+  const list = document.getElementById('bank-dropdown-list');
+  if (!list) return;
+  if (banks.length === 0) {
+    list.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:rgba(13,33,69,0.5);">No banks found.</div>';
+    list.style.display = 'block';
+    return;
+  }
+  list.innerHTML = banks.map(function(b) {
+    return '<div onclick="selectBank(\'' + b.code.replace(/'/g,"\\'") + '\',\'' + b.name.replace(/'/g,"\\'") + '\')" ' +
+      'style="padding:12px 16px;font-size:13px;font-weight:500;color:#0d2145;cursor:pointer;border-bottom:1px solid #f0f4f8;transition:background .1s;" ' +
+      'onmouseover="this.style.background=\'#f5f9ff\'" onmouseout="this.style.background=\'#fff\'">' +
+      b.name + '</div>';
+  }).join('');
+}
+
+function filterBankList() {
+  const q     = (document.getElementById('input-bank-search').value || '').toLowerCase().trim();
+  const list  = document.getElementById('bank-dropdown-list');
+  if (!list) return;
+
+  if (!bankListFetched) { fetchBankList(); return; }
+
+  if (!q) {
+    list.style.display = 'none';
+    return;
+  }
+  const filtered = allBanks.filter(function(b) { return b.name.toLowerCase().includes(q); });
+  renderBankDropdown(filtered);
+  list.style.display = 'block';
+}
+
+function selectBank(code, name) {
+  selectedBankCode = code;
+  selectedBankName = name;
+  // Show selected display
+  var disp = document.getElementById('bank-selected-display');
+  var nameEl = document.getElementById('bank-selected-name');
+  if (disp) disp.style.display = 'flex';
+  if (nameEl) nameEl.textContent = name;
+  // Hide dropdown + search
+  var list = document.getElementById('bank-dropdown-list');
+  var search = document.getElementById('input-bank-search');
+  if (list) list.style.display = 'none';
+  if (search) search.value = '';
+  // Re-trigger resolve if account number already filled
+  var accNum = document.getElementById('input-account-number');
+  if (accNum && accNum.value.trim().length >= 6) resolveBankAccount();
+}
+
+function clearBankSelection() {
+  selectedBankCode = '';
+  selectedBankName = '';
+  var disp = document.getElementById('bank-selected-display');
+  if (disp) disp.style.display = 'none';
+  // Clear account name
+  var accName = document.getElementById('input-account-name');
+  if (accName) accName.value = '';
+  var chk = document.getElementById('account-name-check');
+  if (chk) chk.style.display = 'none';
+  // Focus search
+  var search = document.getElementById('input-bank-search');
+  if (search) { search.value = ''; search.focus(); }
+}
+
+async function resolveBankAccount() {
+  var accNum  = (document.getElementById('input-account-number').value || '').trim();
+  var accName = document.getElementById('input-account-name');
+  var spinner = document.getElementById('account-name-spinner');
+  var check   = document.getElementById('account-name-check');
+  var errEl   = document.getElementById('bank-error');
+
+  // Clear previous
+  if (accName) { accName.value = ''; accName.placeholder = 'Auto-filled after account number entry'; }
+  if (check)   check.style.display = 'none';
+  if (errEl)   { errEl.style.display = 'none'; }
+
+  if (!selectedBankCode || accNum.length < 6) return;
+
+  if (spinner) spinner.style.display = 'block';
+
+  try {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    const res   = await fetch('/.netlify/functions/resolve-bank-account?bankCode=' +
+      encodeURIComponent(selectedBankCode) + '&accountNumber=' + encodeURIComponent(accNum), {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (data.accountName) {
+      if (accName) { accName.value = data.accountName; }
+      if (check)   { check.style.display = 'block'; }
+    } else {
+      if (errEl) {
+        errEl.textContent = data.error || 'Could not verify account. Check the bank and account number.';
+        errEl.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.error('[resolveBankAccount]', e);
+  } finally {
+    if (spinner) spinner.style.display = 'none';
   }
 }
 
@@ -1083,14 +1299,13 @@ function calcBankFees() {
 }
 
 // ======= BANK WITHDRAW (real Netlify Function) =======
+// Triggered by the bank Withdraw button — validates fields then launches OTP flow
 async function handleBankWithdraw() {
   var amt           = parseFloat(document.getElementById('input-bank-amount').value);
   var accountName   = document.getElementById('input-account-name').value.trim();
   var accountNumber = document.getElementById('input-account-number').value.trim();
-  var bankName      = document.getElementById('input-bank-name').value.trim();
-  var swift         = document.getElementById('input-swift').value.trim();
-  var country       = document.getElementById('input-bank-country').value;
-  var saveDetails   = document.getElementById('save-bank-details').checked;
+  var bankName      = selectedBankName;
+  var bankCode      = selectedBankCode;
   var errEl         = document.getElementById('bank-error');
   var cur           = selectedWithdrawalCurrency || 'USD';
   var curBalance    = Number(balancesMap[cur] || 0);
@@ -1111,8 +1326,8 @@ async function handleBankWithdraw() {
     errEl.style.display = 'block';
     return;
   }
-  if (!accountName) {
-    errEl.textContent = 'Please enter the account holder name.';
+  if (!bankCode || !bankName) {
+    errEl.textContent = 'Please select your bank from the list.';
     errEl.style.display = 'block';
     return;
   }
@@ -1121,16 +1336,27 @@ async function handleBankWithdraw() {
     errEl.style.display = 'block';
     return;
   }
-  if (!bankName) {
-    errEl.textContent = 'Please enter your bank name.';
+  if (!accountName) {
+    errEl.textContent = 'Account name could not be verified. Check your bank and account number.';
     errEl.style.display = 'block';
     return;
   }
-  if (!country) {
-    errEl.textContent = 'Please select your country.';
-    errEl.style.display = 'block';
-    return;
-  }
+
+  // All fields valid — launch OTP step
+  await initiateWithdrawalOtp('bank');
+}
+
+// Called after OTP is verified — executes the actual bank payout
+async function _executeBankWithdraw() {
+  var amt           = parseFloat(document.getElementById('input-bank-amount').value);
+  var accountName   = document.getElementById('input-account-name').value.trim();
+  var accountNumber = document.getElementById('input-account-number').value.trim();
+  var bankName      = selectedBankName;
+  var bankCode      = selectedBankCode;
+  var saveDetails   = document.getElementById('save-bank-details').checked;
+  var errEl         = document.getElementById('bank-error');
+  var cur           = selectedWithdrawalCurrency || 'USD';
+  errEl.style.display = 'none';
 
   var platFee = amt * (PLATFORM_FEE_PCT / 100);
   var after   = amt - platFee;
@@ -1151,8 +1377,7 @@ async function handleBankWithdraw() {
         accountName:        accountName,
         accountNumber:      accountNumber,
         bankName:           bankName,
-        swift:              swift,
-        country:            country,
+        bankCode:           bankCode,
         saveDetails:        saveDetails,
         fees: { platformFee: platFee },
       }),
@@ -1171,10 +1396,11 @@ async function handleBankWithdraw() {
       document.getElementById('input-bank-amount').value = '';
       document.getElementById('input-account-name').value = '';
       document.getElementById('input-account-number').value = '';
-      document.getElementById('input-bank-name').value = '';
-      document.getElementById('input-swift').value = '';
-      document.getElementById('input-bank-country').value = '';
       document.getElementById('save-bank-details').checked = false;
+      // Reset dynamic bank selection
+      clearBankSelection();
+      var chk = document.getElementById('account-name-check');
+      if (chk) chk.style.display = 'none';
       calcBankFees();
     } else {
       errEl.textContent = result.error || 'Withdrawal failed. Please try again.';
@@ -1338,6 +1564,7 @@ function calcFees(){
 }
 
 // ======= CRYPTO WITHDRAW (real Netlify Function) =======
+// Validates fields then launches OTP flow
 async function handleWithdraw(){
   var amt    = parseFloat(document.getElementById('input-withdraw-amount').value);
   var wallet = document.getElementById('input-wallet-address').value.trim();
@@ -1364,6 +1591,17 @@ async function handleWithdraw(){
     errEl.style.display = 'block';
     return;
   }
+
+  // All valid — launch OTP step
+  await initiateWithdrawalOtp('crypto');
+}
+
+// Called after OTP is verified — executes the actual crypto payout
+async function _executeWithdraw(){
+  var amt    = parseFloat(document.getElementById('input-withdraw-amount').value);
+  var wallet = document.getElementById('input-wallet-address').value.trim();
+  var errEl  = document.getElementById('withdraw-error');
+  errEl.style.display = 'none';
 
   lockedRate = liveRates[selectedCoinId] || 1;
   var nowFee    = amt * (NOWPAYMENTS_FEE_PCT / 100);
@@ -1481,6 +1719,156 @@ function selectFromModal(symbol, coinId){
   selectCurrency(symbol, coinId);
 }
 
+function closeMoreModal(){
+  document.getElementById('modal-more').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function selectFromModal(symbol, coinId){
+  closeMoreModal();
+  selectCurrency(symbol, coinId);
+}
+
+// ======= WITHDRAWAL OTP / 2FA (Bug 7) =======
+let _otpPendingAction  = null; // 'crypto' | 'bank'
+let _otpCountdownTimer = null;
+let _otpSecondsLeft    = 600;  // 10 minutes
+
+function onOtpInput() {
+  var val = document.getElementById('otp-input').value;
+  document.getElementById('otp-confirm-btn').disabled = (val.length < 6);
+}
+
+async function initiateWithdrawalOtp(action) {
+  // action = 'crypto' | 'bank'
+  _otpPendingAction = action;
+
+  // Reset modal state
+  document.getElementById('otp-input').value = '';
+  document.getElementById('otp-error').style.display = 'none';
+  document.getElementById('otp-confirm-btn').disabled = true;
+  document.getElementById('otp-resend-btn').style.display = 'none';
+  document.getElementById('otp-timer-text').style.display = 'inline';
+  document.getElementById('otp-input').focus();
+
+  // Open modal
+  document.getElementById('modal-otp').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Send OTP
+  await sendWithdrawalOtp();
+
+  // Start countdown
+  startOtpCountdown();
+}
+
+async function sendWithdrawalOtp() {
+  try {
+    var token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    var res   = await fetch('/.netlify/functions/send-withdrawal-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:    JSON.stringify({ uid: currentUid }),
+    });
+    var data = await res.json();
+    if (!data.success && data.error) {
+      document.getElementById('otp-error').textContent = data.error;
+      document.getElementById('otp-error').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('otp-error').textContent = 'Could not send verification code. Check your connection.';
+    document.getElementById('otp-error').style.display = 'block';
+  }
+}
+
+function startOtpCountdown() {
+  clearInterval(_otpCountdownTimer);
+  _otpSecondsLeft = 600;
+  updateOtpCountdownDisplay();
+  _otpCountdownTimer = setInterval(function () {
+    _otpSecondsLeft--;
+    updateOtpCountdownDisplay();
+    if (_otpSecondsLeft <= 0) {
+      clearInterval(_otpCountdownTimer);
+      document.getElementById('otp-timer-text').style.display = 'none';
+      document.getElementById('otp-resend-btn').style.display = 'inline';
+    }
+  }, 1000);
+}
+
+function updateOtpCountdownDisplay() {
+  var m = Math.floor(_otpSecondsLeft / 60);
+  var s = _otpSecondsLeft % 60;
+  var el = document.getElementById('otp-countdown');
+  if (el) el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+async function resendWithdrawalOtp() {
+  document.getElementById('otp-resend-btn').style.display = 'none';
+  document.getElementById('otp-timer-text').style.display = 'inline';
+  document.getElementById('otp-error').style.display = 'none';
+  document.getElementById('otp-input').value = '';
+  document.getElementById('otp-confirm-btn').disabled = true;
+  await sendWithdrawalOtp();
+  startOtpCountdown();
+}
+
+async function confirmWithdrawalOtp() {
+  var code  = document.getElementById('otp-input').value.trim();
+  var errEl = document.getElementById('otp-error');
+  errEl.style.display = 'none';
+
+  if (code.length < 6) {
+    errEl.textContent = 'Please enter the 6-digit code from your email.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  var btn = document.getElementById('otp-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;"></div>';
+
+  try {
+    var token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    var res   = await fetch('/.netlify/functions/verify-withdrawal-otp', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body:    JSON.stringify({ uid: currentUid, code: code }),
+    });
+    var data = await res.json();
+
+    if (data.success) {
+      // OTP verified — close modal, run the actual payout
+      closeOtpModal();
+      if (_otpPendingAction === 'crypto') {
+        _executeWithdraw();
+      } else if (_otpPendingAction === 'bank') {
+        _executeBankWithdraw();
+      }
+    } else {
+      errEl.textContent = data.error || 'Incorrect code. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Confirm';
+    }
+  } catch (e) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Confirm';
+  }
+}
+
+function cancelOtpModal() {
+  closeOtpModal();
+}
+
+function closeOtpModal() {
+  clearInterval(_otpCountdownTimer);
+  document.getElementById('modal-otp').classList.remove('open');
+  document.body.style.overflow = '';
+  _otpPendingAction = null;
+}
+
 // ======= PULL TO REFRESH =======
 async function refreshPageData() {
   try {
@@ -1528,7 +1916,8 @@ async function refreshPageData() {
     var dx = Math.abs(e.touches[0].clientX - touchStartX);
     var anyModalOpen =
       document.getElementById('modal-early').classList.contains('open') ||
-      document.getElementById('modal-more').classList.contains('open');
+      document.getElementById('modal-more').classList.contains('open')  ||
+      document.getElementById('modal-otp').classList.contains('open');
     if (window.scrollY < 10 && dy > 30 && dx < 60 && !anyModalOpen) {
       isPulling = true;
       if (label) label.textContent = dy > PTR_THRESHOLD ? 'Release to refresh' : 'Pull to refresh';
@@ -1588,6 +1977,7 @@ async function refreshPageData() {
       if (document.getElementById('mobile-menu').classList.contains('open'))  { closeMobileMenu(); isEdgeSwipe=false; return; }
       if (document.getElementById('modal-early').classList.contains('open'))  { closeEarlyModal(); isEdgeSwipe=false; return; }
       if (document.getElementById('modal-more').classList.contains('open'))   { closeMoreModal();  isEdgeSwipe=false; return; }
+      if (document.getElementById('modal-otp').classList.contains('open'))    { cancelOtpModal();  isEdgeSwipe=false; return; }
       try { navigator.vibrate && navigator.vibrate(30); } catch(e2){}
       window.history.back();
     }
@@ -1634,6 +2024,15 @@ window._boot = async function(user, affiliateEnabled) {
       liveBalance       = Number(balancesMap['USD'] || d.availableBalance || 0);
       liveWalletAddress = d.walletAddress || '';
       kycVerified       = d.kycStatus === 'verified';
+      // Payout freeze check — show banner and disable submit buttons
+      if (d.payoutsFrozen === true) {
+        var frozenBanner = document.getElementById('payouts-frozen-banner');
+        if (frozenBanner) frozenBanner.style.display = 'flex';
+        var btnWithdraw = document.getElementById('btn-withdraw');
+        if (btnWithdraw) { btnWithdraw.disabled = true; btnWithdraw.style.opacity = '0.5'; btnWithdraw.style.cursor = 'not-allowed'; }
+        var btnBankWithdraw = document.getElementById('btn-bank-withdraw');
+        if (btnBankWithdraw) { btnBankWithdraw.disabled = true; btnBankWithdraw.style.opacity = '0.5'; btnBankWithdraw.style.cursor = 'not-allowed'; }
+      }
 
       // Prefill wallet from Firebase (no hardcoded address)
       var walletInput = document.getElementById('input-wallet-address');

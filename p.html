@@ -21,9 +21,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
 <!-- Firebase -->
@@ -420,7 +420,7 @@ document.addEventListener('firebase-ready', async () => {
     _productId = docSnap.id;
     _product = { id: docSnap.id, ...docSnap.data() };
 
-    if (_product.active === false) { show404(); return; }
+    if (_product.active === false || _product.status === 'removed_by_admin') { show404(); return; }
 
     renderProduct(_product);
     loadReviews(_productId);

@@ -12,12 +12,12 @@
 <title>Dashboard — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="/assets/shared.js"></script>
+<script src="/assets/shared.js" defer></script>
 <script>
 tailwind.config = {
   theme: {
@@ -358,7 +358,7 @@ header > div:last-child {
   max-width: 500px !important;
   max-height: 90dvh !important;
   overflow-y: auto !important;
-  padding: 22px 18px !important;
+  padding: 22px 18px 32px !important;
 }
 
 /* 16. GLASS CARDS — no overflow */

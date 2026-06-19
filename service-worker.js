@@ -4,16 +4,38 @@
  * Handles install, fetch (cache strategy), activate (cleanup), and push events.
  */
 
-const CACHE_NAME = 'kreddlo-v2';
+const CACHE_NAME = 'kreddlo-v3';
 
 const PRECACHE_URLS = [
+  // Core shell
   '/',
   '/index.html',
+  '/manifest.json',
+
+  // Shared assets — cached once, used by every page
   '/assets/shared.js',
   '/assets/kreddlo-logo.png',
   '/assets/kreddlo-192.png',
-  '/manifest.json',
+  '/assets/kreddlo-512.png',
+
+  // Key app shells — instant navigation after first visit
+  '/browse.html',
+  '/login.html',
+  '/signup.html',
+  '/dashboard.html',
+  '/dashboard-products.html',
+  '/dashboard-earnings.html',
+  '/dashboard-projects.html',
+  '/dashboard-withdraw.html',
+  '/buyer-dashboard.html',
+  '/buyer-purchases.html',
+  '/notifications.html',
+  '/404.html',
+
+  // Fonts — eliminates font flash on repeat visits
   'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
+
+  // Tailwind CDN — large but cached once across all pages
   'https://cdn.tailwindcss.com',
 ];
 

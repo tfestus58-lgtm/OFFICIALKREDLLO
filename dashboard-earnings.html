@@ -12,9 +12,9 @@
 <title>Earnings — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -335,7 +335,7 @@ header > div:last-child {
   max-width: 500px !important;
   max-height: 90dvh !important;
   overflow-y: auto !important;
-  padding: 22px 18px !important;
+  padding: 22px 18px 32px !important;
 }
 
 /* 16. GLASS CARDS — no overflow */
@@ -489,8 +489,23 @@ header > div:last-child {
             <span class="badge badge-amber">Available</span>
           </div>
           <div id="card-pending" class="stat-val sk" style="color:#856404;height:42px;width:60%;"></div>
-          <div class="stat-lbl">Pending Balance</div>
+          <div class="stat-lbl">Available to Withdraw</div>
           <div id="trend-pending" class="stat-trend" style="color:rgba(13,33,69,0.45);visibility:hidden;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(13,33,69,0.04),rgba(255,255,255,0.85));border:1px solid rgba(255,255,255,0.55);box-shadow:0 4px 24px rgba(13,33,69,0.06);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="width:38px;height:38px;background:rgba(13,33,69,0.07);border-radius:11px;display:flex;align-items:center;justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <span class="badge badge-navy">Clearing</span>
+          </div>
+          <div id="card-clearing" class="stat-val sk" style="height:42px;width:60%;"></div>
+          <div class="stat-lbl">Pending Clearance</div>
+          <div id="trend-clearing" class="stat-trend" style="color:rgba(13,33,69,0.45);visibility:hidden;">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
             <span></span>
           </div>
@@ -742,6 +757,22 @@ function renderSummaryCards(period) {
   var trendPending = document.getElementById('trend-pending');
   trendPending.querySelector('span').textContent = 'Ready to withdraw';
   trendPending.style.visibility = 'visible';
+
+  // Pending-clearance card (Item 9 — earnings holding period)
+  var pendingClearance = DEMO.pendingBalances || {};
+  var cardClearing = document.getElementById('card-clearing');
+  cardClearing.classList.remove('sk');
+  cardClearing.style.width = 'auto';
+  cardClearing.style.height = 'auto';
+  if (Object.keys(pendingClearance).length) {
+    cardClearing.innerHTML = renderCurrencyLines(pendingClearance);
+  } else {
+    cardClearing.textContent = fmtCurrency(0, 'USD');
+  }
+
+  var trendClearing = document.getElementById('trend-clearing');
+  trendClearing.querySelector('span').textContent = 'Clears automatically';
+  trendClearing.style.visibility = 'visible';
 }
 
 // ============ CHART GROUPING ============
@@ -1265,6 +1296,14 @@ async function loadEarningsData(uid) {
         balancesMap['USD'] = ud.availableBalance;
       }
       DEMO.balances      = balancesMap;
+
+      // Pending-clearance balances (Item 9 — earnings holding period)
+      var pendingMap = ud.pendingBalances || {};
+      if (!Object.keys(pendingMap).length && ud.pendingBalance) {
+        pendingMap['USD'] = ud.pendingBalance;
+      }
+      DEMO.pendingBalances = pendingMap;
+
       DEMO.premiumStatus = ud.premiumStatus || 'inactive';
       DEMO.plan          = ud.plan          || '';
     }

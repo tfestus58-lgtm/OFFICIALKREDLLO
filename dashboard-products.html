@@ -12,9 +12,9 @@
 <title>My Products — Kreddlo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
-  <link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
-  <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
@@ -174,7 +174,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .cp-connector{flex:1;height:1px;background:#e8eaf0;min-width:16px}
 
 /* Scrollable body */
-.cp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 0}
+.cp-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 20px 24px}
 
 /* Step panels */
 .cp-step-panel{display:none}
@@ -266,7 +266,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   .cp-step-desktop{display:flex;align-items:center;gap:0}
   .cp-header{padding:22px 26px 0}
   .cp-steps{padding:16px 26px 0}
-  .cp-body{padding:20px 26px 0}
+  .cp-body{padding:20px 26px 28px}
   .cp-footer{padding:16px 26px 22px}
 }
 
@@ -423,7 +423,11 @@ header > div:last-child {
   max-width: 100% !important;
   border-radius: 24px 24px 0 0 !important;
   max-height: 92dvh !important;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Ensure scrollable body has enough bottom clearance so last items
+   (e.g. affiliate toggle) aren't hidden under the sticky footer */
+.cp-body {
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 28px)) !important;
 }
 @media (min-width: 600px) {
   .cp-overlay { align-items: center !important; padding: 20px !important; }
@@ -432,6 +436,7 @@ header > div:last-child {
     border-radius: 24px !important;
     max-height: 90dvh !important;
   }
+  .cp-body { padding-bottom: 32px !important; }
 }
 
 /* 13. QUICK CARDS — equal width, responsive */
@@ -465,7 +470,7 @@ header > div:last-child {
   max-width: 500px !important;
   max-height: 90dvh !important;
   overflow-y: auto !important;
-  padding: 22px 18px !important;
+  padding: 22px 18px 32px !important;
 }
 
 /* 16. GLASS CARDS — no overflow */
@@ -2303,9 +2308,10 @@ function typeLabel(t) { return TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() 
 
 // ── Build one product card HTML ──
 function buildCard(id, d) {
-  const isOwner  = _currentUser && d.uid === _currentUser.uid;
-  const isActive = d.status !== 'inactive' && d.status !== 'draft';
-  const sales    = d.totalSales || d.salesCount || 0;
+  const isOwner      = _currentUser && d.uid === _currentUser.uid;
+  const isRemovedByAdmin = d.status === 'removed_by_admin';
+  const isActive     = !isRemovedByAdmin && d.status !== 'inactive' && d.status !== 'draft';
+  const sales        = d.totalSales || d.salesCount || 0;
   const _priceVal = d.cardPrice != null ? d.cardPrice : d.price;
   const _priceCur = d.currency || 'USD';
   let price;
@@ -2319,7 +2325,7 @@ function buildCard(id, d) {
   const type     = typeLabel(d.deliveryType || d.type);
 
   const coverHtml = d.coverUrl
-    ? `<img class="prod-cover" src="${escHtml(d.coverUrl)}" alt="${escHtml(d.title || '')}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\'prod-cover-placeholder\'>${coverIcon()}</div>'">`
+    ? `<img class="prod-cover" src="${escHtml(d.coverUrl)}" alt="${escHtml(d.title || '')}" loading="lazy" onerror="this.style.display='none';var ph=document.createElement('div');ph.className='prod-cover-placeholder';ph.innerHTML=coverIcon();this.parentNode.insertBefore(ph,this);">`
     : `<div class="prod-cover-placeholder">${coverIcon()}</div>`;
 
   const toggleClass = isActive ? 'btn-toggle-active' : 'btn-toggle-inactive';
@@ -2327,6 +2333,33 @@ function buildCard(id, d) {
   const toggleDot   = isActive
     ? `<span style="width:7px;height:7px;border-radius:50%;background:#2d8a5e;flex-shrink:0;"></span>`
     : `<span style="width:7px;height:7px;border-radius:50%;background:#856404;flex-shrink:0;"></span>`;
+
+  const removedBanner = isRemovedByAdmin
+    ? `<div style="margin-bottom:8px;padding:8px 12px;background:rgba(200,30,30,0.07);border:1px solid rgba(200,30,30,0.18);border-radius:10px;display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c81e1e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span style="font-size:12px;font-weight:600;color:#c81e1e;line-height:1.4;">Removed by admin — not visible to buyers</span>
+      </div>`
+    : '';
+
+  const ownerActions = isOwner
+    ? (isRemovedByAdmin
+        ? `<button class="btn-sm btn-delete" style="opacity:0.45;cursor:not-allowed;" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Removed
+          </button>`
+        : `<button class="btn-sm btn-edit" onclick="openEditModal('${escHtml(id)}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edit
+          </button>
+          <button id="toggle-${escHtml(id)}" class="btn-sm ${toggleClass}" style="display:inline-flex;align-items:center;gap:5px;" onclick="toggleStatus('${escHtml(id)}', ${isActive})">
+            ${toggleDot}
+            ${toggleLabel}
+          </button>
+          <button class="btn-sm btn-delete" onclick="deleteProduct('${escHtml(id)}')" title="Delete product">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Delete
+          </button>`)
+    : '';
 
   return `
 <div class="prod-card" id="card-${escHtml(id)}">
@@ -2344,21 +2377,9 @@ function buildCard(id, d) {
         ${sales} sale${sales !== 1 ? 's' : ''}
       </span>
     </div>
+    ${removedBanner}
     <div class="prod-actions">
-      ${isOwner ? `
-      <button class="btn-sm btn-edit" onclick="openEditModal('${escHtml(id)}')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Edit
-      </button>
-      <button id="toggle-${escHtml(id)}" class="btn-sm ${toggleClass}" style="display:inline-flex;align-items:center;gap:5px;" onclick="toggleStatus('${escHtml(id)}', ${isActive})">
-        ${toggleDot}
-        ${toggleLabel}
-      </button>
-      <button class="btn-sm btn-delete" onclick="deleteProduct('${escHtml(id)}')" title="Delete product">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        Delete
-      </button>
-      ` : ''}
+      ${ownerActions}
     </div>
   </div>
 </div>`;
@@ -2375,6 +2396,10 @@ function escHtml(s) {
 
 // ── Toggle active / inactive in Firestore ──
 async function toggleStatus(productId, currentlyActive) {
+  // Guard: never let the seller toggle a product removed by admin
+  const card = document.getElementById('card-' + productId);
+  if (card && card.querySelector('[data-removed-by-admin]')) return;
+
   const btn = document.getElementById('toggle-' + productId);
   if (!btn) return;
   btn.classList.add('btn-toggle-spinning');
@@ -2508,7 +2533,7 @@ async function fetchStats(uid) {
       totalProducts++;
       totalSales   += (d.totalSales   || d.salesCount || 0);
       totalRevenue += (d.totalRevenue || 0);
-      if (d.status !== 'inactive' && d.status !== 'draft') activeCount++;
+      if (d.status !== 'inactive' && d.status !== 'draft' && d.status !== 'removed_by_admin') activeCount++;
       items.push({ id: docSnap.id, data: d });
     });
 
