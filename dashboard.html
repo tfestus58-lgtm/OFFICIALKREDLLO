@@ -222,11 +222,15 @@ html, body {
   .stat-card { padding: 18px 16px !important; }
 }
 
-/* 5. STAT GRID — 2-col always on mobile, min 0 to prevent overflow */
+/* 5. STAT GRID — 2-col on mobile, min 0 to prevent overflow */
 #section-c > div, #stats-grid > div, #summary-cards > div {
   min-width: 0;
 }
 .stat-card { min-width: 0; }
+/* Collapse to 1-col on very small phones — matches buyer-dashboard.html behavior */
+@media (max-width: 360px) {
+  #stats-grid { grid-template-columns: 1fr !important; }
+}
 
 /* 6. HAMBURGER — always visible on mobile, proper tap size */
 #hamburger {
@@ -872,6 +876,8 @@ var NAV = [
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
   { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
+  { label:'Purchases',     href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate',     href:'/dashboard-affiliate.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
   { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
@@ -880,9 +886,13 @@ var NAV = [
   { label:'Profile',       href:'/profile.html',            icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
 ];
 
-function buildNav(uid) {
+function buildNav(uid, affiliateEnabled) {
   var cur = (window.location.pathname.split('/').pop() || 'dashboard.html');
-  var html = NAV.map(function(n) {
+  var items = NAV.filter(function(n) {
+    if (n.label === 'Affiliate') return affiliateEnabled === true;
+    return true;
+  });
+  var html = items.map(function(n) {
     var href = n.href;
     if (n.label === 'Store'   && uid) href = '/store.html?uid='   + uid;
     if (n.label === 'Profile' && uid) href = '/profile.html?uid=' + uid;
@@ -1400,7 +1410,7 @@ function refreshPageData() {
 
 // ── Auth guard + boot ─────────────────────────────────────────────────────────
 setGreeting();
-buildNav(null);
+buildNav(null, false);
 
 onAuthStateChanged(auth, function(user) {
   if (!user) {
@@ -1410,15 +1420,16 @@ onAuthStateChanged(auth, function(user) {
 
   getDoc(doc(db, 'users', user.uid)).then(function(snap) {
     var role = snap.exists() ? snap.data().role : null;
+    var affiliateEnabled = snap.exists() ? (snap.data().affiliateEnabled === true) : false;
     if (role === 'buyer') { window.location.href = '/buyer-dashboard.html'; return; }
     if (role && role !== 'freelancer') { window.location.href = '/login.html'; return; }
-    _continueBoot(user);
+    _continueBoot(user, affiliateEnabled);
   }).catch(function() { window.location.href = '/login.html'; });
 });
 
-function _continueBoot(user) {
-  // Rebuild nav with uid so Store link gets ?uid=...
-  buildNav(user.uid);
+function _continueBoot(user, affiliateEnabled) {
+  // Rebuild nav with uid so Store link gets ?uid=... and affiliate link shows if opted in
+  buildNav(user.uid, affiliateEnabled);
 
   // Show skeleton avatar placeholder
   document.getElementById('user-avatar').textContent = '..';

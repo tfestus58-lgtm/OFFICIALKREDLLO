@@ -113,6 +113,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 .btn-toggle-spinning{opacity:.55;pointer-events:none}
 .btn-delete{background:rgba(220,38,38,0.08);color:#b91c1c}.btn-delete:hover{background:rgba(220,38,38,0.16)}
 
+/* ── Delete confirmation modal ── */
+#del-confirm-overlay{position:fixed;inset:0;background:rgba(9,24,48,0.55);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .2s;}
+#del-confirm-overlay.open{opacity:1;pointer-events:all;}
+#del-confirm-box{background:#fff;border-radius:18px;padding:28px 24px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(13,33,69,0.18);transform:translateY(12px);transition:transform .2s;text-align:center;}
+#del-confirm-overlay.open #del-confirm-box{transform:translateY(0);}
+#del-confirm-icon{width:52px;height:52px;border-radius:50%;background:rgba(220,38,38,0.09);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+#del-confirm-title{font-size:17px;font-weight:700;color:#0d2145;margin:0 0 8px;}
+#del-confirm-body{font-size:14px;color:#4a5568;margin:0 0 22px;line-height:1.5;}
+.del-confirm-btns{display:flex;gap:10px;}
+.del-confirm-btns button{flex:1;padding:12px 16px;border-radius:50px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:background .15s,transform .12s;}
+.del-confirm-btns button:active{transform:scale(.97);}
+#del-cancel-btn{background:#f1f5f9;color:#0d2145;}
+#del-cancel-btn:hover{background:#e2e8f0;}
+#del-confirm-btn{background:#dc2626;color:#fff;}
+#del-confirm-btn:hover{background:#b91c1c;}
+
 /* ── Empty state ── */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 20px;gap:16px}
 
@@ -177,6 +193,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 #cp-currency-note{color:#b45309;font-weight:600}
 #cp-price-cap-hint{color:#2d8a5e;font-weight:600}
 .cp-field{margin-bottom:16px}
+/* Affiliate toggle — reusable pill toggle */
+.toggle{position:relative;width:48px;height:28px;border-radius:50px;border:none;cursor:pointer;flex-shrink:0;transition:background .2s;padding:0;background:#e2e8f0}
+.toggle.on{background:#2d8a5e}
+.toggle .knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(13,33,69,0.25);transition:transform .2s}
+.toggle.on .knob{transform:translateX(20px)}
+.toggle:focus-visible{outline:2px solid #2d8a5e;outline-offset:2px}
 
 /* Price row: input + currency select side by side */
 .cp-price-row{display:flex;gap:10px}
@@ -205,6 +227,31 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
 
 /* Footer nav */
 .cp-footer{padding:16px 20px 20px;flex-shrink:0;display:flex;gap:10px;border-top:1px solid #f0f2f6;margin-top:4px}
+
+/* Video course chapter builder */
+.vc-chapter{background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;overflow:hidden;margin-bottom:10px;transition:border-color .2s}
+.vc-chapter.drag-over{border-color:#2d8a5e;background:#f0faf5}
+.vc-chapter-header{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.vc-chapter-drag{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(13,33,69,0.05);border-radius:8px;cursor:grab;touch-action:none}
+.vc-chapter-num{width:26px;height:26px;background:rgba(45,138,94,0.12);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2d8a5e;flex-shrink:0}
+.vc-chapter-title-wrap{flex:1;min-width:0}
+.vc-chapter-title-input{width:100%;border:none;outline:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;color:#0d2145;background:transparent;padding:0}
+.vc-chapter-title-input::placeholder{color:rgba(13,33,69,0.35);font-weight:500}
+.vc-chapter-meta{font-size:11px;font-weight:500;color:rgba(13,33,69,0.40);margin-top:1px}
+.vc-chapter-toggle{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;padding:0;color:rgba(13,33,69,0.40);transition:color .15s;border-radius:8px}
+.vc-chapter-toggle:hover{color:#0d2145;background:rgba(13,33,69,0.05)}
+.vc-chapter-body{padding:0 14px 14px;display:none}
+.vc-chapter-body.open{display:block}
+.vc-lesson-row{display:flex;align-items:center;gap:8px;padding:9px 10px;background:#fafbfc;border:1.5px solid #e8eaf0;border-radius:11px;margin-bottom:6px}
+.vc-lesson-row input[type=text],.vc-lesson-row input[type=url]{border:none;outline:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#0d2145;min-width:0}
+.vc-lesson-row input[type=text]{flex:0 0 110px}
+.vc-lesson-row input[type=url]{flex:1}
+.vc-lesson-preview-toggle{display:flex;align-items:center;gap:5px;flex-shrink:0;cursor:pointer;font-size:11px;font-weight:600;color:rgba(13,33,69,0.45);white-space:nowrap;transition:color .15s}
+.vc-lesson-preview-toggle.active{color:#2d8a5e}
+.vc-lesson-preview-toggle input[type=checkbox]{accent-color:#2d8a5e;width:13px;height:13px;cursor:pointer}
+.vc-duration-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #e8eaf0}
+.vc-duration-input{width:70px;border:1.5px solid #e2e8f0;border-radius:9px;padding:7px 10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#0d2145;background:#fff;outline:none;text-align:center;transition:border-color .2s}
+.vc-duration-input:focus{border-color:#2d8a5e}
 .cp-footer .btn-green{flex:1}
 .cp-footer .cp-back{flex:0 0 auto;background:transparent;color:rgba(13,33,69,0.55);border:1.5px solid #e2e8f0;border-radius:50px;padding:11px 18px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s}
 .cp-footer .cp-back:hover{border-color:#0d2145;color:#0d2145}
@@ -668,6 +715,8 @@ const NAV = [
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
   { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
+  { label:'Purchases',     href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate',     href:'/dashboard-affiliate.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
   { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
@@ -677,9 +726,13 @@ const NAV = [
 ];
 
 // ── Build sidebar nav ──
-function buildNav(uid) {
+function buildNav(uid, affiliateEnabled) {
   const cur  = window.location.pathname.split('/').pop() || 'dashboard.html';
-  const html = NAV.map(n => {
+  const items = NAV.filter(n => {
+    if (n.label === 'Affiliate') return affiliateEnabled === true;
+    return true;
+  });
+  const html = items.map(n => {
     let href = n.href;
     if (n.label === 'Store'   && uid) href = '/store.html?uid='   + uid;
     if (n.label === 'Profile' && uid) href = '/profile.html?uid=' + uid;
@@ -731,6 +784,10 @@ let _cpDeliveryFile = null;  // File object for downloadable delivery file (Pro)
 let _cpDeliveryVideo = null; // File object for delivery video (Pro)
 let _cpDeliveryFileUrl  = null; // existing uploaded delivery file URL (edit mode)
 let _cpDeliveryVideoUrl = null; // existing uploaded delivery video URL (edit mode)
+let _cpCoverPublicId        = null; // Cloudinary publicId of current cover image
+let _cpDeliveryFilePublicId = null; // Cloudinary publicId of current delivery file
+let _cpDeliveryVideoPublicId= null; // Cloudinary publicId of current delivery video
+let _cpCourseChapters = [];         // Array of chapter objects for video-course type
 let _cpDelivery    = 'digital-download'; // default selected
 let _currentUser   = null;   // set by onAuthStateChanged
 let _currentUserPlan = 'free'; // 'free' | 'pro' — set by onAuthStateChanged
@@ -750,6 +807,10 @@ window.openCreateModal = function() {
   _cpDeliveryVideo = null;
   _cpDeliveryFileUrl  = null;
   _cpDeliveryVideoUrl = null;
+  _cpCoverPublicId         = null;
+  _cpDeliveryFilePublicId  = null;
+  _cpDeliveryVideoPublicId = null;
+  _cpCourseChapters = [];
   _cpDelivery  = 'digital-download';
   _cpEditId    = null;
   _cpPublishActive = true;
@@ -910,6 +971,19 @@ function cpValidate(step) {
         cryptoPriceErr.classList.remove('show');
       }
     }
+
+    // Affiliate commission validation
+    const affBtn2 = document.getElementById('cp-affiliate-toggle');
+    const affPct2 = document.getElementById('cp-commission-pct');
+    const affErr2 = document.getElementById('cp-commission-err');
+    if (affBtn2 && affBtn2.classList.contains('on') && affPct2 && affErr2) {
+      const pctVal = parseFloat(affPct2.value);
+      if (isNaN(pctVal) || pctVal < 1 || pctVal > 70) {
+        affPct2.classList.add('err'); affErr2.classList.add('show'); ok = false;
+      } else {
+        affPct2.classList.remove('err'); affErr2.classList.remove('show');
+      }
+    }
   }
 
   if (step === 2) {
@@ -937,6 +1011,20 @@ function cpValidate(step) {
         } else {
           courseUrl.classList.remove('err'); errEl && errEl.classList.remove('show');
         }
+      }
+    } else if (type === 'video-course') {
+      const errEl = document.getElementById('vc-chapters-err');
+      // Sync all chapter titles from DOM before validating
+      document.querySelectorAll('.vc-chapter').forEach(card => {
+        const idx = parseInt(card.dataset.idx, 10);
+        const input = card.querySelector('.vc-chapter-title-input');
+        if (input && _cpCourseChapters[idx]) _cpCourseChapters[idx].title = input.value.trim();
+      });
+      const hasChapter = _cpCourseChapters.length > 0 && _cpCourseChapters.some(ch => ch.title.trim());
+      if (!hasChapter) {
+        errEl && errEl.classList.add('show'); ok = false;
+      } else {
+        errEl && errEl.classList.remove('show');
       }
     }
   }
@@ -1079,6 +1167,22 @@ async function cpUpdatePriceCap() {
   }
 }
 // ── Reset form ──
+// ── Affiliate toggle ──
+function cpToggleAffiliate() {
+  const btn  = document.getElementById('cp-affiliate-toggle');
+  const wrap = document.getElementById('cp-commission-wrap');
+  if (!btn || !wrap) return;
+  const isOn = btn.classList.toggle('on');
+  btn.setAttribute('aria-checked', isOn ? 'true' : 'false');
+  wrap.style.display = isOn ? 'block' : 'none';
+  if (!isOn) {
+    const pct = document.getElementById('cp-commission-pct');
+    if (pct) pct.value = '';
+    const err = document.getElementById('cp-commission-err');
+    if (err) err.classList.remove('show');
+  }
+}
+
 function cpResetForm() {
   ['cp-title','cp-desc','cp-price','cp-crypto-price'].forEach(id => {
     const el = document.getElementById(id);
@@ -1094,6 +1198,10 @@ function cpResetForm() {
   _cpDeliveryVideo = null;
   _cpDeliveryFileUrl  = null;
   _cpDeliveryVideoUrl = null;
+  _cpCoverPublicId         = null;
+  _cpDeliveryFilePublicId  = null;
+  _cpDeliveryVideoPublicId = null;
+  _cpCourseChapters = [];
   document.getElementById('cp-upload-placeholder').style.display = '';
   document.getElementById('cp-upload-preview-wrap').style.display = 'none';
   document.getElementById('cp-upload-preview-img').src = '';
@@ -1114,6 +1222,15 @@ function cpResetForm() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  // Reset affiliate toggle
+  const affBtn  = document.getElementById('cp-affiliate-toggle');
+  const affWrap = document.getElementById('cp-commission-wrap');
+  const affPct  = document.getElementById('cp-commission-pct');
+  const affErr  = document.getElementById('cp-commission-err');
+  if (affBtn)  { affBtn.classList.remove('on'); affBtn.setAttribute('aria-checked','false'); }
+  if (affWrap) affWrap.style.display = 'none';
+  if (affPct)  affPct.value = '';
+  if (affErr)  affErr.classList.remove('show');
   // Reset step 5 panel
   const p5 = document.getElementById('cp-panel-5');
   if (p5) p5.innerHTML = '';
@@ -1179,6 +1296,22 @@ function cpCollectData() {
     deliveryData.videoUrls = Array.from(videoRows)
       .map(i => i.value.trim())
       .filter(Boolean);
+  } else if (type === 'video-course') {
+    // Sync titles from DOM one final time before collect
+    document.querySelectorAll('.vc-chapter').forEach(card => {
+      const idx = parseInt(card.dataset.idx, 10);
+      const titleInput = card.querySelector('.vc-chapter-title-input');
+      if (titleInput && _cpCourseChapters[idx]) _cpCourseChapters[idx].title = titleInput.value.trim();
+    });
+    deliveryData.courseChapters = _cpCourseChapters.map(ch => ({
+      title: ch.title,
+      durationMin: ch.durationMin || '',
+      lessons: ch.lessons.map(ls => ({
+        title: ls.title,
+        videoUrl: ls.videoUrl,
+        isPreview: !!ls.isPreview,
+      })),
+    }));
   } else {
     deliveryData.redirectUrl = (document.getElementById('cp-redirect-url')?.value || '').trim();
   }
@@ -1187,6 +1320,12 @@ function cpCollectData() {
   const fbPixel = (document.getElementById('cp-fb-pixel')?.value || '').trim();
   const gaId    = (document.getElementById('cp-ga-id')?.value    || '').trim();
   const gtmId   = (document.getElementById('cp-gtm-id')?.value   || '').trim();
+
+  // Affiliate fields
+  const affBtn = document.getElementById('cp-affiliate-toggle');
+  const affiliateEnabled = affBtn ? affBtn.classList.contains('on') : false;
+  const affPctRaw = (document.getElementById('cp-commission-pct')?.value || '').trim();
+  const affiliateCommissionPercent = affiliateEnabled && affPctRaw !== '' ? (parseFloat(affPctRaw) || 0) : null;
 
   return {
     title, desc, cardPrice, cryptoPrice, price, currency,
@@ -1197,6 +1336,8 @@ function cpCollectData() {
       ...(gaId    ? { googleAnalytics: gaId }  : {}),
       ...(gtmId   ? { googleTagManager: gtmId } : {}),
     },
+    affiliateEnabled,
+    affiliateCommissionPercent,
     status: _cpPublishActive ? 'active' : 'inactive',
   };
 }
@@ -1224,7 +1365,7 @@ function cpRenderStep5() {
   }
 
   // Delivery type badge label
-  const TYPE_LABELS = { 'digital-download':'Download','manual':'Manual','link':'Link / Access','template':'Template','ebook':'eBook' };
+  const TYPE_LABELS = { 'digital-download':'Download','manual':'Manual','link':'Link / Access','template':'Template','ebook':'eBook','video-course':'Video Course' };
   const typeLabel   = TYPE_LABELS[data.deliveryType] || data.deliveryType;
 
   // Slug preview (just for display — real slug resolved on submit)
@@ -1244,6 +1385,7 @@ function cpRenderStep5() {
           <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:600;background:rgba(13,33,69,0.07);color:#0d2145;white-space:nowrap;flex-shrink:0;">${escHtml5(typeLabel)}</span>
         </div>
         ${desc ? `<p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 10px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escHtml5(desc)}</p>` : ''}
+        ${data.deliveryType === 'video-course' && data.courseChapters && data.courseChapters.length ? `<p style="font-size:11px;font-weight:600;color:#2d8a5e;margin:0 0 8px;display:flex;align-items:center;gap:5px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2.5" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>${data.courseChapters.length} chapter${data.courseChapters.length !== 1 ? 's' : ''} · ${data.courseChapters.reduce((s,c)=>s+c.lessons.length,0)} lesson${data.courseChapters.reduce((s,c)=>s+c.lessons.length,0)!==1?'s':''}</p>` : ''}
         <p style="font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;margin:0;">${escHtml5(currency)} ${price}</p>
       </div>
     </div>
@@ -1306,12 +1448,13 @@ function escHtml5(s) { return escHtml(s); }
 
 // ── Upload a large file directly to Cloudinary using a signed signature ──
 // resourceType: 'raw' (downloadable files) or 'video'
-async function cpUploadToCloudinarySigned(file, resourceType) {
+// existingPublicId: pass when editing to overwrite the old asset in Cloudinary
+async function cpUploadToCloudinarySigned(file, resourceType, existingPublicId) {
   // 1. Get signed params from our Netlify function (also checks Pro plan)
   const sigRes = await fetch('/.netlify/functions/sign-delivery-upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uid: _currentUser.uid, resourceType }),
+    body: JSON.stringify({ uid: _currentUser.uid, resourceType, existingPublicId: existingPublicId || null }),
   });
   const sig = await sigRes.json();
   if (!sigRes.ok) throw new Error(sig.error || 'Could not authorize upload');
@@ -1333,6 +1476,10 @@ async function cpUploadToCloudinarySigned(file, resourceType) {
   if (!uploadRes.ok || !uploadData.secure_url) {
     throw new Error(uploadData.error?.message || 'Upload to Cloudinary failed');
   }
+  // Store the publicId for future edits (Cloudinary will overwrite this asset next time)
+  if (resourceType === 'raw') _cpDeliveryFilePublicId = sig.publicId;
+  if (resourceType === 'video') _cpDeliveryVideoPublicId = sig.publicId;
+
   return uploadData.secure_url;
 }
 
@@ -1376,14 +1523,20 @@ async function cpSubmit() {
           img.onerror = () => reject(new Error('Failed to read cover image'));
           img.src = objUrl;
         });
+        // Use stable publicId for edits (overwrites old asset); fresh id for new products
+        const coverPublicId = _cpEditId
+          ? (_cpCoverPublicId || (_currentUser.uid + '-cover-' + _cpEditId))
+          : (_currentUser.uid + '-cover-' + Date.now());
+
         const res = await fetch('/.netlify/functions/upload-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64, folder: 'products', publicId: _currentUser.uid + '-' + Date.now() }),
+          body: JSON.stringify({ image: base64, folder: 'products', publicId: coverPublicId }),
         });
         const result = await res.json();
         if (!res.ok) throw new Error(result.error || 'Upload failed');
         coverUrl = result.url;
+        _cpCoverPublicId = coverPublicId; // track for future edits
       } catch (uploadErr) {
         showToast('Cover upload failed: ' + uploadErr.message);
         nextBtn.disabled = false; backBtn.disabled = false;
@@ -1398,7 +1551,7 @@ async function cpSubmit() {
     if (_cpDeliveryFile) {
       nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Uploading file...';
       try {
-        deliveryFileUrl = await cpUploadToCloudinarySigned(_cpDeliveryFile, 'raw');
+        deliveryFileUrl = await cpUploadToCloudinarySigned(_cpDeliveryFile, 'raw', _cpDeliveryFilePublicId);
       } catch (uploadErr) {
         showToast('File upload failed: ' + uploadErr.message);
         nextBtn.disabled = false; backBtn.disabled = false;
@@ -1413,7 +1566,7 @@ async function cpSubmit() {
     if (_cpDeliveryVideo) {
       nextBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="animation:spin .7s linear infinite"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-8.49"/></svg>Uploading video...';
       try {
-        deliveryVideoUrl = await cpUploadToCloudinarySigned(_cpDeliveryVideo, 'video');
+        deliveryVideoUrl = await cpUploadToCloudinarySigned(_cpDeliveryVideo, 'video', _cpDeliveryVideoPublicId);
       } catch (uploadErr) {
         showToast('Video upload failed: ' + uploadErr.message);
         nextBtn.disabled = false; backBtn.disabled = false;
@@ -1435,14 +1588,27 @@ async function cpSubmit() {
       slug,
       status:       data.status,
       integrations: data.integrations,
+      affiliateEnabled:           data.affiliateEnabled,
+      affiliateCommissionPercent: data.affiliateEnabled ? (data.affiliateCommissionPercent ?? null) : null,
       updatedAt:    serverTimestamp(),
     };
 
-    if (coverUrl) payload.coverUrl = coverUrl;
-    if (deliveryFileUrl)  payload.deliveryFileUrl  = deliveryFileUrl;
-    else if (_cpDeliveryFileUrl) payload.deliveryFileUrl = _cpDeliveryFileUrl;
-    if (deliveryVideoUrl) payload.deliveryVideoUrl = deliveryVideoUrl;
-    else if (_cpDeliveryVideoUrl) payload.deliveryVideoUrl = _cpDeliveryVideoUrl;
+    if (coverUrl) {
+      payload.coverUrl      = coverUrl;
+      payload.coverPublicId = _cpCoverPublicId || null;
+    }
+    if (deliveryFileUrl) {
+      payload.deliveryFileUrl      = deliveryFileUrl;
+      payload.deliveryFilePublicId = _cpDeliveryFilePublicId || null;
+    } else if (_cpDeliveryFileUrl) {
+      payload.deliveryFileUrl = _cpDeliveryFileUrl;
+    }
+    if (deliveryVideoUrl) {
+      payload.deliveryVideoUrl      = deliveryVideoUrl;
+      payload.deliveryVideoPublicId = _cpDeliveryVideoPublicId || null;
+    } else if (_cpDeliveryVideoUrl) {
+      payload.deliveryVideoUrl = _cpDeliveryVideoUrl;
+    }
 
     // Delivery-type-specific fields
     if (data.fileUrl)        payload.fileUrl        = data.fileUrl;
@@ -1451,6 +1617,7 @@ async function cpSubmit() {
     if (data.coachingNote)   payload.coachingNote   = data.coachingNote;
     if (data.courseUrl)      payload.courseUrl      = data.courseUrl;
     if (data.videoUrls)      payload.videoUrls      = data.videoUrls;
+    if (data.courseChapters) payload.courseChapters = data.courseChapters;
     if (data.redirectUrl)    payload.redirectUrl    = data.redirectUrl;
 
     if (_cpEditId) {
@@ -1513,6 +1680,12 @@ window.openEditModal = async function(productId) {
     _cpDelivery = d.deliveryType || 'digital-download';
     _cpCoverFile = null;
     _cpPublishActive = d.status !== 'inactive';
+    _cpCourseChapters = []; // will be loaded from d.courseChapters when step 3 renders
+
+    // Load existing Cloudinary publicIds so edits overwrite rather than orphan
+    _cpCoverPublicId         = d.coverPublicId         || null;
+    _cpDeliveryFilePublicId  = d.deliveryFilePublicId  || null;
+    _cpDeliveryVideoPublicId = d.deliveryVideoPublicId || null;
 
     cpResetForm();
 
@@ -1531,6 +1704,15 @@ window.openEditModal = async function(productId) {
     if (cryptoPriceEl) cryptoPriceEl.value = d.cryptoPrice != null ? d.cryptoPrice : '';
     cpApplyStripeGating(); // enforce Stripe gating after prefilling currency
     cpUpdatePriceCap();     // update cap hint for prefilled currency
+
+    // ── Pre-fill affiliate toggle ──
+    const affBtn  = document.getElementById('cp-affiliate-toggle');
+    const affWrap = document.getElementById('cp-commission-wrap');
+    const affPct  = document.getElementById('cp-commission-pct');
+    const affEnabled = d.affiliateEnabled === true;
+    if (affBtn)  { affBtn.classList.toggle('on', affEnabled); affBtn.setAttribute('aria-checked', affEnabled ? 'true' : 'false'); }
+    if (affWrap) affWrap.style.display = affEnabled ? 'block' : 'none';
+    if (affPct && affEnabled && d.affiliateCommissionPercent != null) affPct.value = d.affiliateCommissionPercent;
 
     // ── Pre-fill Step 2 delivery type ──
     document.querySelectorAll('.cp-type-card').forEach(c => {
@@ -1684,6 +1866,20 @@ function cpRenderStep3() {
         <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin-top:7px;">YouTube or Vimeo embed links shown as course preview.</p>
       </div>`;
 
+  } else if (type === 'video-course') {
+    html = `
+      <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.52);margin:0 0 6px;line-height:1.5;">Build your course chapter by chapter. Buyers get a dedicated course viewer with progress tracking.</p>
+      <div id="vc-total-duration" style="display:flex;align-items:center;gap:6px;margin-bottom:16px;padding:9px 12px;background:rgba(45,138,94,0.07);border-radius:10px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span style="font-size:12px;font-weight:600;color:#2d8a5e;" id="vc-duration-label">0 min total — add chapters below</span>
+      </div>
+      <div id="vc-chapter-list" style="margin-bottom:10px;"></div>
+      <button type="button" onclick="vcAddChapter()" style="display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:transparent;border:1.5px dashed #e2e8f0;border-radius:12px;padding:12px 16px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;color:#2d8a5e;cursor:pointer;transition:border-color .15s,background .15s;" onmouseover="this.style.borderColor='#2d8a5e';this.style.background='#f0faf5'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='transparent'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Chapter
+      </button>
+      <p class="cp-err" id="vc-chapters-err" style="margin-top:8px;">Add at least one chapter with a title.</p>`;
+
   } else {
     // fallback (redirect / other)
     html = `
@@ -1779,6 +1975,21 @@ function cpRenderStep3() {
     cpAddVideoRow(); // add one empty row by default
   }
 
+  // Initialize video-course: render from _cpCourseChapters (may be empty or populated from edit mode)
+  if (type === 'video-course') {
+    setTimeout(() => {
+      // If editing and we have courseChapters from Firestore, populate _cpCourseChapters first
+      if (_cpEditId && window._cpEditData && window._cpEditData.courseChapters && !_cpCourseChapters.length) {
+        _cpCourseChapters = JSON.parse(JSON.stringify(window._cpEditData.courseChapters));
+      }
+      if (_cpCourseChapters.length === 0) {
+        vcAddChapter(); // one empty chapter by default
+      } else {
+        vcRenderAllChapters();
+      }
+    }, 0);
+  }
+
   // ── Edit mode: pre-fill step 3 fields ──
   if (_cpEditId && window._cpEditData) {
     const d = window._cpEditData;
@@ -1826,12 +2037,228 @@ function cpRenderStep3() {
             if (last) last.value = url;
           });
         }
-      } else {
+      } else if (type !== 'video-course') {
         const ru = document.getElementById('cp-redirect-url');
         if (ru && d.redirectUrl) ru.value = d.redirectUrl;
       }
     }, 0);
   }
+}
+
+// ── Video Course: Chapter & Lesson Management ──
+
+// Add a new chapter
+window.vcAddChapter = function() {
+  const chapterIdx = _cpCourseChapters.length;
+  _cpCourseChapters.push({ title: '', lessons: [{ title: '', videoUrl: '', isPreview: false }], durationMin: '' });
+  vcRenderChapter(chapterIdx, true);
+  vcUpdateDurationSummary();
+};
+
+// Render all chapters from state
+function vcRenderAllChapters() {
+  const list = document.getElementById('vc-chapter-list');
+  if (!list) return;
+  list.innerHTML = '';
+  _cpCourseChapters.forEach((ch, i) => vcRenderChapter(i, i === _cpCourseChapters.length - 1));
+  vcUpdateDurationSummary();
+}
+
+// Render a single chapter card and append to list
+function vcRenderChapter(idx, openBody) {
+  const list = document.getElementById('vc-chapter-list');
+  if (!list) return;
+  const ch = _cpCourseChapters[idx];
+  if (!ch) return;
+
+  const card = document.createElement('div');
+  card.className = 'vc-chapter';
+  card.dataset.idx = idx;
+
+  const lessonsHtml = ch.lessons.map((ls, li) => vcLessonRowHtml(idx, li, ls)).join('');
+
+  card.innerHTML = `
+    <div class="vc-chapter-header" onclick="vcToggleChapter(${idx})">
+      <div class="vc-chapter-drag" title="Drag to reorder" onclick="event.stopPropagation()" aria-label="Drag chapter">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
+      <div class="vc-chapter-num">${idx + 1}</div>
+      <div class="vc-chapter-title-wrap">
+        <input class="vc-chapter-title-input" type="text" placeholder="Chapter title…" value="${escHtml(ch.title)}" maxlength="100"
+          onclick="event.stopPropagation()"
+          onchange="vcSyncChapterTitle(${idx}, this.value)"
+          oninput="vcSyncChapterTitle(${idx}, this.value)"
+          aria-label="Chapter ${idx + 1} title"/>
+        <div class="vc-chapter-meta" id="vc-meta-${idx}">${ch.lessons.length} lesson${ch.lessons.length !== 1 ? 's' : ''}${ch.durationMin ? ' · ' + ch.durationMin + ' min' : ''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-left:auto;">
+        <button type="button" onclick="event.stopPropagation();vcMoveChapter(${idx},-1)" style="width:28px;height:28px;background:transparent;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;border-radius:7px;color:rgba(13,33,69,0.40);" ${idx === 0 ? 'disabled style="opacity:0.25;cursor:default;"' : ''} aria-label="Move chapter up">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button type="button" onclick="event.stopPropagation();vcMoveChapter(${idx},1)" style="width:28px;height:28px;background:transparent;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;border-radius:7px;color:rgba(13,33,69,0.40);" ${idx === _cpCourseChapters.length - 1 ? 'disabled style="opacity:0.25;cursor:default;"' : ''} aria-label="Move chapter down">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button type="button" onclick="event.stopPropagation();vcDeleteChapter(${idx})" style="width:28px;height:28px;background:rgba(200,30,30,0.07);border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;border-radius:7px;color:#c81e1e;" aria-label="Delete chapter">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
+        <button class="vc-chapter-toggle" type="button" id="vc-toggle-btn-${idx}" onclick="event.stopPropagation();vcToggleChapter(${idx})" aria-label="Toggle chapter">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="vc-chapter-body${openBody ? ' open' : ''}" id="vc-body-${idx}">
+      <div id="vc-lessons-${idx}" style="margin-bottom:6px;">${lessonsHtml}</div>
+      <button type="button" onclick="vcAddLesson(${idx})" style="display:inline-flex;align-items:center;gap:5px;background:transparent;border:1.5px dashed #e2e8f0;border-radius:9px;padding:7px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:600;color:#2d8a5e;cursor:pointer;transition:border-color .15s,background .15s;margin-bottom:10px;" onmouseover="this.style.borderColor='#2d8a5e';this.style.background='#f0faf5'" onmouseout="this.style.borderColor='#e2e8f0';this.style.background='transparent'">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Lesson
+      </button>
+      <div class="vc-duration-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span style="font-size:11px;font-weight:600;color:rgba(13,33,69,0.50);">Chapter duration (min)</span>
+        <input type="number" class="vc-duration-input" min="0" max="9999" placeholder="e.g. 45"
+          value="${escHtml(String(ch.durationMin || ''))}"
+          onchange="vcSyncDuration(${idx}, this.value)"
+          oninput="vcSyncDuration(${idx}, this.value)"
+          aria-label="Chapter ${idx + 1} duration in minutes"/>
+        <span style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.35);">optional</span>
+      </div>
+    </div>`;
+
+  list.appendChild(card);
+}
+
+// Generate lesson row HTML
+function vcLessonRowHtml(chIdx, lsIdx, ls) {
+  return `<div class="vc-lesson-row" id="vc-lesson-${chIdx}-${lsIdx}" data-ch="${chIdx}" data-ls="${lsIdx}">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <input type="text" placeholder="Lesson title" maxlength="80" value="${escHtml(ls.title)}"
+      onchange="vcSyncLesson(${chIdx},${lsIdx},'title',this.value)"
+      oninput="vcSyncLesson(${chIdx},${lsIdx},'title',this.value)"
+      aria-label="Lesson ${lsIdx + 1} title" style="flex:0 0 100px;min-width:0;border:none;outline:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:#0d2145;"/>
+    <div style="width:1px;height:16px;background:#e2e8f0;flex-shrink:0;"></div>
+    <input type="url" inputmode="url" placeholder="Video URL (YouTube / Vimeo)" value="${escHtml(ls.videoUrl)}"
+      onchange="vcSyncLesson(${chIdx},${lsIdx},'videoUrl',this.value)"
+      oninput="vcSyncLesson(${chIdx},${lsIdx},'videoUrl',this.value)"
+      aria-label="Lesson ${lsIdx + 1} video URL" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;font-weight:500;color:#0d2145;" autocomplete="off"/>
+    <label class="vc-lesson-preview-toggle${ls.isPreview ? ' active' : ''}" title="Mark as free preview">
+      <input type="checkbox" ${ls.isPreview ? 'checked' : ''} onchange="vcSyncLesson(${chIdx},${lsIdx},'isPreview',this.checked);this.parentElement.classList.toggle('active',this.checked)" aria-label="Free preview lesson"/>
+      Free
+    </label>
+    <button type="button" onclick="vcDeleteLesson(${chIdx},${lsIdx})" style="width:26px;height:26px;flex-shrink:0;background:rgba(200,30,30,0.07);border:none;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;" aria-label="Remove lesson">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#c81e1e" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`;
+}
+
+// Toggle chapter body open/closed
+window.vcToggleChapter = function(idx) {
+  const body = document.getElementById('vc-body-' + idx);
+  if (body) body.classList.toggle('open');
+};
+
+// Sync chapter title to state
+window.vcSyncChapterTitle = function(idx, val) {
+  if (_cpCourseChapters[idx]) _cpCourseChapters[idx].title = val;
+};
+
+// Sync chapter duration to state and update summary
+window.vcSyncDuration = function(idx, val) {
+  if (_cpCourseChapters[idx]) {
+    _cpCourseChapters[idx].durationMin = val ? parseInt(val, 10) || '' : '';
+    const meta = document.getElementById('vc-meta-' + idx);
+    if (meta) {
+      const ch = _cpCourseChapters[idx];
+      meta.textContent = ch.lessons.length + ' lesson' + (ch.lessons.length !== 1 ? 's' : '') + (ch.durationMin ? ' · ' + ch.durationMin + ' min' : '');
+    }
+    vcUpdateDurationSummary();
+  }
+};
+
+// Sync lesson field to state
+window.vcSyncLesson = function(chIdx, lsIdx, field, val) {
+  if (_cpCourseChapters[chIdx] && _cpCourseChapters[chIdx].lessons[lsIdx]) {
+    _cpCourseChapters[chIdx].lessons[lsIdx][field] = val;
+  }
+};
+
+// Add a lesson to a chapter
+window.vcAddLesson = function(chIdx) {
+  if (!_cpCourseChapters[chIdx]) return;
+  _cpCourseChapters[chIdx].lessons.push({ title: '', videoUrl: '', isPreview: false });
+  const li = _cpCourseChapters[chIdx].lessons.length - 1;
+  const container = document.getElementById('vc-lessons-' + chIdx);
+  if (container) {
+    const el = document.createElement('div');
+    el.innerHTML = vcLessonRowHtml(chIdx, li, _cpCourseChapters[chIdx].lessons[li]);
+    container.appendChild(el.firstElementChild);
+  }
+  const meta = document.getElementById('vc-meta-' + chIdx);
+  if (meta) {
+    const ch = _cpCourseChapters[chIdx];
+    meta.textContent = ch.lessons.length + ' lesson' + (ch.lessons.length !== 1 ? 's' : '') + (ch.durationMin ? ' · ' + ch.durationMin + ' min' : '');
+  }
+};
+
+// Delete a lesson from a chapter
+window.vcDeleteLesson = function(chIdx, lsIdx) {
+  if (!_cpCourseChapters[chIdx]) return;
+  if (_cpCourseChapters[chIdx].lessons.length <= 1) {
+    showToast('Each chapter needs at least one lesson.');
+    return;
+  }
+  _cpCourseChapters[chIdx].lessons.splice(lsIdx, 1);
+  // Re-render this chapter's lesson list
+  const container = document.getElementById('vc-lessons-' + chIdx);
+  if (container) {
+    container.innerHTML = _cpCourseChapters[chIdx].lessons.map((ls, li) => vcLessonRowHtml(chIdx, li, ls)).join('');
+  }
+  const meta = document.getElementById('vc-meta-' + chIdx);
+  if (meta) {
+    const ch = _cpCourseChapters[chIdx];
+    meta.textContent = ch.lessons.length + ' lesson' + (ch.lessons.length !== 1 ? 's' : '') + (ch.durationMin ? ' · ' + ch.durationMin + ' min' : '');
+  }
+};
+
+// Delete a chapter
+window.vcDeleteChapter = function(idx) {
+  if (_cpCourseChapters.length <= 1) {
+    showToast('Add at least one chapter to your course.');
+    return;
+  }
+  _cpCourseChapters.splice(idx, 1);
+  vcRenderAllChapters();
+};
+
+// Move a chapter up or down
+window.vcMoveChapter = function(idx, dir) {
+  const to = idx + dir;
+  if (to < 0 || to >= _cpCourseChapters.length) return;
+  const tmp = _cpCourseChapters[idx];
+  _cpCourseChapters[idx] = _cpCourseChapters[to];
+  _cpCourseChapters[to] = tmp;
+  vcRenderAllChapters();
+};
+
+// Update the total duration summary badge
+function vcUpdateDurationSummary() {
+  const label = document.getElementById('vc-duration-label');
+  if (!label) return;
+  const totalMin = _cpCourseChapters.reduce((sum, ch) => sum + (parseInt(ch.durationMin, 10) || 0), 0);
+  const totalLessons = _cpCourseChapters.reduce((sum, ch) => sum + ch.lessons.length, 0);
+  const chCount = _cpCourseChapters.length;
+  let durationStr = '';
+  if (totalMin > 0) {
+    if (totalMin >= 60) {
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      durationStr = h + 'h' + (m ? ' ' + m + 'm' : '') + ' total';
+    } else {
+      durationStr = totalMin + ' min total';
+    }
+  } else {
+    durationStr = 'No duration set yet';
+  }
+  label.textContent = chCount + ' chapter' + (chCount !== 1 ? 's' : '') + ' · ' + totalLessons + ' lesson' + (totalLessons !== 1 ? 's' : '') + ' · ' + durationStr;
 }
 
 // ── Add a video URL row (link/course type) ──
@@ -1870,6 +2297,7 @@ const TYPE_LABELS = {
   'link':             'Link',
   'template':         'Template',
   'ebook':            'eBook',
+  'video-course':     'Video Course',
 };
 function typeLabel(t) { return TYPE_LABELS[t] || (t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Digital'); }
 
@@ -1971,20 +2399,79 @@ async function toggleStatus(productId, currentlyActive) {
 }
 window.toggleStatus = toggleStatus;
 
-// ── Delete a product (soft-delete via status:'deleted') ──
-async function deleteProduct(productId) {
-  if (!_currentUser) { showToast('Not signed in. Please reload.'); return; }
+// ── Delete confirmation modal state ──
+var _pendingDeleteId = null;
 
-  const confirmed = window.confirm('Delete this product? This cannot be undone and it will disappear from Browse immediately.');
-  if (!confirmed) return;
+function openDeleteModal(productId) {
+  _pendingDeleteId = productId;
+  document.getElementById('del-confirm-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteModal() {
+  _pendingDeleteId = null;
+  document.getElementById('del-confirm-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay background tap
+document.getElementById('del-confirm-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeDeleteModal();
+});
+
+// ── Delete a product — opens confirmation modal first ──
+function deleteProduct(productId) {
+  if (!_currentUser) { showToast('Not signed in. Please reload.'); return; }
+  openDeleteModal(productId);
+}
+window.deleteProduct = deleteProduct;
+
+// ── Called only after user confirms in the modal ──
+async function confirmDeleteProduct() {
+  const productId = _pendingDeleteId;
+  if (!productId) return;
+
+  const confirmBtn = document.getElementById('del-confirm-btn');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Deleting…';
 
   try {
     // Verify ownership before writing
     const productSnap = await getDoc(doc(db, 'products', productId));
-    if (!productSnap.exists()) { showToast('Product not found.'); return; }
+    if (!productSnap.exists()) {
+      closeDeleteModal();
+      showToast('Product not found.');
+      return;
+    }
     if (productSnap.data().uid !== _currentUser.uid) {
+      closeDeleteModal();
       showToast('You do not have permission to delete this product.');
       return;
+    }
+
+    // Clean up Cloudinary assets before deleting the Firestore doc
+    const assetsToDelete = [];
+    if (productSnap.data().coverPublicId) {
+      assetsToDelete.push({ publicId: productSnap.data().coverPublicId, resourceType: 'image' });
+    }
+    if (productSnap.data().deliveryFilePublicId) {
+      assetsToDelete.push({ publicId: productSnap.data().deliveryFilePublicId, resourceType: 'raw' });
+    }
+    if (productSnap.data().deliveryVideoPublicId) {
+      assetsToDelete.push({ publicId: productSnap.data().deliveryVideoPublicId, resourceType: 'video' });
+    }
+    if (assetsToDelete.length > 0) {
+      try {
+        const idToken = await _currentUser.getIdToken();
+        await fetch('/.netlify/functions/cloudinary-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+          body: JSON.stringify({ assets: assetsToDelete }),
+        });
+        // Non-fatal — proceed with Firestore delete even if Cloudinary cleanup fails
+      } catch (cleanupErr) {
+        console.warn('[dashboard-products] Cloudinary cleanup failed (non-fatal):', cleanupErr.message);
+      }
     }
 
     await deleteDoc(doc(db, 'products', productId));
@@ -1993,13 +2480,16 @@ async function deleteProduct(productId) {
     const card = document.getElementById('card-' + productId);
     if (card) card.remove();
 
+    closeDeleteModal();
     showToast('Product deleted.');
   } catch (err) {
     console.error('[dashboard-products] deleteProduct error:', err);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Delete Product';
     showToast('Could not delete product. Please try again.');
   }
 }
-window.deleteProduct = deleteProduct;
+window.confirmDeleteProduct = confirmDeleteProduct;
 
 // ── Fetch all data — stats + grid in one query ──
 async function fetchStats(uid) {
@@ -2110,7 +2600,7 @@ onAuthStateChanged(auth, async user => {
     }
 
     // ── Authenticated freelancer: boot UI ──
-    buildNav(user.uid);
+    buildNav(user.uid, profile.affiliateEnabled === true);
     setAvatar(profile.displayName || user.displayName || user.email);
     hideOverlay();
     fetchStats(user.uid);
@@ -2127,7 +2617,7 @@ onAuthStateChanged(auth, async user => {
     console.error('[dashboard-products] profile fetch error:', err);
     // Graceful fallback — still show page
     _currentUserPlan = 'free';
-    buildNav(user.uid);
+    buildNav(user.uid, false);
     setAvatar(user.displayName || user.email);
     hideOverlay();
     fetchStats(user.uid);
@@ -2260,6 +2750,29 @@ onAuthStateChanged(auth, async user => {
           <p class="cp-hint">If left blank, crypto payment won't be shown to buyers for this product.</p>
         </div>
 
+        <!-- Affiliate toggle -->
+        <div class="cp-field" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid #e2e8f0;">
+            <div style="min-width:0;">
+              <label class="cp-label" style="margin:0 0 2px;display:block;">Enable Affiliate Promotion</label>
+              <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;line-height:1.45;">Allow affiliates to earn a commission when they refer buyers to this product.</p>
+            </div>
+            <button class="toggle" id="cp-affiliate-toggle" role="switch" aria-checked="false" onclick="cpToggleAffiliate()" type="button" style="flex-shrink:0;">
+              <div class="knob"></div>
+            </button>
+          </div>
+          <!-- Commission field — shown only when toggle is on -->
+          <div id="cp-commission-wrap" style="display:none;margin-top:4px;padding:14px;background:rgba(45,138,94,0.05);border:1px solid rgba(45,138,94,0.15);border-radius:12px;">
+            <label class="cp-label" for="cp-commission-pct" style="margin-bottom:6px;display:block;">Commission rate <span style="color:#c81e1e">*</span></label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input class="cp-input" id="cp-commission-pct" type="number" inputmode="decimal" placeholder="e.g. 20" min="1" max="70" step="1" style="max-width:110px;"/>
+              <span style="font-size:14px;font-weight:700;color:#0d2145;">%</span>
+            </div>
+            <p class="cp-err" id="cp-commission-err" style="margin-top:6px;">Enter a commission rate between 1 and 70.</p>
+            <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);margin:6px 0 0;line-height:1.45;">This percentage of the sale price is paid to the referring affiliate. Max 70%.</p>
+          </div>
+        </div>
+
       </div><!-- /panel-1 -->
 
       <!-- ── STEP 2: Delivery type ── -->
@@ -2330,6 +2843,22 @@ onAuthStateChanged(auth, async user => {
             <div>
               <p class="cp-type-name">Template</p>
               <p class="cp-type-desc">Notion, Figma, Sheets, or any reusable document.</p>
+            </div>
+          </div>
+
+          <!-- Video Course -->
+          <div class="cp-type-card" data-type="video-course" onclick="selectDeliveryType(this)">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+              <div class="cp-type-icon">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+              </div>
+              <div class="cp-type-check">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+            </div>
+            <div>
+              <p class="cp-type-name">Video Course</p>
+              <p class="cp-type-desc">Structured chapters with videos, progress tracked for buyers.</p>
             </div>
           </div>
 
@@ -2424,5 +2953,20 @@ if ('serviceWorker' in navigator) {
   window._clearSafetyTimer = function() { clearTimeout(_safetyTimer); };
 })();
 </script>
+
+<!-- ── Delete confirmation modal ── -->
+<div id="del-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="del-confirm-title">
+  <div id="del-confirm-box">
+    <div id="del-confirm-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </div>
+    <p id="del-confirm-title">Delete this product?</p>
+    <p id="del-confirm-body">This cannot be undone. The product will be permanently removed and will disappear from Browse immediately.</p>
+    <div class="del-confirm-btns">
+      <button id="del-cancel-btn" onclick="closeDeleteModal()">Cancel</button>
+      <button id="del-confirm-btn" onclick="confirmDeleteProduct()">Delete Product</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

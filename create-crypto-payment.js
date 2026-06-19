@@ -93,6 +93,16 @@ exports.handler = async (event) => {
     if (!amount || amount <= 0) {
       return respond(400, { error: 'Project has no valid payment amount set.' });
     }
+
+    /* ── KYC guard: verify the freelancer is verified before accepting payment ── */
+    const freelancerUid = projectDoc.freelancerUid || projectDoc.sellerUid || null;
+    if (freelancerUid) {
+      const db2 = getDb(); // same singleton
+      const freelancerSnap = await db2.collection('users').doc(freelancerUid).get();
+      if (freelancerSnap.exists && freelancerSnap.data().kycStatus !== 'verified') {
+        return respond(403, { error: 'This freelancer is not yet verified. Payment cannot be accepted at this time.' });
+      }
+    }
   } catch (dbErr) {
     console.error('[create-crypto-payment] Firestore read failed:', dbErr.message);
     return respond(500, { error: 'Could not verify project amount. Please try again.' });

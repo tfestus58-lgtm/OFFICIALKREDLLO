@@ -135,8 +135,8 @@
   status = 200
 
 [[redirects]]
-  from = "/paystack-webhook"
-  to   = "/.netlify/functions/paystack-webhook"
+  from = "/flutterwave-webhook"
+  to   = "/.netlify/functions/flutterwave-webhook"
   status = 200
 
 [[redirects]]

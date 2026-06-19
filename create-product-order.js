@@ -9,7 +9,7 @@
  *     productId:     string  — Firestore products document ID
  *     buyerEmail:    string  — buyer's email address
  *     buyerName:     string  — buyer's display name
- *     paymentMethod: string  — 'crypto' | 'stripe' | 'paystack'
+ *     paymentMethod: string  — 'crypto' | 'stripe' | 'flutterwave'
  *   }
  *
  * Success response (200):
@@ -20,17 +20,18 @@
  *   PLATFORM_URL             — live domain, e.g. https://kreddlo.com (no trailing slash)
  *   NOWPAYMENTS_API_KEY      — required for crypto payments
  *   STRIPE_SECRET_KEY        — required for stripe payments
- *   PAYSTACK_SECRET_KEY      — required for paystack payments
+ *   FLW_SECRET_KEY           — required for flutterwave payments
  */
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
+const { getAuth }                      = require('firebase-admin/auth');
 const { getSettings }                  = require('./get-settings');
 
 /* ── Payment API endpoints ── */
 const NOWPAYMENTS_INVOICE_ENDPOINT = 'https://api.nowpayments.io/v1/invoice';
 const STRIPE_CHECKOUT_URL          = 'https://api.stripe.com/v1/checkout/sessions';
-const PAYSTACK_INIT_URL            = 'https://api.paystack.co/transaction/initialize';
+const FLW_PAYMENT_URL              = 'https://api.flutterwave.com/v3/payments';
 const FRANKFURTER_URL              = 'https://api.frankfurter.app/latest';
 
 /* ── Firebase Admin — lazy singleton ── */
@@ -76,24 +77,87 @@ function toFormEncoded(obj, prefix) {
   return parts.join('&');
 }
 
-/* ── Price cap check via Frankfurter API ── */
-async function checkPriceCap(amount, currency, maxProductPriceUsd) {
-  // USD needs no conversion
+/* ── Exchange rate cache (Firestore-backed, 1-hour TTL) ── */
+const RATE_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Returns the USD conversion rate for `currency`.
+ * 1. Checks Firestore config/exchangeRates for a cached rate younger than 1 hour.
+ * 2. If stale or missing, fetches fresh rates from Frankfurter, writes them to
+ *    Firestore, then returns the needed rate.
+ * 3. If Frankfurter is unreachable, returns the stale cached rate if one exists,
+ *    otherwise returns null (caller should skip the cap check rather than block).
+ *
+ * @param {FirebaseFirestore.Firestore} db
+ * @param {string} currency  e.g. "NGN", "GBP"
+ * @returns {Promise<number|null>}  rate to multiply by to get USD, or null on total failure
+ */
+async function getUsdRate(db, currency) {
+  if (currency === 'USD') return 1;
+
+  const cacheRef = db.collection('config').doc('exchangeRates');
+
+  // ── 1. Try cache ──
+  try {
+    const snap = await cacheRef.get();
+    if (snap.exists) {
+      const cached = snap.data();
+      const ageMs  = Date.now() - (cached.updatedAt || 0);
+      if (ageMs < RATE_CACHE_TTL_MS && cached.rates?.[currency]) {
+        return cached.rates[currency]; // fresh hit — no network call needed
+      }
+    }
+  } catch (cacheReadErr) {
+    console.warn('[create-product-order] Cache read failed:', cacheReadErr.message);
+  }
+
+  // ── 2. Fetch fresh rates from Frankfurter ──
+  try {
+    // Fetch all major rates in one call so we can cache them all at once
+    const res = await fetch(`${FRANKFURTER_URL}?from=USD`);
+    if (!res.ok) throw new Error(`Frankfurter HTTP ${res.status}`);
+    const data = await res.json();
+
+    // data.rates has currency → USD-denominated price (i.e. 1 USD = X currency)
+    // We need the inverse: 1 X = ? USD
+    const rates = {};
+    for (const [cur, usdPerCur] of Object.entries(data.rates || {})) {
+      rates[cur] = 1 / usdPerCur; // convert to "1 unit of cur = ? USD"
+    }
+
+    // Persist to Firestore so future calls skip the network
+    try {
+      await cacheRef.set({ rates, updatedAt: Date.now() });
+    } catch (writeErr) {
+      console.warn('[create-product-order] Cache write failed (non-fatal):', writeErr.message);
+    }
+
+    return rates[currency] ?? null;
+  } catch (fetchErr) {
+    console.warn('[create-product-order] Frankfurter fetch failed:', fetchErr.message);
+
+    // ── 3. Stale fallback — better than blocking the order ──
+    try {
+      const snap = await cacheRef.get();
+      if (snap.exists && snap.data()?.rates?.[currency]) {
+        console.warn('[create-product-order] Using stale cached rate for', currency);
+        return snap.data().rates[currency];
+      }
+    } catch (_) { /* ignore */ }
+
+    return null; // total failure — caller will skip cap check
+  }
+}
+
+/* ── Price cap check (uses cached rates) ── */
+async function checkPriceCap(amount, currency, maxProductPriceUsd, db) {
   if (currency === 'USD') {
     return amount <= maxProductPriceUsd;
   }
-  try {
-    const res = await fetch(`${FRANKFURTER_URL}?from=${currency}&to=USD`);
-    if (!res.ok) return true; // skip cap check if rate API is down
-    const data = await res.json();
-    const rate = data?.rates?.USD;
-    if (!rate) return true; // skip if rate missing
-    const usdEquivalent = amount * rate;
-    return usdEquivalent <= maxProductPriceUsd;
-  } catch {
-    // Don't break orders over a rate API outage
-    return true;
-  }
+  const rate = await getUsdRate(db, currency);
+  if (rate === null) return true; // skip cap check if no rate available — don't block orders
+  const usdEquivalent = amount * rate;
+  return usdEquivalent <= maxProductPriceUsd;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -165,35 +229,42 @@ async function createStripeCheckout({ orderId, amount, productCurrency, descript
   return { checkoutUrl: data.url, paymentRef: data.id };
 }
 
-async function createPaystackCheckout({ orderId, amount, productCurrency, description, buyerEmail, productTitle, platformUrl }) {
-  const paystackKey = process.env.PAYSTACK_SECRET_KEY;
-  if (!paystackKey) throw new Error('PAYSTACK_SECRET_KEY is not set.');
-  if (!buyerEmail) throw new Error('buyerEmail is required for Paystack payments.');
+async function createFlutterwaveCheckout({ orderId, amount, productCurrency, description, buyerEmail, productTitle, platformUrl }) {
+  const flwKey = process.env.FLW_SECRET_KEY;
+  if (!flwKey) throw new Error('FLW_SECRET_KEY is not set.');
+  if (!buyerEmail) throw new Error('buyerEmail is required for Flutterwave payments.');
 
   const paymentRef = `kreddlo-${orderId}-${Date.now()}`;
 
   const payload = {
-    email:        buyerEmail.trim().toLowerCase(),
-    amount:       Math.round(amount * 100),
-    currency:     productCurrency,
-    reference:    paymentRef,
-    callback_url: `${platformUrl}/buyer-payments.html?payment=success&orderId=${encodeURIComponent(orderId)}&method=paystack`,
-    metadata: { orderId, productTitle, platform: 'kreddlo' },
-    channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer'],
+    tx_ref:          paymentRef,
+    amount:          amount,                // Flutterwave accepts the decimal amount directly
+    currency:        productCurrency,
+    redirect_url:    `${platformUrl}/buyer-payments.html?payment=success&orderId=${encodeURIComponent(orderId)}&method=flutterwave`,
+    payment_options: 'card,banktransfer,ussd,mobilemoney,account,barter,nqr',
+    customer: {
+      email: buyerEmail.trim().toLowerCase(),
+    },
+    customizations: {
+      title:       productTitle,
+      description: description,
+      logo:        `${platformUrl}/assets/kreddlo-logo.png`,
+    },
+    meta: { orderId, productTitle, platform: 'kreddlo' },
   };
 
-  const res = await fetch(PAYSTACK_INIT_URL, {
+  const res = await fetch(FLW_PAYMENT_URL, {
     method:  'POST',
-    headers: { 'Authorization': `Bearer ${paystackKey}`, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${flwKey}`, 'Content-Type': 'application/json' },
     body:    JSON.stringify(payload),
   });
 
   const data = await res.json();
-  if (!res.ok || !data.status || !data?.data?.authorization_url) {
-    throw new Error(data?.message || 'Paystack did not return a checkout URL.');
+  if (!res.ok || data.status !== 'success' || !data?.data?.link) {
+    throw new Error(data?.message || 'Flutterwave did not return a checkout URL.');
   }
 
-  return { checkoutUrl: data.data.authorization_url, paymentRef };
+  return { checkoutUrl: data.data.link, paymentRef };
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -212,7 +283,7 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON in request body.' });
   }
 
-  const { productId, buyerEmail, buyerName, paymentMethod } = body;
+  const { productId, buyerEmail, buyerName, paymentMethod, affiliateRef } = body;
 
   if (!productId || typeof productId !== 'string') {
     return respond(400, { error: 'productId is required.' });
@@ -223,8 +294,8 @@ exports.handler = async (event) => {
   if (!buyerName || typeof buyerName !== 'string') {
     return respond(400, { error: 'buyerName is required.' });
   }
-  if (!['crypto', 'stripe', 'paystack'].includes(paymentMethod)) {
-    return respond(400, { error: 'paymentMethod must be crypto, stripe, or paystack.' });
+  if (!['crypto', 'stripe', 'flutterwave'].includes(paymentMethod)) {
+    return respond(400, { error: 'paymentMethod must be crypto, stripe, or flutterwave.' });
   }
 
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
@@ -258,10 +329,15 @@ exports.handler = async (event) => {
 
     /* ── Enforce price cap on backend ── */
     const settings = await getSettings(db);
-    const withinCap = await checkPriceCap(amount, productCurrency, settings.maxProductPriceUsd || 1800);
+    const withinCap = await checkPriceCap(amount, productCurrency, settings.maxProductPriceUsd || 1800, db);
     if (!withinCap) {
       return respond(400, { error: 'Product price exceeds the platform maximum.' });
     }
+
+    /* ── Sanitise and validate affiliateRef (optional) ── */
+    const sanitisedRef = (typeof affiliateRef === 'string' && affiliateRef.trim().length > 0)
+      ? affiliateRef.trim()
+      : null;
 
     /* ── Create product-orders document ── */
     const orderRef = db.collection('product-orders').doc();
@@ -281,6 +357,7 @@ exports.handler = async (event) => {
       paymentStatus:  'pending',
       deliveryStatus: 'pending',
       reviewLeft:     false,
+      affiliateRef:   sanitisedRef,   // null if no referral; webhook uses this to credit affiliate
       createdAt:      FieldValue.serverTimestamp(),
     });
 
@@ -301,11 +378,74 @@ exports.handler = async (event) => {
     } else if (paymentMethod === 'stripe') {
       result = await createStripeCheckout(paymentArgs);
     } else {
-      result = await createPaystackCheckout(paymentArgs);
+      result = await createFlutterwaveCheckout(paymentArgs);
     }
 
     /* ── Store paymentRef on order ── */
     await orderRef.update({ paymentRef: result.paymentRef || null });
+
+    /* ── Link order to a buyer account (create one if needed) ── */
+    try {
+      const auth            = getAuth();
+      const normalizedEmail = buyerEmail.trim().toLowerCase();
+
+      let buyerUid;
+      try {
+        // Try to find an existing Firebase Auth user with this email
+        const existingUser = await auth.getUserByEmail(normalizedEmail);
+        buyerUid = existingUser.uid;
+      } catch (lookupErr) {
+        if (lookupErr.code === 'auth/user-not-found') {
+          // No account yet — create a passwordless account for the guest
+          const newUser = await auth.createUser({
+            email:         normalizedEmail,
+            displayName:   buyerName.trim(),
+            emailVerified: false,
+          });
+          buyerUid = newUser.uid;
+
+          // Write a minimal user profile so buyer-purchases.html can find them
+          await db.collection('users').doc(buyerUid).set({
+            uid:        buyerUid,
+            email:      normalizedEmail,
+            name:       buyerName.trim(),
+            role:       'buyer',
+            createdAt:  FieldValue.serverTimestamp(),
+            createdVia: 'guest-purchase',
+          });
+
+          // Queue a "set your password" welcome email via email-queue
+          try {
+            const resetLink = await auth.generatePasswordResetLink(normalizedEmail);
+            await db.collection('email-queue').add({
+              userUid:    buyerUid,
+              templateId: 'guest-purchase-welcome',
+              emailData: {
+                name:      buyerName.trim(),
+                email:     normalizedEmail,
+                resetLink,
+              },
+              sendAfter:  Date.now(),   // send immediately on next queue run
+              sent:       false,
+              createdAt:  FieldValue.serverTimestamp(),
+            });
+          } catch (emailErr) {
+            // Non-fatal — order still succeeds even if welcome email fails
+            console.warn('[create-product-order] Failed to queue guest welcome email:', emailErr.message);
+          }
+        } else {
+          // Re-throw unexpected auth errors
+          throw lookupErr;
+        }
+      }
+
+      // Stamp buyerUid onto the order
+      await orderRef.update({ buyerUid });
+
+    } catch (accountErr) {
+      // Non-fatal — don't block the checkout if account linking fails
+      console.warn('[create-product-order] Guest account linking failed:', accountErr.message);
+    }
 
     console.log(`Product order created — orderId: ${orderId}, product: ${productId}, method: ${paymentMethod}, currency: ${productCurrency}, amount: ${amount}`);
 

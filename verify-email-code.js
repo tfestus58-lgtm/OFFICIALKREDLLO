@@ -58,7 +58,7 @@ exports.handler = async function(event) {
 
   /* ── Already verified ── */
   if (user.emailVerified === true) {
-    return respond(200, { success: true, alreadyVerified: true });
+    return respond(200, { success: true, alreadyVerified: true, role: user.role || null });
   }
 
   /* ── Check code exists ── */
@@ -98,5 +98,5 @@ exports.handler = async function(event) {
   }
 
   console.log(`[verify-email-code] uid ${uid} successfully verified.`);
-  return respond(200, { success: true });
+  return respond(200, { success: true, role: user.role || null });
 };

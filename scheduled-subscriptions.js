@@ -117,6 +117,8 @@ exports.handler = async (event) => {
       /* 1. Update Firestore */
       await db.collection('users').doc(uid).update({
         premiumStatus: 'inactive',
+        plan:          'free',
+        planStatus:    'inactive',
         updatedAt:     FieldValue.serverTimestamp(),
       });
       console.log(`uid ${uid} — premiumStatus set to inactive.`);
@@ -164,7 +166,9 @@ exports.handler = async (event) => {
       .where('deliveredAt', '<=', cutoff72h)
       .get();
   } catch (err) {
-    console.error('scheduled-subscriptions: delivery query failed:', err.message);
+    // If this is a missing index error, Firebase will print a link in the logs to create it automatically.
+    // See FIRESTORE_INDEXES.md at the project root for manual setup instructions.
+    console.error('scheduled-subscriptions: delivery query failed (may need composite index on projects.status + projects.deliveredAt — check logs for a Firebase auto-create link):', err.message);
     // Non-fatal — return subscription results already collected above
     return respond(200, results);
   }

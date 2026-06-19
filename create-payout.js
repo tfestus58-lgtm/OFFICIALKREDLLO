@@ -257,6 +257,43 @@ exports.handler = async function (event) {
     }
 
     /* ────────────────────────────────────────
+       STEP 1b — Server-side fee validation
+       Load the expected platform fee rate from Firestore config,
+       apply Pro rate if the user has an active Pro plan,
+       then reject the request if the client-supplied fee is
+       more than 5% below what we expect (manipulation guard).
+    ──────────────────────────────────────── */
+    {
+      let expectedFeePct = 1.5; // safe default
+      try {
+        const cfgSnap = await db.collection('config').doc('platform').get();
+        if (cfgSnap.exists) {
+          const cfgData = cfgSnap.data();
+          if (typeof cfgData.withdrawalFeePercent === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercent;
+          }
+          // Pro users get a reduced fee rate
+          const isPro = userData.plan === 'pro' && userData.premiumStatus === 'active';
+          if (isPro && typeof cfgData.withdrawalFeePercentPro === 'number') {
+            expectedFeePct = cfgData.withdrawalFeePercentPro;
+          }
+        }
+      } catch (cfgErr) {
+        console.warn('[create-payout] Could not load fee config, using default:', cfgErr.message);
+      }
+
+      const expectedPlatformFee = amtUsd * (expectedFeePct / 100);
+      const clientPlatformFee   = Number(fees?.platformFee || 0);
+
+      if (clientPlatformFee < expectedPlatformFee * 0.95) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Invalid fee calculation. Please refresh and try again.' }),
+        };
+      }
+    }
+
+    /* ────────────────────────────────────────
        STEP 2 — Create payout document (status: pending)
        Created OUTSIDE the transaction so we have a doc ID
        to pass to NOWPayments as extra_id for reconciliation.

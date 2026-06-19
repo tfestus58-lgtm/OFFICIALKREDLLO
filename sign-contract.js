@@ -181,6 +181,15 @@ exports.handler = async (event) => {
     const updates = {};
 
     if (role === 'freelancer') {
+      /* KYC guard — freelancer must be verified to sign a contract */
+      const freelancerUserSnap = await db.collection('users').doc(callerUid).get();
+      if (!freelancerUserSnap.exists || freelancerUserSnap.data().kycStatus !== 'verified') {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'Your identity must be verified before you can sign contracts.' }),
+        };
+      }
+
       if (data.freelancerSigned) {
         return {
           statusCode: 409,

@@ -544,6 +544,7 @@ header > div:last-child {
         <button class="tab-btn" data-tab="notifications" onclick="selectTab('notifications')">Notifications</button>
         <button id="tab-btn-store" class="tab-btn" data-tab="store" onclick="selectTab('store')">Store</button>
         <button id="tab-btn-integrations" class="tab-btn" data-tab="integrations" onclick="selectTab('integrations')">Integrations</button>
+        <button id="tab-btn-affiliate" class="tab-btn" data-tab="affiliate" onclick="selectTab('affiliate')">Affiliate</button>
       </div>
 
       <div class="fu fu-2">
@@ -852,6 +853,80 @@ header > div:last-child {
           </div>
         </div>
 
+        <!-- ══════════════════════════════════════════ -->
+        <!-- AFFILIATE TAB                              -->
+        <!-- ══════════════════════════════════════════ -->
+        <div id="tab-affiliate" class="tab-panel">
+          <div class="glass settings-card" style="padding:clamp(16px,4vw,24px);">
+
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+              <div style="width:40px;height:40px;background:rgba(45,138,94,0.12);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <div>
+                <h3 style="font-size:15px;font-weight:700;color:#0d2145;margin:0 0 2px;">Affiliate Program</h3>
+                <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">Earn commissions by promoting products</p>
+              </div>
+            </div>
+
+            <!-- Explanation box -->
+            <div style="background:rgba(45,138,94,0.06);border:1px solid rgba(45,138,94,0.15);border-radius:12px;padding:16px;margin:20px 0 0;">
+              <p style="font-size:13px;font-weight:600;color:#0d2145;margin:0 0 10px;">How it works</p>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <div style="width:22px;height:22px;background:#2d8a5e;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.70);margin:0;line-height:1.5;">Enable affiliate mode below — it's completely voluntary and you can turn it off at any time.</p>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <div style="width:22px;height:22px;background:#2d8a5e;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.70);margin:0;line-height:1.5;">Browse products with affiliate enabled, grab your unique link, and share it anywhere.</p>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:10px;">
+                  <div style="width:22px;height:22px;background:#2d8a5e;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <p style="font-size:13px;font-weight:500;color:rgba(13,33,69,0.70);margin:0;line-height:1.5;">When someone buys through your link, you earn a commission set by the seller. Withdraw anytime from your Affiliate dashboard.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Enable toggle -->
+            <div class="settings-row" style="margin-top:24px;">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#0d2145;">Enable Affiliate Program</div>
+                <div style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin-top:3px;">Unlock affiliate links, commissions and your affiliate dashboard.</div>
+              </div>
+              <button class="toggle" id="toggle-affiliate" onclick="toggleAffiliate()" role="switch" aria-checked="false">
+                <div class="knob"></div>
+              </button>
+            </div>
+
+            <!-- Status block — shown when enabled -->
+            <div id="affiliate-active-block" style="display:none;margin-top:20px;">
+              <div style="background:rgba(45,138,94,0.08);border:1px solid rgba(45,138,94,0.20);border-radius:12px;padding:16px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span style="font-size:13px;font-weight:700;color:#2d8a5e;">Affiliate program is active</span>
+                </div>
+                <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.60);margin:0 0 14px;line-height:1.5;">You can now get affiliate links from the Browse page and track your earnings on your Affiliate dashboard.</p>
+                <a href="/dashboard-affiliate.html" style="display:inline-flex;align-items:center;gap:7px;background:#0d2145;color:#fff;border-radius:50px;padding:10px 20px;font-size:13px;font-weight:600;text-decoration:none;transition:background .15s;" onmouseover="this.style.background='#162f5e'" onmouseout="this.style.background='#0d2145'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  Go to Affiliate Dashboard
+                </a>
+              </div>
+            </div>
+
+            <!-- Saving indicator -->
+            <p id="affiliate-save-msg" style="display:none;font-size:12px;font-weight:600;color:#2d8a5e;margin:14px 0 0;"></p>
+
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -869,6 +944,8 @@ var SKILLS = [];
 var TWO_FA_ENABLED = false;
 
 var WALLET_ADDRESS = '';
+
+var AFFILIATE_ENABLED = false;
 
 // ============ STORE / INTEGRATIONS ============
 var BANNER_COLORS = [
@@ -908,6 +985,8 @@ var NAV_FREELANCER = [
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
   { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
+  { label:'Purchases',     href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate',     href:'/dashboard-affiliate.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
   { label:'Contracts',     href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Withdraw',      href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
   { label:'Notifications', href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
@@ -918,16 +997,23 @@ var NAV_FREELANCER = [
 var NAV_BUYER = [
   { label:'Dashboard', href:'/buyer-dashboard.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Projects',  href:'/buyer-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts', href:'/dashboard-contracts.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
   { label:'Browse',    href:'/browse.html',         icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
   { label:'Payments',  href:'/buyer-payments.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Purchases', href:'/buyer-purchases.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate', href:'/dashboard-affiliate.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
   { label:'Notifications', href:'/notifications.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
   { label:'Settings',  href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
 ];
 var NAV = NAV_FREELANCER;
 
-function buildNav(uid) {
+function buildNav(uid, affiliateEnabled) {
   var cur = (window.location.pathname.split('/').pop() || 'dashboard-settings.html');
-  var html = NAV.map(function(n) {
+  var items = NAV.filter(function(n) {
+    if (n.label === 'Affiliate') return affiliateEnabled === true;
+    return true;
+  });
+  var html = items.map(function(n) {
     var href = n.href;
     if (n.label === 'Store'   && uid) href = '/store.html?uid='   + uid;
     if (n.label === 'Profile' && uid) href = '/profile.html?uid=' + uid;
@@ -1548,6 +1634,53 @@ document.addEventListener('keydown', function(e) {
   closeMobileMenu();
 });
 
+// ============ AFFILIATE ============
+function _applyAffiliateUI(enabled) {
+  AFFILIATE_ENABLED = !!enabled;
+  var btn = document.getElementById('toggle-affiliate');
+  var activeBlock = document.getElementById('affiliate-active-block');
+  if (btn) {
+    btn.classList.toggle('on', AFFILIATE_ENABLED);
+    btn.setAttribute('aria-checked', AFFILIATE_ENABLED ? 'true' : 'false');
+  }
+  if (activeBlock) activeBlock.style.display = AFFILIATE_ENABLED ? 'block' : 'none';
+}
+
+async function loadAffiliate() {
+  var ready = await waitForFirestore();
+  if (!ready || !DEMO.uid) return;
+  try {
+    var { doc, getDoc } = window._fsSettings;
+    var snap = await getDoc(doc(window.db, 'users', DEMO.uid));
+    if (snap.exists()) {
+      _applyAffiliateUI(snap.data().affiliateEnabled === true);
+    }
+  } catch(e) {
+    console.warn('[Settings] Could not load affiliate status:', e);
+  }
+}
+
+async function toggleAffiliate() {
+  if (!DEMO.uid) { showToast('Not signed in'); return; }
+  var newVal = !AFFILIATE_ENABLED;
+  _applyAffiliateUI(newVal);
+  var msg = document.getElementById('affiliate-save-msg');
+  try {
+    var { doc, setDoc } = window._fsSettings;
+    await setDoc(doc(window.db, 'users', DEMO.uid), { affiliateEnabled: newVal }, { merge: true });
+    if (msg) {
+      msg.textContent = newVal ? 'Affiliate program enabled.' : 'Affiliate program disabled.';
+      msg.style.display = 'block';
+      setTimeout(function() { msg.style.display = 'none'; }, 3000);
+    }
+    showToast(newVal ? 'Affiliate program enabled' : 'Affiliate program disabled');
+  } catch(e) {
+    console.warn('[Settings] Could not save affiliate status:', e);
+    _applyAffiliateUI(!newVal); // revert on failure
+    showToast('Could not save — please try again');
+  }
+}
+
 // ============ ROLE UI ============
 function applyRoleUI() {
   var isBuyer = DEMO.role === 'buyer';
@@ -1563,7 +1696,7 @@ function applyRoleUI() {
 }
 
 // ============ BOOT ============
-window._boot = function(user, role) {
+window._boot = function(user, role, affiliateEnabled) {
   DEMO.uid  = user.uid;
   DEMO.role = role || 'freelancer';
   NAV = (DEMO.role === 'buyer') ? NAV_BUYER : NAV_FREELANCER;
@@ -1579,7 +1712,7 @@ window._boot = function(user, role) {
   document.getElementById('f-name').value = DEMO.name;
 
   applyRoleUI();
-  buildNav(user.uid);
+  buildNav(user.uid, affiliateEnabled === true);
   renderSkills();
   updateCharCount();
   renderNotifPrefs();
@@ -1592,6 +1725,7 @@ window._boot = function(user, role) {
 
   loadProfile();
   loadStoreAndIntegrationSettings();
+  loadAffiliate();
 };
 
 // ============ LOAD PROFILE ============
@@ -1726,15 +1860,16 @@ if ('serviceWorker' in navigator) {
   window.fsGetDoc        = getDoc;
   window.fsDoc           = doc;
   window.fsSetDoc        = setDoc;
-  buildNav(null);
+  buildNav(null, false);
 
   onAuthStateChanged(auth, function(user) {
     if (!user) { window.location.href = '/login.html'; return; }
     getDoc(doc(window.db, 'users', user.uid)).then(function(snap) {
       var role = snap.exists() ? (snap.data().role || 'freelancer') : 'freelancer';
-      if (typeof window._boot === 'function') window._boot(user, role);
+      var affiliateEnabled = snap.exists() ? (snap.data().affiliateEnabled === true) : false;
+      if (typeof window._boot === 'function') window._boot(user, role, affiliateEnabled);
     }).catch(function() {
-      if (typeof window._boot === 'function') window._boot(user, 'freelancer');
+      if (typeof window._boot === 'function') window._boot(user, 'freelancer', false);
     });
   });
 </script>

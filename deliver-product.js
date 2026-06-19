@@ -190,12 +190,15 @@ exports.handler = async (event) => {
     });
 
     /* ── Credit seller balance (per-currency map) ── */
-    const sellerAmount  = order.sellerAmount || 0;
+    const sellerAmount  = (typeof body.sellerAmount === 'number' && body.sellerAmount > 0)
+      ? body.sellerAmount
+      : (order.sellerAmount || 0);
     const orderCurrency = (order.currency || 'USD').toUpperCase();
     const amountFormatted = new Intl.NumberFormat('en', { style: 'currency', currency: orderCurrency }).format(sellerAmount);
     await db.collection('users').doc(order.sellerUid).update({
       totalSales:                            FieldValue.increment(1),
       [`balances.${orderCurrency}`]:         FieldValue.increment(sellerAmount),
+      availableBalance:                      FieldValue.increment(sellerAmount),
       totalEarned:                           FieldValue.increment(sellerAmount),
     });
 

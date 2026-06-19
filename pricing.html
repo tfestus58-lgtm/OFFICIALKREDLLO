@@ -1027,9 +1027,9 @@
 
             // Store gateway flags for submitProUpgrade to use
             window._proGatewaySettings = {
-              stripeEnabled:   !!d.stripeEnabled,
-              paystackEnabled: !!d.paystackEnabled,
-              cryptoEnabled:   !!d.cryptoEnabled,
+              stripeEnabled:      !!d.stripeEnabled,
+              flutterwaveEnabled: !!d.flutterwaveEnabled,
+              cryptoEnabled:      !!d.cryptoEnabled,
             };
             _applyGatewayVisibility(window._proGatewaySettings);
           }
@@ -1093,7 +1093,7 @@
 
     <!-- Gateway options — visibility controlled by admin settings -->
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-      <!-- Card / Bank Transfer: shown only when stripe OR paystack is enabled; auto-routes to the right processor -->
+      <!-- Card / Bank Transfer: shown only when stripe OR flutterwave is enabled; auto-routes to the right processor -->
       <button id="pro-btn-card" onclick="submitProUpgrade('card')" class="pro-gateway-btn" style="display:none;align-items:center;gap:12px;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;cursor:pointer;width:100%;text-align:left;transition:border-color 0.18s;" onmouseover="this.style.borderColor='#2d8a5e'" onmouseout="this.style.borderColor='#e2e8f0'">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
         <div><p style="margin:0;font-size:14px;font-weight:600;color:#0d2145;">Card / Bank Transfer</p><p id="pro-card-sub" style="margin:0;font-size:12px;color:rgba(13,33,69,0.5);">Visa, Mastercard &amp; more</p></div>
@@ -1114,7 +1114,7 @@
 // ── Pro Upgrade flow ──
 var _proUpgradePeriod = 'monthly';
 
-// African country codes — Paystack serves these natively
+// African country codes — Flutterwave serves these natively
 var _AFRICAN_TIMEZONES = ['Africa/Lagos','Africa/Accra','Africa/Nairobi','Africa/Johannesburg',
   'Africa/Cairo','Africa/Casablanca','Africa/Tunis','Africa/Abidjan','Africa/Dakar',
   'Africa/Addis_Ababa','Africa/Kampala','Africa/Dar_es_Salaam','Africa/Kigali','Africa/Luanda'];
@@ -1134,16 +1134,16 @@ function _applyGatewayVisibility(settings) {
 
   if (!cardBtn || !cryptoBtn) return;
 
-  var hasCard = settings.stripeEnabled || settings.paystackEnabled;
+  var hasCard = settings.stripeEnabled || settings.flutterwaveEnabled;
 
   // Show card button only if at least one card processor is enabled
   cardBtn.style.display = hasCard ? 'flex' : 'none';
 
   // Update subtitle to reflect what's available without naming the processor
   if (hasCard && cardSub) {
-    if (settings.stripeEnabled && settings.paystackEnabled) {
+    if (settings.stripeEnabled && settings.flutterwaveEnabled) {
       cardSub.textContent = 'Visa, Mastercard, bank transfer & more';
-    } else if (settings.paystackEnabled) {
+    } else if (settings.flutterwaveEnabled) {
       cardSub.textContent = 'Card, bank transfer & more';
     } else {
       cardSub.textContent = 'Visa, Mastercard, Amex';
@@ -1157,14 +1157,14 @@ function _applyGatewayVisibility(settings) {
 // Resolve which actual gateway to use for a "card" payment
 function _resolveCardGateway(settings) {
   var african = _isAfricanUser();
-  // International (non-African) users → Stripe first, Paystack fallback
+  // International (non-African) users → Stripe first, Flutterwave fallback
   if (!african) {
-    if (settings.stripeEnabled)   return 'stripe';
-    if (settings.paystackEnabled) return 'paystack';
+    if (settings.stripeEnabled)      return 'stripe';
+    if (settings.flutterwaveEnabled) return 'flutterwave';
   }
-  // African users → Paystack first, Stripe fallback
-  if (settings.paystackEnabled) return 'paystack';
-  if (settings.stripeEnabled)   return 'stripe';
+  // African users → Flutterwave first, Stripe fallback
+  if (settings.flutterwaveEnabled) return 'flutterwave';
+  if (settings.stripeEnabled)      return 'stripe';
   return null; // neither enabled (button should be hidden but guard anyway)
 }
 

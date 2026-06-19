@@ -148,6 +148,15 @@ exports.handler = async (event) => {
     // Read currency from project doc too — not from the client
     const paymentCurrency = ((projectDoc.currency || clientCurrency || 'USD')).toLowerCase();
 
+    /* ── KYC guard: verify the freelancer is verified before accepting payment ── */
+    const freelancerUid = projectDoc.freelancerUid || projectDoc.sellerUid || null;
+    if (freelancerUid) {
+      const freelancerSnap = await db.collection('users').doc(freelancerUid).get();
+      if (freelancerSnap.exists && freelancerSnap.data().kycStatus !== 'verified') {
+        return respond(403, { error: 'This freelancer is not yet verified. Payment cannot be accepted at this time.' });
+      }
+    }
+
     /* ── 5. Guard: Stripe must be enabled in admin settings ── */
     if (!settings.stripeEnabled) {
       return respond(403, { error: 'Stripe payments are not currently enabled.' });

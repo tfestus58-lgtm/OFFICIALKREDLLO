@@ -30,6 +30,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk",
@@ -42,8 +43,29 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
   window._db = db;
   window._fsQuery = { collection, query, where, getDocs, orderBy, limit, doc, getDoc };
+
+  // Update nav based on auth state
+  onAuthStateChanged(auth, (user) => {
+    const navActions = document.getElementById('nav-actions');
+    if (!navActions) return;
+    if (user) {
+      // Logged in — show avatar + Dashboard link
+      const photoURL = user.photoURL || '';
+      const initial  = (user.displayName || user.email || '?')[0].toUpperCase();
+      const avatarHtml = photoURL
+        ? `<img src="${photoURL}" alt="avatar" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.3);flex-shrink:0;" onerror="this.outerHTML='<div style=\'width:34px;height:34px;border-radius:50%;background:#2d8a5e;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;\'>${initial}</div>'">`
+        : `<div style="width:34px;height:34px;border-radius:50%;background:#2d8a5e;color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initial}</div>`;
+      navActions.innerHTML = `<a href="/dashboard.html" style="display:inline-flex;align-items:center;gap:8px;background:#0d2145;color:#fff;border-radius:50px;padding:5px 16px 5px 5px;font-size:13px;font-weight:600;text-decoration:none;">${avatarHtml}<span>Dashboard</span></a>`;
+    } else {
+      // Logged out — Log In + Get Started only (no duplicate Sign Up)
+      navActions.innerHTML = `
+        <a class="btn-login" href="/login.html">Log In</a>
+        <a class="btn-get-started" href="/signup.html" style="display:inline-flex;align-items:center;justify-content:center;">Get Started</a>`;
+    }
+  });
 
   document.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -216,7 +238,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   <a class="nav-logo" href="/">
     Kreddlo<span class="nav-logo-dot"></span>
   </a>
-  <div class="nav-actions">
+  <div class="nav-actions" id="nav-actions">
     <div class="nav-desktop-actions" style="display:flex;align-items:center;gap:10px;">
       <a class="btn-login" href="/login.html">Log In</a>
       <a class="btn-signup" href="/signup.html">Sign Up</a>
@@ -419,18 +441,18 @@ async function renderProduct(p) {
   document.getElementById('skeleton').style.display = 'none';
   document.getElementById('product-root').style.display = 'grid';
 
-  // ── SEO ──
-  const sellerName = p.sellerName || 'Kreddlo Seller';
-  document.title = `${p.title} — ${sellerName} | Kreddlo`;
+  // ── SEO — use stored sellerName as initial value (will be updated after live fetch) ──
+  const _seoSellerName = p.sellerName || 'Kreddlo Seller';
+  document.title = `${p.title} — ${_seoSellerName} | Kreddlo`;
   document.querySelector('meta[name="description"]').setAttribute('content', (p.description || '').slice(0, 155));
-  document.querySelector('meta[property="og:title"]').setAttribute('content', `${p.title} — ${sellerName} | Kreddlo`);
+  document.querySelector('meta[property="og:title"]').setAttribute('content', `${p.title} — ${_seoSellerName} | Kreddlo`);
   document.querySelector('meta[property="og:description"]').setAttribute('content', (p.description || '').slice(0, 155));
   if (p.coverImage) document.querySelector('meta[property="og:image"]').setAttribute('content', p.coverImage);
 
   // Dynamic SEO — updates all OG, Twitter and JSON-LD with real product data
   if (typeof window.applySEO === 'function') {
     window.applySEO({
-      title:       `${p.title} — ${sellerName} | Kreddlo`,
+      title:       `${p.title} — ${_seoSellerName} | Kreddlo`,
       description: (p.description || '').slice(0, 155),
       url:         window.location.href,
       image:       p.coverImage || 'https://kreddlo.com/assets/og-image.png',
@@ -447,13 +469,30 @@ async function renderProduct(p) {
     coverWrap.innerHTML = `<div class="cover-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.2)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
   }
 
-  // ── Seller row ──
+  // ── Seller row — fetch live from users collection for accurate name/photo ──
   const sellerRow = document.getElementById('seller-row');
+  let sellerName = p.sellerName || 'Kreddlo Seller';
+  let sellerPhoto = p.sellerPhoto || null;
+  let kycVerified = p.kycStatus === 'verified';
+
+  if (p.uid) {
+    try {
+      const { doc, getDoc } = window._fsQuery;
+      const userSnap = await getDoc(doc(window._db, 'users', p.uid));
+      if (userSnap.exists()) {
+        const u = userSnap.data();
+        if (u.name)      sellerName  = u.name;
+        if (u.photoURL)  sellerPhoto = u.photoURL;
+        if (u.kycStatus) kycVerified = u.kycStatus === 'verified';
+      }
+    } catch (_) { /* fall back to stored product fields */ }
+  }
+
   const initials = sellerName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const avatarEl = p.sellerPhoto
-    ? `<img class="seller-avatar" src="${p.sellerPhoto}" alt="${escHtml(sellerName)}" loading="lazy" decoding="async"/>`
+  const avatarEl = sellerPhoto
+    ? `<img class="seller-avatar" src="${escHtml(sellerPhoto)}" alt="${escHtml(sellerName)}" loading="lazy" decoding="async"/>`
     : `<div class="seller-avatar-init">${initials}</div>`;
-  const verifiedBadge = p.kycStatus === 'verified'
+  const verifiedBadge = kycVerified
     ? `<span class="badge-verified"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Verified</span>`
     : '';
   sellerRow.innerHTML = `${avatarEl}<span class="seller-name">${escHtml(sellerName)}</span>${verifiedBadge}`;
@@ -485,12 +524,12 @@ async function renderProduct(p) {
   const africanCurrencies = ['NGN', 'GHS', 'KES', 'ZAR', 'UGX', 'RWF', 'XOF', 'EGP', 'TZS'];
   const isAfrican = africanCurrencies.includes(productCurrency);
   let cardMethod = null;
-  if (isAfrican && _platformSettings.paystackEnabled) {
-    cardMethod = 'paystack';
+  if (isAfrican && _platformSettings.flutterwaveEnabled) {
+    cardMethod = 'flutterwave';
   } else if (!isAfrican && _platformSettings.stripeEnabled) {
     cardMethod = 'stripe';
-  } else if (_platformSettings.paystackEnabled) {
-    cardMethod = 'paystack';
+  } else if (_platformSettings.flutterwaveEnabled) {
+    cardMethod = 'flutterwave';
   }
 
   const cardBtn = document.getElementById('btn-buy');
@@ -551,7 +590,7 @@ function renderPaymentIcons(p, platformSettings) {
   const container = document.getElementById('payment-icons');
   let html = '';
 
-  const hasCard = platformSettings.stripeEnabled || platformSettings.paystackEnabled;
+  const hasCard = platformSettings.stripeEnabled || platformSettings.flutterwaveEnabled;
 
   if (hasCard) {
     html += cardIcon('VISA') + cardIcon('MC') + cardIcon('AMEX');
@@ -659,17 +698,21 @@ async function handleBuyNow() {
     const isAfrican = africanCurrencies.includes(productCurrency);
 
     let paymentMethod = null;
-    if (isAfrican && _platformSettings.paystackEnabled) {
-      paymentMethod = 'paystack';
+    if (isAfrican && _platformSettings.flutterwaveEnabled) {
+      paymentMethod = 'flutterwave';
     } else if (!isAfrican && _platformSettings.stripeEnabled) {
       paymentMethod = 'stripe';
-    } else if (_platformSettings.paystackEnabled) {
-      paymentMethod = 'paystack';
+    } else if (_platformSettings.flutterwaveEnabled) {
+      paymentMethod = 'flutterwave';
     }
 
     if (!paymentMethod) {
       throw new Error('Card payment is currently unavailable for this product. Please try crypto or contact the seller.');
     }
+
+    const affiliateRef = (typeof window.getStoredAffiliateRef === 'function')
+      ? window.getStoredAffiliateRef()
+      : null;
 
     const res = await fetch('/.netlify/functions/create-product-order', {
       method: 'POST',
@@ -678,7 +721,8 @@ async function handleBuyNow() {
         productId: _productId,
         buyerEmail: emailEl.value.trim(),
         buyerName: nameEl.value.trim(),
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        ...(affiliateRef ? { affiliateRef } : {})
       })
     });
 
@@ -720,6 +764,10 @@ async function handleCryptoBuy() {
   btnText.textContent = 'Processing…';
 
   try {
+    const affiliateRef = (typeof window.getStoredAffiliateRef === 'function')
+      ? window.getStoredAffiliateRef()
+      : null;
+
     const res = await fetch('/.netlify/functions/create-product-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -727,7 +775,8 @@ async function handleCryptoBuy() {
         productId: _productId,
         buyerEmail: emailEl.value.trim(),
         buyerName: nameEl.value.trim(),
-        paymentMethod: 'crypto'
+        paymentMethod: 'crypto',
+        ...(affiliateRef ? { affiliateRef } : {})
       })
     });
 
@@ -778,9 +827,15 @@ async function loadReviews(productId) {
   const { collection, query, where, getDocs, orderBy, limit } = window._fsQuery;
 
   try {
+    // Reviews are stored with targetUid (seller's uid) — not productId.
+    // Use the seller uid from the product doc for an accurate query.
+    const sellerUid = window._product && window._product.uid;
+    if (!sellerUid) { renderReviews([]); return; }
+
     const q = query(
       collection(db, 'reviews'),
-      where('sourceId', '==', productId),
+      where('targetUid', '==', sellerUid),
+      where('sourceType', '==', 'product'),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
@@ -789,7 +844,22 @@ async function loadReviews(productId) {
     renderReviews(reviews);
   } catch(e) {
     console.warn('Reviews error:', e);
-    renderReviews([]);
+    // Fallback: try without sourceType filter in case index isn't built yet
+    try {
+      const sellerUid = window._product && window._product.uid;
+      if (!sellerUid) { renderReviews([]); return; }
+      const { collection, query, where, getDocs, orderBy, limit } = window._fsQuery;
+      const qFallback = query(
+        collection(db, 'reviews'),
+        where('targetUid', '==', sellerUid),
+        orderBy('createdAt', 'desc'),
+        limit(10)
+      );
+      const snap2 = await getDocs(qFallback);
+      renderReviews(snap2.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (_) {
+      renderReviews([]);
+    }
   }
 }
 
@@ -801,7 +871,7 @@ function renderReviews(reviews) {
 
   if (reviews.length === 0) {
     ratingSummary.innerHTML = '';
-    list.innerHTML = `<div class="empty-reviews">Be the first to leave a review</div>`;
+    list.innerHTML = `<div class="empty-reviews">No reviews yet</div>`;
     return;
   }
 

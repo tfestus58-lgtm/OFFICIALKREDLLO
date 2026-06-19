@@ -765,6 +765,147 @@ input[type=range]::-moz-range-thumb {
       </div>
     </div>
 
+    <!-- AFFILIATE SECTION -->
+    <div id="section-affiliate" class="admin-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 4px 0;">Affiliate Program</h2>
+          <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;">All affiliate transactions, earnings, and payouts across the platform.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <div style="text-align:right;">
+            <div class="lbl">Total Paid Out</div>
+            <div id="aff-total-paid" style="font-size:18px;font-weight:800;color:#2d8a5e;margin-top:2px;">$0.00</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="lbl">Pending Balance</div>
+            <div id="aff-total-pending" style="font-size:18px;font-weight:800;color:#0d2145;margin-top:2px;">$0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px;">
+        <div class="glass" style="padding:16px;border-radius:16px;">
+          <div class="lbl">Active Affiliates</div>
+          <div id="aff-stat-affiliates" style="font-size:22px;font-weight:800;color:#0d2145;margin-top:4px;">0</div>
+        </div>
+        <div class="glass" style="padding:16px;border-radius:16px;">
+          <div class="lbl">Total Clicks</div>
+          <div id="aff-stat-clicks" style="font-size:22px;font-weight:800;color:#0d2145;margin-top:4px;">0</div>
+        </div>
+        <div class="glass" style="padding:16px;border-radius:16px;">
+          <div class="lbl">Total Conversions</div>
+          <div id="aff-stat-conversions" style="font-size:22px;font-weight:800;color:#0d2145;margin-top:4px;">0</div>
+        </div>
+        <div class="glass" style="padding:16px;border-radius:16px;">
+          <div class="lbl">Commissions Earned</div>
+          <div id="aff-stat-earned" style="font-size:22px;font-weight:800;color:#2d8a5e;margin-top:4px;">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Tab filters -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <button class="filter-pill active" data-aff-tab="earnings" onclick="setAffTab('earnings',this)">Earnings</button>
+        <button class="filter-pill" data-aff-tab="payouts" onclick="setAffTab('payouts',this)">Payouts</button>
+        <button class="filter-pill" data-aff-tab="links" onclick="setAffTab('links',this)">Affiliate Links</button>
+      </div>
+
+      <!-- Filter row -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="aff-status-pills">
+        <button class="filter-pill active" data-aff-status="all" onclick="setAffStatusFilter('all',this)">All</button>
+        <button class="filter-pill" data-aff-status="pending" onclick="setAffStatusFilter('pending',this)">Pending</button>
+        <button class="filter-pill" data-aff-status="paid" onclick="setAffStatusFilter('paid',this)">Paid</button>
+      </div>
+
+      <!-- Earnings table -->
+      <div id="aff-earnings-view">
+        <div class="glass" style="overflow:hidden;">
+          <!-- Desktop -->
+          <div id="aff-earnings-desktop" style="display:none;">
+            <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 1fr;padding:12px 20px;background:rgba(13,33,69,0.02);border-bottom:1px solid #f0f2f6;">
+              <div class="lbl">Affiliate</div>
+              <div class="lbl">Product</div>
+              <div class="lbl">Order</div>
+              <div class="lbl">Commission</div>
+              <div class="lbl">Date</div>
+              <div class="lbl">Status</div>
+            </div>
+            <div id="aff-earnings-rows"></div>
+          </div>
+          <!-- Mobile -->
+          <div id="aff-earnings-mobile" style="padding:14px;"></div>
+          <!-- Empty -->
+          <div id="aff-earnings-empty" style="display:none;padding:60px 24px;text-align:center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No earnings found</p>
+            <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Try adjusting the filter</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payouts table -->
+      <div id="aff-payouts-view" style="display:none;">
+        <div class="glass" style="overflow:hidden;">
+          <!-- Desktop -->
+          <div id="aff-payouts-desktop" style="display:none;">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:12px 20px;background:rgba(13,33,69,0.02);border-bottom:1px solid #f0f2f6;">
+              <div class="lbl">Affiliate</div>
+              <div class="lbl">Gross</div>
+              <div class="lbl">Fee</div>
+              <div class="lbl">Net</div>
+              <div class="lbl">Date</div>
+              <div class="lbl">Status</div>
+            </div>
+            <div id="aff-payouts-rows"></div>
+          </div>
+          <!-- Mobile -->
+          <div id="aff-payouts-mobile" style="padding:14px;"></div>
+          <!-- Empty -->
+          <div id="aff-payouts-empty" style="display:none;padding:60px 24px;text-align:center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No affiliate payouts yet</p>
+            <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Payouts appear here once affiliates withdraw.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Links table -->
+      <div id="aff-links-view" style="display:none;">
+        <div class="glass" style="overflow:hidden;">
+          <!-- Desktop -->
+          <div id="aff-links-desktop" style="display:none;">
+            <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;padding:12px 20px;background:rgba(13,33,69,0.02);border-bottom:1px solid #f0f2f6;">
+              <div class="lbl">Affiliate</div>
+              <div class="lbl">Product</div>
+              <div class="lbl">Clicks</div>
+              <div class="lbl">Conversions</div>
+              <div class="lbl">Earned</div>
+            </div>
+            <div id="aff-links-rows"></div>
+          </div>
+          <!-- Mobile -->
+          <div id="aff-links-mobile" style="padding:14px;"></div>
+          <!-- Empty -->
+          <div id="aff-links-empty" style="display:none;padding:60px 24px;text-align:center;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.30)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 16px;display:block;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <p style="font-size:16px;font-weight:700;color:#0d2145;margin:0 0 4px 0;">No affiliate links yet</p>
+            <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.45);margin:0;">Links appear here once affiliates generate them.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flag dispute button -->
+      <div style="margin-top:20px;padding:16px;background:rgba(200,30,30,0.04);border:1px solid rgba(200,30,30,0.12);border-radius:14px;">
+        <p style="font-size:13px;font-weight:600;color:#c81e1e;margin:0 0 4px 0;">Flag a Disputed Commission</p>
+        <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 12px 0;">Enter an earnings record ID to mark it as disputed and freeze payout.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input id="aff-dispute-id" type="text" class="input-field" placeholder="Earnings doc ID" style="flex:1;min-width:0;"/>
+          <button class="btn-green" style="background:#c81e1e;flex-shrink:0;" onclick="flagAffiliateDispute()">Flag Dispute</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SETTINGS SECTION -->
     <div id="section-settings" class="admin-section">
       <div style="margin-bottom:20px;">
@@ -833,17 +974,17 @@ input[type=range]::-moz-range-thumb {
             </div>
           </div>
 
-          <!-- Paystack toggle -->
+          <!-- Flutterwave toggle -->
           <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
             <div>
-              <label class="lbl" style="display:block;margin-bottom:4px;">Paystack Payments</label>
-              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;line-height:1.5;">Enables card, mobile money, bank transfer and USSD payments. Supports USD, GBP, EUR, GHS, ZAR, KES and more across Africa and globally.</p>
+              <label class="lbl" style="display:block;margin-bottom:4px;">Flutterwave Payments</label>
+              <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0;line-height:1.5;">Enables card, mobile money, bank transfer, USSD and Barter payments. Supports NGN, GHS, KES, ZAR, UGX, USD, GBP, EUR and more across Africa and globally.</p>
             </div>
-            <div id="toggle-paystack"
-              onclick="toggleGateway('paystack')"
+            <div id="toggle-flutterwave"
+              onclick="toggleGateway('flutterwave')"
               role="switch"
               tabindex="0"
-              onkeydown="if(event.key==='Enter'||event.key===' ')toggleGateway('paystack')"
+              onkeydown="if(event.key==='Enter'||event.key===' ')toggleGateway('flutterwave')"
               style="width:48px;height:28px;border-radius:50px;background:#e2e8f0;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;">
               <div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.2);transition:transform .2s;"></div>
             </div>
@@ -870,6 +1011,26 @@ input[type=range]::-moz-range-thumb {
             <label class="lbl" style="display:block;margin-bottom:8px;">Max Product Price (USD equivalent)</label>
             <input type="number" id="set-max-product-price" class="input-field" value="1800" min="1" max="50000" step="1"/>
             <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">The maximum allowed product price in USD equivalent. Applies to all currencies dynamically via live exchange rates.</p>
+          </div>
+
+          <!-- Affiliate divider -->
+          <div style="grid-column:1/-1;padding-top:4px;">
+            <p style="font-size:12px;font-weight:700;color:rgba(13,33,69,0.45);letter-spacing:1.2px;text-transform:uppercase;margin:0 0 4px 0;">Affiliate Program</p>
+            <div style="height:1px;background:#e2e8f0;"></div>
+          </div>
+
+          <!-- Affiliate Withdrawal Fee -->
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Affiliate Withdrawal Fee (%)</label>
+            <input type="number" id="set-affiliate-withdraw-fee" class="input-field" value="2.0" min="0" max="100" step="0.1"/>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">Fee deducted from every affiliate payout. Displayed to affiliates on their dashboard and at withdrawal confirmation.</p>
+          </div>
+
+          <!-- Minimum Affiliate Withdrawal -->
+          <div>
+            <label class="lbl" style="display:block;margin-bottom:8px;">Min. Affiliate Withdrawal (USD)</label>
+            <input type="number" id="set-affiliate-min-withdraw" class="input-field" value="5" min="0" max="10000" step="0.01"/>
+            <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:6px 0 0 0;line-height:1.5;">The minimum balance an affiliate must have to request a payout.</p>
           </div>
 
         </div>
@@ -932,6 +1093,7 @@ var ADMIN_NAV = [
   { id: 'disputes', label: 'Disputes', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
   { id: 'payouts', label: 'Payouts', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' },
   { id: 'kyc', label: 'KYC Review', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  { id: 'affiliate', label: 'Affiliate', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' },
   { id: 'settings', label: 'Settings', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' }
 ];
 
@@ -968,6 +1130,9 @@ function showSection(id) {
 
   if (id === 'overview') {
     animateStats();
+  }
+  if (id === 'affiliate') {
+    renderAffiliateView();
   }
 }
 
@@ -1867,11 +2032,13 @@ var SETTINGS_FIELDS = [
   { id: 'set-boost-7d',          min: 0, max: null,  key: 'boostPrice7d',             parse: parseFloat },
   { id: 'set-holding-days',      min: 0, max: 30,    key: 'holdingPeriodDays',        parse: parseInt   },
   { id: 'set-referral-credit',   min: 0, max: null,  key: 'referralCreditAmount',     parse: parseFloat },
-  { id: 'set-max-product-price', min: 1, max: 50000, key: 'maxProductPriceUsd',       parse: parseInt   }
+  { id: 'set-max-product-price',        min: 1, max: 50000,  key: 'maxProductPriceUsd',           parse: parseInt   },
+  { id: 'set-affiliate-withdraw-fee',   min: 0, max: 100,    key: 'affiliateWithdrawFeePercent',  parse: parseFloat },
+  { id: 'set-affiliate-min-withdraw',   min: 0, max: 10000,  key: 'minAffiliateWithdrawalUsd',    parse: parseFloat }
 ];
 
 /* -- Toggle visual helper -- */
-var GATEWAY_STATE = { stripe: false, paystack: false, crypto: false };
+var GATEWAY_STATE = { stripe: false, flutterwave: false, crypto: false };
 
 function setToggleVisual(gateway, enabled) {
   var el = document.getElementById('toggle-' + gateway);
@@ -1886,8 +2053,8 @@ function toggleGateway(gateway) {
   var newState = !GATEWAY_STATE[gateway];
   setToggleVisual(gateway, newState);
 
-  var keyMap   = { stripe: 'stripeEnabled', paystack: 'paystackEnabled', crypto: 'cryptoEnabled' };
-  var labelMap = { stripe: 'Stripe',        paystack: 'Paystack',        crypto: 'Crypto (NOWPayments)' };
+  var keyMap   = { stripe: 'stripeEnabled', flutterwave: 'flutterwaveEnabled', crypto: 'cryptoEnabled' };
+  var labelMap = { stripe: 'Stripe',        flutterwave: 'Flutterwave',        crypto: 'Crypto (NOWPayments)' };
 
   if (window.firestore && window.db) {
     var _f = window.firestore;
@@ -1920,9 +2087,9 @@ function loadSettings() {
       var el = document.getElementById(f.id);
       if (el && d[f.key] !== undefined) el.value = d[f.key];
     });
-    if (d.stripeEnabled  !== undefined) setToggleVisual('stripe',   !!d.stripeEnabled);
-    if (d.paystackEnabled !== undefined) setToggleVisual('paystack', !!d.paystackEnabled);
-    if (d.cryptoEnabled   !== undefined) setToggleVisual('crypto',   !!d.cryptoEnabled);
+    if (d.stripeEnabled       !== undefined) setToggleVisual('stripe',       !!d.stripeEnabled);
+    if (d.flutterwaveEnabled  !== undefined) setToggleVisual('flutterwave',  !!d.flutterwaveEnabled);
+    if (d.cryptoEnabled       !== undefined) setToggleVisual('crypto',       !!d.cryptoEnabled);
     var twEl = document.getElementById('twitterUrl');  if (twEl) twEl.value  = d.twitterUrl  || '';
     var liEl = document.getElementById('linkedinUrl'); if (liEl) liEl.value  = d.linkedinUrl || '';
     var igEl = document.getElementById('instagramUrl');if (igEl) igEl.value  = d.instagramUrl|| '';
@@ -1931,7 +2098,7 @@ function loadSettings() {
   });
 }
 
-/* Change 4 updated: saveSettings also writes stripeEnabled and paystackEnabled */
+/* Change 4 updated: saveSettings also writes stripeEnabled and flutterwaveEnabled */
 function saveSettings() {
   var valid = true;
 
@@ -1957,9 +2124,9 @@ function saveSettings() {
   SETTINGS_FIELDS.forEach(function(f) {
     payload[f.key] = f.parse(document.getElementById(f.id).value);
   });
-  payload.stripeEnabled  = GATEWAY_STATE.stripe;
-  payload.paystackEnabled = GATEWAY_STATE.paystack;
-  payload.cryptoEnabled  = GATEWAY_STATE.crypto;
+  payload.stripeEnabled      = GATEWAY_STATE.stripe;
+  payload.flutterwaveEnabled = GATEWAY_STATE.flutterwave;
+  payload.cryptoEnabled      = GATEWAY_STATE.crypto;
   payload.twitterUrl  = (document.getElementById('twitterUrl')  || {}).value ? document.getElementById('twitterUrl').value.trim()  : '';
   payload.linkedinUrl = (document.getElementById('linkedinUrl') || {}).value ? document.getElementById('linkedinUrl').value.trim() : '';
   payload.instagramUrl= (document.getElementById('instagramUrl')|| {}).value ? document.getElementById('instagramUrl').value.trim(): '';
@@ -2263,6 +2430,295 @@ function loadKyc() {
     });
 }
 
+/* ============ AFFILIATE ADMIN ============ */
+var AFF_EARNINGS   = [];
+var AFF_PAYOUTS    = [];
+var AFF_LINKS      = [];
+var activeAffTab   = 'earnings';
+var activeAffStatus = 'all';
+
+function setAffTab(tab, btn) {
+  activeAffTab = tab;
+  btn.closest('[style*="display:flex"]').querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+
+  document.getElementById('aff-earnings-view').style.display = tab === 'earnings' ? '' : 'none';
+  document.getElementById('aff-payouts-view').style.display  = tab === 'payouts'  ? '' : 'none';
+  document.getElementById('aff-links-view').style.display    = tab === 'links'    ? '' : 'none';
+
+  // Status pills only relevant for earnings/payouts
+  document.getElementById('aff-status-pills').style.display = (tab === 'links') ? 'none' : '';
+
+  renderAffiliateView();
+}
+
+function setAffStatusFilter(status, btn) {
+  activeAffStatus = status;
+  btn.closest('[style*="display:flex"]').querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  renderAffiliateView();
+}
+
+function affStatusBadge(status) {
+  if (status === 'paid')    return '<span class="badge badge-green">Paid</span>';
+  if (status === 'disputed') return '<span class="badge badge-red">Disputed</span>';
+  if (status === 'processing') return '<span class="badge badge-amber">Processing</span>';
+  return '<span class="badge badge-grey">Pending</span>';
+}
+
+function renderAffiliateView() {
+  var isDesktop = window.innerWidth >= 768;
+  if (activeAffTab === 'earnings') {
+    var list = AFF_EARNINGS.filter(function(e) {
+      return activeAffStatus === 'all' || e.status === activeAffStatus;
+    });
+    var rowsEl  = document.getElementById('aff-earnings-rows');
+    var mobEl   = document.getElementById('aff-earnings-mobile');
+    var emptyEl = document.getElementById('aff-earnings-empty');
+    var deskEl  = document.getElementById('aff-earnings-desktop');
+    if (list.length === 0) {
+      emptyEl.style.display = 'block'; deskEl.style.display = 'none'; mobEl.innerHTML = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    deskEl.style.display = isDesktop ? '' : 'none';
+    rowsEl.innerHTML = list.map(function(e) {
+      return '<div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr 1fr;padding:14px 20px;border-bottom:1px solid #f0f2f6;align-items:center;">' +
+        '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + e.affiliateName + '</div><div style="font-size:11px;color:rgba(13,33,69,0.45);">' + e.affiliateEmail + '</div></div>' +
+        '<div style="font-size:13px;color:rgba(13,33,69,0.75);">' + e.productTitle + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);font-family:monospace;">' + e.orderId.substring(0,8) + '…</div>' +
+        '<div style="font-weight:700;font-size:13px;color:#2d8a5e;">$' + (e.amount || 0).toFixed(2) + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);">' + e.date + '</div>' +
+        '<div>' + affStatusBadge(e.status) + '</div>' +
+        '</div>';
+    }).join('');
+    mobEl.innerHTML = list.map(function(e) {
+      return '<div class="tx-card glass" style="padding:16px;border-radius:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
+          '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + e.affiliateName + '</div>' +
+          '<div style="font-size:11px;color:rgba(13,33,69,0.45);">' + e.affiliateEmail + '</div></div>' +
+          affStatusBadge(e.status) +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">' +
+          '<div style="font-size:18px;font-weight:800;color:#2d8a5e;">$' + (e.amount || 0).toFixed(2) + '</div>' +
+          '<div style="font-size:11px;color:rgba(13,33,69,0.45);">' + e.date + '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);margin-top:6px;">' + e.productTitle + '</div>' +
+        '</div>';
+    }).join('');
+  } else if (activeAffTab === 'payouts') {
+    var plist = AFF_PAYOUTS.filter(function(p) {
+      return activeAffStatus === 'all' || p.status === activeAffStatus;
+    });
+    var prowsEl  = document.getElementById('aff-payouts-rows');
+    var pmobEl   = document.getElementById('aff-payouts-mobile');
+    var pemptyEl = document.getElementById('aff-payouts-empty');
+    var pdeskEl  = document.getElementById('aff-payouts-desktop');
+    if (plist.length === 0) {
+      pemptyEl.style.display = 'block'; pdeskEl.style.display = 'none'; pmobEl.innerHTML = '';
+      return;
+    }
+    pemptyEl.style.display = 'none';
+    pdeskEl.style.display = isDesktop ? '' : 'none';
+    prowsEl.innerHTML = plist.map(function(p) {
+      return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr;padding:14px 20px;border-bottom:1px solid #f0f2f6;align-items:center;">' +
+        '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + p.affiliateName + '</div><div style="font-size:11px;color:rgba(13,33,69,0.45);">' + p.affiliateEmail + '</div></div>' +
+        '<div style="font-weight:700;font-size:13px;">$' + (p.grossAmount || 0).toFixed(2) + '</div>' +
+        '<div style="font-size:13px;color:rgba(200,30,30,0.85);">-$' + (p.feeAmount || 0).toFixed(2) + '</div>' +
+        '<div style="font-weight:700;font-size:13px;color:#2d8a5e;">$' + (p.netAmount || 0).toFixed(2) + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);">' + p.date + '</div>' +
+        '<div>' + affStatusBadge(p.status) + '</div>' +
+        '</div>';
+    }).join('');
+    pmobEl.innerHTML = plist.map(function(p) {
+      return '<div class="tx-card glass" style="padding:16px;border-radius:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">' +
+          '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + p.affiliateName + '</div>' +
+          '<div style="font-size:11px;color:rgba(13,33,69,0.45);">' + p.affiliateEmail + '</div></div>' +
+          affStatusBadge(p.status) +
+        '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">' +
+          '<div><span style="font-size:18px;font-weight:800;color:#2d8a5e;">$' + (p.netAmount || 0).toFixed(2) + '</span><span style="font-size:11px;color:rgba(13,33,69,0.45);margin-left:6px;">net</span></div>' +
+          '<div style="font-size:11px;color:rgba(13,33,69,0.45);">' + p.date + '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);margin-top:4px;">Gross $' + (p.grossAmount||0).toFixed(2) + ' · Fee $' + (p.feeAmount||0).toFixed(2) + '</div>' +
+        '</div>';
+    }).join('');
+  } else {
+    // Links tab
+    var lemptyEl = document.getElementById('aff-links-empty');
+    var ldeskEl  = document.getElementById('aff-links-desktop');
+    var lmobEl   = document.getElementById('aff-links-mobile');
+    var lrowsEl  = document.getElementById('aff-links-rows');
+    if (AFF_LINKS.length === 0) {
+      lemptyEl.style.display = 'block'; ldeskEl.style.display = 'none'; lmobEl.innerHTML = '';
+      return;
+    }
+    lemptyEl.style.display = 'none';
+    ldeskEl.style.display = isDesktop ? '' : 'none';
+    lrowsEl.innerHTML = AFF_LINKS.map(function(l) {
+      return '<div style="display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1fr;padding:14px 20px;border-bottom:1px solid #f0f2f6;align-items:center;">' +
+        '<div><div style="font-weight:700;font-size:14px;color:#0d2145;">' + l.affiliateName + '</div><div style="font-size:11px;color:rgba(13,33,69,0.45);">' + l.affiliateId + '</div></div>' +
+        '<div style="font-size:13px;color:rgba(13,33,69,0.75);">' + l.productTitle + '</div>' +
+        '<div style="font-weight:600;font-size:13px;">' + (l.clicks || 0) + '</div>' +
+        '<div style="font-weight:600;font-size:13px;">' + (l.conversions || 0) + '</div>' +
+        '<div style="font-weight:700;font-size:13px;color:#2d8a5e;">$' + (l.earned || 0).toFixed(2) + '</div>' +
+        '</div>';
+    }).join('');
+    lmobEl.innerHTML = AFF_LINKS.map(function(l) {
+      return '<div class="tx-card glass" style="padding:16px;border-radius:14px;margin-bottom:10px;">' +
+        '<div style="font-weight:700;font-size:14px;color:#0d2145;">' + l.affiliateName + '</div>' +
+        '<div style="font-size:12px;color:rgba(13,33,69,0.55);margin-bottom:6px;">' + l.productTitle + '</div>' +
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;">' +
+          '<div><div class="lbl">Clicks</div><div style="font-weight:700;font-size:14px;">' + (l.clicks||0) + '</div></div>' +
+          '<div><div class="lbl">Conversions</div><div style="font-weight:700;font-size:14px;">' + (l.conversions||0) + '</div></div>' +
+          '<div><div class="lbl">Earned</div><div style="font-weight:700;font-size:14px;color:#2d8a5e;">$' + (l.earned||0).toFixed(2) + '</div></div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+}
+
+function updateAffiliateStats() {
+  // Active affiliates = unique affiliate IDs in earnings
+  var uniqueAffiliates = {};
+  AFF_EARNINGS.forEach(function(e) { uniqueAffiliates[e.affiliateUid] = true; });
+  document.getElementById('aff-stat-affiliates').textContent = Object.keys(uniqueAffiliates).length;
+
+  // Clicks & conversions from links
+  var totalClicks = AFF_LINKS.reduce(function(s, l) { return s + (l.clicks || 0); }, 0);
+  var totalConv   = AFF_LINKS.reduce(function(s, l) { return s + (l.conversions || 0); }, 0);
+  document.getElementById('aff-stat-clicks').textContent      = totalClicks;
+  document.getElementById('aff-stat-conversions').textContent = totalConv;
+
+  // Total earned
+  var totalEarned = AFF_EARNINGS.reduce(function(s, e) { return s + (e.amount || 0); }, 0);
+  document.getElementById('aff-stat-earned').textContent = '$' + totalEarned.toFixed(2);
+
+  // Total paid (payouts net)
+  var totalPaid    = AFF_PAYOUTS.reduce(function(s, p) { return s + (p.netAmount || 0); }, 0);
+  var totalPending = AFF_EARNINGS.filter(function(e) { return e.status === 'pending'; })
+                       .reduce(function(s, e) { return s + (e.amount || 0); }, 0);
+  document.getElementById('aff-total-paid').textContent    = '$' + totalPaid.toFixed(2);
+  document.getElementById('aff-total-pending').textContent = '$' + totalPending.toFixed(2);
+}
+
+function loadAffiliateData() {
+  if (!window.firestore || !window.db) { renderAffiliateView(); return; }
+  var _f = window.firestore;
+  var db = window.db;
+
+  // Show skeletons
+  ['aff-earnings-rows','aff-payouts-rows','aff-links-rows'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:70%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:90%;"></div></div>';
+  });
+
+  Promise.all([
+    _f.getDocs(_f.query(_f.collection(db, 'affiliate-earnings'), _f.orderBy('createdAt', 'desc'))).catch(function() { return { forEach: function(){} }; }),
+    _f.getDocs(_f.query(_f.collection(db, 'affiliate-payouts'),  _f.orderBy('createdAt', 'desc'))).catch(function() { return { forEach: function(){} }; }),
+    _f.getDocs(_f.collection(db, 'affiliate-links')).catch(function() { return { forEach: function(){} }; }),
+    _f.getDocs(_f.query(_f.collection(db, 'users'), _f.where('affiliateEnabled', '==', true))).catch(function() { return { forEach: function(){}, docs: [] }; })
+  ]).then(function(results) {
+    var earningsSnap = results[0], payoutsSnap = results[1],
+        linksSnap    = results[2], usersSnap  = results[3];
+
+    // Build user lookup
+    var userMap = {};
+    usersSnap.forEach(function(d) {
+      var u = d.data();
+      userMap[d.id] = { name: u.name || u.displayName || 'Unknown', email: u.email || '' };
+    });
+
+    // Earnings
+    AFF_EARNINGS = [];
+    earningsSnap.forEach(function(d) {
+      var e = d.data();
+      var uid = e.affiliateUid || e.uid || '';
+      var user = userMap[uid] || { name: 'Unknown', email: '' };
+      var date = e.createdAt && e.createdAt.toDate
+        ? e.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        : '';
+      AFF_EARNINGS.push({
+        id: d.id,
+        affiliateUid:   uid,
+        affiliateName:  e.affiliateName  || user.name,
+        affiliateEmail: e.affiliateEmail || user.email,
+        productTitle:   e.productTitle   || e.productId || 'Unknown Product',
+        orderId:        e.orderId        || '',
+        amount:         parseFloat(e.commissionAmount || e.amount || 0),
+        status:         e.status         || 'pending',
+        date: date
+      });
+    });
+
+    // Payouts
+    AFF_PAYOUTS = [];
+    payoutsSnap.forEach(function(d) {
+      var p = d.data();
+      var uid = p.uid || '';
+      var user = userMap[uid] || { name: 'Unknown', email: '' };
+      var date = p.createdAt && p.createdAt.toDate
+        ? p.createdAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        : '';
+      AFF_PAYOUTS.push({
+        id: d.id,
+        affiliateUid:   uid,
+        affiliateName:  user.name,
+        affiliateEmail: user.email,
+        grossAmount:    parseFloat(p.grossAmount || 0),
+        feeAmount:      parseFloat(p.feeAmount   || 0),
+        netAmount:      parseFloat(p.netAmount    || 0),
+        status:         p.status || 'pending',
+        date: date
+      });
+    });
+
+    // Links
+    AFF_LINKS = [];
+    linksSnap.forEach(function(d) {
+      var l = d.data();
+      var uid = l.affiliateUid || l.userId || '';
+      var user = userMap[uid] || { name: 'Unknown', email: '' };
+      AFF_LINKS.push({
+        id: d.id,
+        affiliateId:   uid,
+        affiliateName: l.affiliateName || user.name,
+        productTitle:  l.productTitle  || l.productId || 'Unknown',
+        clicks:       parseInt(l.clicks       || 0),
+        conversions:  parseInt(l.conversions  || 0),
+        earned:       parseFloat(l.earned     || 0)
+      });
+    });
+
+    updateAffiliateStats();
+    renderAffiliateView();
+  }).catch(function(err) {
+    console.warn('loadAffiliateData error:', err);
+    renderAffiliateView();
+  });
+}
+
+function flagAffiliateDispute() {
+  var earningsId = (document.getElementById('aff-dispute-id') || {}).value || '';
+  earningsId = earningsId.trim();
+  if (!earningsId) { showToast('Enter an earnings record ID.'); return; }
+  if (!window.firestore || !window.db) { showToast('Firebase not ready.'); return; }
+  var _f = window.firestore;
+  _f.setDoc(_f.doc(window.db, 'affiliate-earnings', earningsId), { status: 'disputed', disputedAt: new Date() }, { merge: true })
+    .then(function() {
+      showToast('Earnings record flagged as disputed.');
+      document.getElementById('aff-dispute-id').value = '';
+      // Update local state
+      var rec = AFF_EARNINGS.find(function(e) { return e.id === earningsId; });
+      if (rec) { rec.status = 'disputed'; renderAffiliateView(); }
+    })
+    .catch(function(err) {
+      console.error('flagAffiliateDispute error:', err);
+      showToast('Failed to flag dispute. Check console.');
+    });
+}
+
 /* ============ BOOT ============ */
 var _kycUnsubscribe = null; /* store onSnapshot cleanup fn */
 
@@ -2282,6 +2738,7 @@ function boot() {
   loadPayouts();
   loadKyc();
   loadSettings();
+  loadAffiliateData();
   document.getElementById('loading-overlay').style.display = 'none';
 
   /* Real-time KYC listener — updates panel when submissions arrive or statuses change */

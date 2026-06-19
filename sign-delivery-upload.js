@@ -66,7 +66,7 @@ exports.handler = async function (event) {
   try { payload = JSON.parse(event.body || '{}'); }
   catch { return respond(400, { error: 'Invalid JSON' }); }
 
-  const { uid, resourceType } = payload;
+  const { uid, resourceType, existingPublicId } = payload;
 
   if (!uid || typeof uid !== 'string') {
     return respond(400, { error: 'uid is required' });
@@ -95,8 +95,13 @@ exports.handler = async function (event) {
 
     // ── Build signed params ──
     const folder    = resourceType === 'video' ? 'product-videos' : 'product-files';
-    const publicId   = `${uid}-${Date.now()}`;
     const timestamp  = Math.floor(Date.now() / 1000).toString();
+
+    // Reuse existing publicId when editing so Cloudinary overwrites the asset.
+    // Generate a fresh one for new uploads.
+    const publicId   = (existingPublicId && typeof existingPublicId === 'string' && existingPublicId.length > 0)
+      ? existingPublicId
+      : `${uid}-${Date.now()}`;
 
     // Params must be sorted alphabetically for the signature string
     const sigStr   = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;

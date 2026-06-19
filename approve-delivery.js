@@ -174,6 +174,7 @@ exports.handler = async (event) => {
   try {
     await db.collection('users').doc(freelancerUid).update({
       [`balances.${projectCurrency}`]: FieldValue.increment(netAmount),
+      availableBalance:                FieldValue.increment(netAmount),
       totalEarned:                     FieldValue.increment(netAmount),
       updatedAt:                       FieldValue.serverTimestamp(),
     });

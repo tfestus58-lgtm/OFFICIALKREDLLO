@@ -184,6 +184,13 @@
     .search-btn:focus-visible { outline: 2px solid #3dbd7a; outline-offset: 2px; }
 
     /* ── Category filter pills ── */
+    .filter-scroll-wrap { position: relative; }
+    .filter-scroll-wrap::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 4px; width: 36px;
+      background: linear-gradient(to right, rgba(248,249,251,0), #f8f9fb);
+      pointer-events: none; opacity: 1; transition: opacity 0.2s ease;
+    }
+    .filter-scroll-wrap.at-end::after { opacity: 0; }
     .filter-scroll {
       display: flex; gap: 8px; overflow-x: auto;
       padding-bottom: 4px; -ms-overflow-style: none; scrollbar-width: none;
@@ -370,6 +377,49 @@
     .prod-divider { height: 1px; background: #e2e8f0; margin: 12px 0; }
     .prod-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
     .prod-sales { font-size: 12px; font-weight: 600; color: rgba(13,33,69,0.45); display: inline-flex; align-items: center; }
+
+    /* ── Affiliate link button ── */
+    .btn-affiliate {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; background: transparent; color: #2d8a5e;
+      border: 1.5px solid rgba(45,138,94,0.35); border-radius: 50px;
+      padding: 9px 14px; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 8px;
+      transition: background .15s, border-color .15s, transform .15s;
+    }
+    .btn-affiliate:hover { background: rgba(45,138,94,0.07); border-color: #2d8a5e; transform: translateY(-1px); }
+    .btn-affiliate:active { transform: translateY(0); }
+
+    /* ── Affiliate link modal ── */
+    .aff-modal-bg {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(9,24,48,0.55); display: flex;
+      align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity .2s;
+    }
+    .aff-modal-bg.open { opacity: 1; pointer-events: auto; }
+    .aff-modal {
+      background: #fff; border-radius: 20px 20px 0 0;
+      padding: 24px 20px 32px; width: 100%; max-width: 480px;
+      transform: translateY(40px); transition: transform .25s ease;
+      box-shadow: 0 -8px 40px rgba(13,33,69,0.14);
+    }
+    .aff-modal-bg.open .aff-modal { transform: translateY(0); }
+    @media (min-width: 600px) {
+      .aff-modal-bg { align-items: center; }
+      .aff-modal { border-radius: 20px; padding: 28px 28px 32px; }
+    }
+
+    /* ── Browse page toast ── */
+    #browse-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+      background: #091830; color: #fff; border-radius: 50px;
+      padding: 11px 22px; font-size: 13px; font-weight: 600;
+      z-index: 3000; opacity: 0; pointer-events: none;
+      transition: transform .25s, opacity .25s; white-space: nowrap;
+      max-width: 90vw; text-align: center;
+    }
+    #browse-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 
   <!-- Firebase CDN -->
@@ -427,11 +477,17 @@
 
       if (!user) return; // keep public nav
 
-      // Resolve role → dashboard href
+      // Resolve role → dashboard href + affiliate status
       let dashHref = '/dashboard.html';
       try {
         const snap = await getDoc(doc(window.db, 'users', user.uid));
-        if (snap.exists() && snap.data().role === 'buyer') dashHref = '/buyer-dashboard.html';
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.role === 'buyer') dashHref = '/buyer-dashboard.html';
+          // Store affiliate state for use in product card rendering
+          window._myUid              = user.uid;
+          window._myAffiliateEnabled = data.affiliateEnabled === true;
+        }
       } catch(e) {}
 
       if (dashLinkD) dashLinkD.href = dashHref;
@@ -623,25 +679,29 @@
     <div style="max-width:1200px;margin:0 auto;">
 
       <!-- Category pills (Freelancers) -->
-      <div class="filter-scroll" id="filter-bar" role="group" aria-label="Filter by category" style="margin-bottom:24px;">
-        <button class="filter-pill active" data-category="all">All</button>
-        <button class="filter-pill" data-category="design">Design</button>
-        <button class="filter-pill" data-category="development">Development</button>
-        <button class="filter-pill" data-category="writing">Writing</button>
-        <button class="filter-pill" data-category="marketing">Marketing</button>
-        <button class="filter-pill" data-category="video">Video</button>
-        <button class="filter-pill" data-category="music">Music</button>
-        <button class="filter-pill" data-category="other">Other</button>
+      <div class="filter-scroll-wrap" id="filter-bar-wrap" style="margin-bottom:24px;">
+        <div class="filter-scroll" id="filter-bar" role="group" aria-label="Filter by category">
+          <button class="filter-pill active" data-category="all">All</button>
+          <button class="filter-pill" data-category="design">Design</button>
+          <button class="filter-pill" data-category="development">Development</button>
+          <button class="filter-pill" data-category="writing">Writing</button>
+          <button class="filter-pill" data-category="marketing">Marketing</button>
+          <button class="filter-pill" data-category="video">Video</button>
+          <button class="filter-pill" data-category="music">Music</button>
+          <button class="filter-pill" data-category="other">Other</button>
+        </div>
       </div>
 
       <!-- Category pills (Products) -->
-      <div class="filter-scroll" id="product-filter-bar" role="group" aria-label="Filter by product type" style="margin-bottom:24px;display:none;">
-        <button class="filter-pill active" data-product-type="all">All</button>
-        <button class="filter-pill" data-product-type="digital-download">Digital Downloads</button>
-        <button class="filter-pill" data-product-type="coaching">Coaching</button>
-        <button class="filter-pill" data-product-type="courses">Courses</button>
-        <button class="filter-pill" data-product-type="templates">Templates</button>
-        <button class="filter-pill" data-product-type="external">External</button>
+      <div class="filter-scroll-wrap" id="product-filter-bar-wrap" style="margin-bottom:24px;display:none;">
+        <div class="filter-scroll" id="product-filter-bar" role="group" aria-label="Filter by product type">
+          <button class="filter-pill active" data-product-type="all">All</button>
+          <button class="filter-pill" data-product-type="digital-download">Digital Downloads</button>
+          <button class="filter-pill" data-product-type="coaching">Coaching</button>
+          <button class="filter-pill" data-product-type="courses">Courses</button>
+          <button class="filter-pill" data-product-type="templates">Templates</button>
+          <button class="filter-pill" data-product-type="external">External</button>
+        </div>
       </div>
 
       <!-- Results bar -->
@@ -873,6 +933,10 @@
     let searchQuery      = '';
     let activeTab        = 'freelancers';
 
+    // Affiliate state — populated after auth resolves
+    let _myUid              = null;
+    let _myAffiliateEnabled = false;
+
     /* Pagination — fixed page size, separate page counter per tab so
        switching tabs doesn't lose your place on the other list. */
     const PAGE_SIZE = 24;
@@ -894,8 +958,8 @@
     ──────────────────────────────────── */
     const pageHeading    = document.getElementById('page-heading');
     const pageSubheading = document.getElementById('page-subheading');
-    const filterBar        = document.getElementById('filter-bar');
-    const productFilterBar = document.getElementById('product-filter-bar');
+    const filterBar        = document.getElementById('filter-bar-wrap');
+    const productFilterBar = document.getElementById('product-filter-bar-wrap');
     const boostedNote       = document.getElementById('boosted-note');
 
     document.getElementById('browse-tabs').addEventListener('click', e => {
@@ -1118,52 +1182,54 @@
       window.addEventListener('kreddlo-firebase-ready', cb, { once: true });
     }
 
-    whenFirebaseReady(async () => {
+    async function fetchFreelancers() {
       try {
-        const { collection, query, where, getDocs, orderBy, limit } = window._fsQuery;
+        const { collection, query, where, getDocs, limit } = window._fsQuery;
         const db = window.db;
-
-        // Fetch verified freelancers.
-        // NOTE: profileComplete may not be set on all accounts so we only
-        // filter on role + kycStatus (both reliably written). Client-side
-        // we then skip anyone missing a name/title so junk docs don't show.
-        const q = query(
-          collection(db, 'users'),
-          where('role',      '==', 'freelancer'),
-          where('kycStatus', '==', 'verified'),
-          limit(100)
-        );
 
         let snap;
         try {
+          const q = query(
+            collection(db, 'users'),
+            where('role',      '==', 'freelancer'),
+            where('kycStatus', '==', 'verified'),
+            limit(100)
+          );
           snap = await getDocs(q);
         } catch (qErr) {
-          console.warn('[browse] freelancers compound query failed, falling back to role-only fetch:', qErr);
-          // Fallback: a missing/rebuilding composite index or a transient
-          // rules hiccup would otherwise throw and surface as a false
-          // "no freelancers found" even though verified freelancers exist.
-          // Query on role alone (single-field, always indexed) and filter
-          // kycStatus client-side so the page stays resilient.
-          const qRoleOnly = query(
-            collection(db, 'users'),
-            where('role', '==', 'freelancer'),
-            limit(200)
-          );
-          snap = await getDocs(qRoleOnly);
+          console.warn('[browse] compound query failed, falling back:', qErr);
+          const { collection: col2, query: q2, where: w2, getDocs: gd2, limit: lim2 } = window._fsQuery;
+          const qFallback = q2(col2(db, 'users'), w2('role', '==', 'freelancer'), lim2(200));
+          snap = await getDocs(qFallback);
         }
 
         const docs = snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(f => f.kycStatus === 'verified')
-          .filter(f => f.name || f.title); // skip incomplete profiles
+          .filter(f => f.name || f.title);
 
         allFreelancers = sortFreelancers(docs);
         renderCards(filterFreelancers());
 
       } catch (err) {
-        console.error('Firestore freelancers fetch error:', err);
+        console.error('[browse] freelancers fetch error:', err);
         renderCards([]);
       }
+    }
+
+    // Wait for Firebase AND auth state before fetching.
+    // Firestore rules require auth — must wait for onAuthStateChanged
+    // to fire before querying or unauthenticated loads get permission-denied.
+    whenFirebaseReady(() => {
+      let authResolved = false;
+      const tryFetch = () => { if (authResolved) fetchFreelancers(); };
+
+      window.auth.onAuthStateChanged(() => {
+        if (!authResolved) { authResolved = true; tryFetch(); }
+      });
+
+      // Safety: fetch anyway after 3s if auth never fires
+      setTimeout(() => { if (!authResolved) { authResolved = true; tryFetch(); } }, 3000);
     });
 
     /* ────────────────────────────────────
@@ -1514,6 +1580,16 @@
 
       const card = document.createElement('div');
       card.className = 'prod-card';
+
+      // Show affiliate button only if: product has affiliate enabled AND current user is an affiliate
+      const showAffBtn = p.affiliateEnabled === true && window._myAffiliateEnabled === true;
+      const affBtnHtml = showAffBtn
+        ? `<button class="btn-affiliate" onclick="getAffiliateLink(${JSON.stringify(p.slug || p.id)},${JSON.stringify(p.title || '')},${p.affiliateCommissionPercent != null ? p.affiliateCommissionPercent : 'null'})" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Get Affiliate Link${p.affiliateCommissionPercent != null ? ' · ' + p.affiliateCommissionPercent + '%' : ''}
+          </button>`
+        : '';
+
       card.innerHTML = `
         ${coverHtml}
         <div class="prod-body">
@@ -1530,6 +1606,7 @@
             </span>
           </div>
           <a href="${buyUrl}" class="btn-green" style="width:100%;">Buy Now</a>
+          ${affBtnHtml}
         </div>
       `;
 
@@ -1680,6 +1757,76 @@
   </script>
 
 <script>
+/* ── AFFILIATE LINK FUNCTIONS ── */
+var _affCurrentLink = '';
+
+function getAffiliateLink(productSlug, productTitle, commissionPct) {
+  var uid = window._myUid;
+  if (!uid) { showBrowseToast('Sign in to get your affiliate link'); return; }
+  var link = 'https://kreddlo.com/p.html?slug=' + encodeURIComponent(productSlug) + '&ref=' + encodeURIComponent(uid);
+  _affCurrentLink = link;
+
+  document.getElementById('aff-modal-product').textContent   = productTitle || '';
+  document.getElementById('aff-modal-link').textContent      = link;
+  document.getElementById('aff-modal-commission').textContent = commissionPct
+    ? 'You earn ' + commissionPct + '% commission on each sale through this link'
+    : 'Commission applies to each sale made through this link';
+
+  var copyBtn = document.getElementById('aff-copy-btn');
+  if (copyBtn) { copyBtn.textContent = ''; copyBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Link'; }
+
+  document.getElementById('aff-modal-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAffModal(e) {
+  if (e && e.target !== document.getElementById('aff-modal-bg')) return;
+  document.getElementById('aff-modal-bg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function copyAffLink() {
+  if (!_affCurrentLink) return;
+  var copyBtn = document.getElementById('aff-copy-btn');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(_affCurrentLink).then(function() {
+      if (copyBtn) copyBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+      showBrowseToast('Affiliate link copied!');
+      setTimeout(function() {
+        if (copyBtn) copyBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Link';
+      }, 2500);
+    }).catch(function() { _fallbackCopy(copyBtn); });
+  } else {
+    _fallbackCopy(copyBtn);
+  }
+}
+
+function _fallbackCopy(copyBtn) {
+  var ta = document.createElement('textarea');
+  ta.value = _affCurrentLink;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    if (copyBtn) copyBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+    showBrowseToast('Affiliate link copied!');
+  } catch(e) {
+    showBrowseToast('Could not copy — please copy manually');
+  }
+  document.body.removeChild(ta);
+}
+
+var _browseToastTimer = null;
+function showBrowseToast(msg) {
+  var t = document.getElementById('browse-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_browseToastTimer);
+  _browseToastTimer = setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/service-worker.js').catch(function(err) {
@@ -1687,6 +1834,77 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+/* Filter pill scroll-fade affordance:
+   hides the right-edge fade once the row is scrolled to its end,
+   and hides it entirely if the row doesn't overflow (nothing to scroll). */
+(function () {
+  function setupFade(scrollId, wrapId) {
+    var scrollEl = document.getElementById(scrollId);
+    var wrapEl   = document.getElementById(wrapId);
+    if (!scrollEl || !wrapEl) return;
+
+    function update() {
+      var hasOverflow = scrollEl.scrollWidth > scrollEl.clientWidth + 1;
+      var atEnd = scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - 1;
+      wrapEl.classList.toggle('at-end', !hasOverflow || atEnd);
+    }
+
+    scrollEl.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+
+    // Re-check after content/layout settles (fonts, dynamic pill changes, tab switches)
+    setTimeout(update, 250);
+    if (window.ResizeObserver) {
+      new ResizeObserver(update).observe(scrollEl);
+    }
+  }
+
+  setupFade('filter-bar', 'filter-bar-wrap');
+  setupFade('product-filter-bar', 'product-filter-bar-wrap');
+})();
 </script>
+<!-- ══ AFFILIATE LINK MODAL ══ -->
+<div class="aff-modal-bg" id="aff-modal-bg" onclick="closeAffModal(event)" aria-modal="true" role="dialog" aria-label="Affiliate link">
+  <div class="aff-modal" id="aff-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:rgba(45,138,94,0.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#0d2145;">Your Affiliate Link</div>
+          <div id="aff-modal-product" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;"></div>
+        </div>
+      </div>
+      <button onclick="closeAffModal()" style="width:32px;height:32px;background:rgba(13,33,69,0.06);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Commission info -->
+    <div style="background:rgba(45,138,94,0.06);border:1px solid rgba(45,138,94,0.15);border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span id="aff-modal-commission" style="font-size:13px;font-weight:600;color:#2d8a5e;"></span>
+    </div>
+
+    <!-- Link display -->
+    <div style="background:#f8f9fb;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:14px;word-break:break-all;">
+      <span id="aff-modal-link" style="font-size:12px;font-weight:500;color:#0d2145;line-height:1.6;"></span>
+    </div>
+
+    <!-- Copy button -->
+    <button id="aff-copy-btn" onclick="copyAffLink()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:13px 20px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#236b49'" onmouseout="this.style.background='#2d8a5e'">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy Link
+    </button>
+    <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);text-align:center;margin:10px 0 0;line-height:1.5;">Share this link anywhere. You earn a commission on every sale made through it.</p>
+  </div>
+</div>
+
+<!-- Browse page toast -->
+<div id="browse-toast"></div>
+
 </body>
 </html>

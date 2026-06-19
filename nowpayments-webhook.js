@@ -217,6 +217,18 @@ async function handleFundedPayment(data) {
     return;
   }
 
+  /* ── Route: Pro upgrade (order_id starts with "sub_") ── */
+  if (order_id.startsWith('sub_')) {
+    const subSnap = await db.collection('subscriptions').doc(order_id).get().catch(() => null);
+    if (subSnap && subSnap.exists) {
+      const sub = subSnap.data();
+      await handleProUpgrade({ db, uid: sub.uid, billingPeriod: sub.billingPeriod, subscriptionId: order_id, gateway: 'crypto', amount: Number(outcome_amount || pay_amount || 0) });
+    } else {
+      console.error(`[pro_upgrade] Subscription doc "${order_id}" not found.`);
+    }
+    return;
+  }
+
   const projectRef = db.collection('projects').doc(order_id);
 
   /* ── Try projects collection first ── */
@@ -240,8 +252,122 @@ async function handleFundedPayment(data) {
     }
 
     if (!orderSnap.exists) {
-      console.error(`Order "${order_id}" not found in projects or product-orders.`);
-      return; // caller returns 200 — nothing retrying can fix
+      // ── Try invoice-orders ──
+      const invOrderRef  = db.collection('invoice-orders').doc(order_id);
+      let   invOrderSnap;
+      try {
+        invOrderSnap = await invOrderRef.get();
+      } catch (err) {
+        console.error(`Firestore read failed for invoice-order ${order_id}:`, err.message);
+        return;
+      }
+
+      if (!invOrderSnap.exists) {
+        console.error(`Order "${order_id}" not found in projects, product-orders, or invoice-orders.`);
+        return;
+      }
+
+      const invOrder = invOrderSnap.data();
+      if (invOrder.paymentStatus === 'paid') {
+        console.log(`Invoice order ${order_id} already paid. Skipping duplicate webhook.`);
+        return;
+      }
+
+      const invConfirmedAmount   = Number(outcome_amount) || Number(actually_paid) || Number(pay_amount) || 0;
+      const invConfirmedCurrency = (outcome_currency || 'USD').toUpperCase();
+
+      let invSettings;
+      try {
+        invSettings = await getSettings(db);
+      } catch (err) {
+        invSettings = { platformFeePercent: 2.5 };
+      }
+
+      const invPlatformFee  = +(invConfirmedAmount * (invSettings.platformFeePercent / 100)).toFixed(2);
+      const invSellerAmount = +(invConfirmedAmount - invPlatformFee).toFixed(2);
+
+      try {
+        await invOrderRef.update({
+          paymentStatus:      'paid',
+          paymentMethod:      'crypto',
+          nowpaymentsId:      payment_id   || null,
+          payCurrency:        pay_currency || null,
+          payAmount:          pay_amount   || null,
+          actuallyPaid:       actually_paid || null,
+          amount:             invConfirmedAmount,
+          currency:           invConfirmedCurrency,
+          amountUsd:          invConfirmedCurrency === 'USD' ? invConfirmedAmount : null,
+          platformFee:        invPlatformFee,
+          sellerAmount:       invSellerAmount,
+          paymentConfirmedAt: FieldValue.serverTimestamp(),
+          updatedAt:          FieldValue.serverTimestamp(),
+        });
+        console.log(`Invoice order ${order_id} marked as paid via crypto.`);
+      } catch (err) {
+        console.error(`Firestore update failed for invoice-order ${order_id}:`, err.message);
+        return;
+      }
+
+      const invoiceId = invOrder.invoiceId || null;
+      const sellerUid = invOrder.sellerUid || null;
+
+      if (invoiceId) {
+        try {
+          await db.collection('invoices').doc(invoiceId).update({
+            status:    'paid',
+            paidAt:    FieldValue.serverTimestamp(),
+            paidOrder: order_id,
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+          console.log(`Invoice ${invoiceId} marked as paid.`);
+        } catch (err) {
+          console.error(`Could not mark invoice ${invoiceId} as paid:`, err.message);
+        }
+      }
+
+      if (sellerUid) {
+        let freelancerEmail = null;
+        let freelancerName  = 'Freelancer';
+        try {
+          const userSnap = await db.collection('users').doc(sellerUid).get();
+          if (userSnap.exists) {
+            freelancerEmail = userSnap.data().email || null;
+            freelancerName  = userSnap.data().name || userSnap.data().displayName || 'Freelancer';
+          }
+        } catch (_) {}
+
+        let invoiceNumber = '';
+        if (invoiceId) {
+          try {
+            const invSnap = await db.collection('invoices').doc(invoiceId).get();
+            if (invSnap.exists) invoiceNumber = invSnap.data().invoiceNumber || '';
+          } catch (_) {}
+        }
+
+        const platformUrl   = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+        const clientName    = invOrder.clientName || invOrder.payerName || 'A client';
+        const invoiceAmount = new Intl.NumberFormat('en', { style: 'currency', currency: invConfirmedCurrency }).format(invConfirmedAmount);
+
+        await callFunction('send-smart-notification', {
+          userUid:    sellerUid,
+          to:         freelancerEmail || null,
+          title:      'Invoice Paid',
+          body:       `${clientName} has paid your invoice for ${invoiceAmount}.`,
+          url:        `${platformUrl}/dashboard-invoices.html`,
+          templateId: 'invoice-paid',
+          emailMode:  'always',
+          data: {
+            name:          freelancerName,
+            clientName,
+            amount:        invoiceAmount,
+            invoiceNumber,
+            dashboardUrl:  `${platformUrl}/dashboard-invoices.html`,
+          },
+        });
+      }
+
+      console.log(`NOWPayments invoice order ${order_id} handled successfully.`);
+      return;
     }
 
     const order = orderSnap.data();
@@ -295,8 +421,19 @@ async function handleFundedPayment(data) {
       return;
     }
 
-    // Trigger delivery
-    await callFunction('deliver-product', { orderId: order_id });
+    // Credit affiliate commission if this order was referred
+    const { finalSellerAmount } = await creditAffiliateCommission({
+      db,
+      order,
+      orderId:           order_id,
+      sellerAmount:      productSellerAmount,
+      confirmedAmount,
+      confirmedCurrency,
+      gateway:           'crypto',
+    });
+
+    // Trigger delivery with the final seller amount (after any affiliate deduction)
+    await callFunction('deliver-product', { orderId: order_id, sellerAmount: finalSellerAmount });
 
     // Fire Facebook pixel if product has a pixelId configured
     try {
@@ -421,6 +558,106 @@ async function handleFundedPayment(data) {
 
 
 /* ══════════════════════════════════════════════════════════════
+   AFFILIATE COMMISSION CREDITING
+   Called from the product-order path after the order is marked paid.
+   See stripe-webhook.js for full documentation of this logic.
+   Always non-fatal — never blocks order delivery.
+══════════════════════════════════════════════════════════════ */
+async function creditAffiliateCommission({ db, order, orderId, sellerAmount, confirmedAmount, confirmedCurrency, gateway }) {
+  const affiliateRef = order.affiliateRef || null;
+
+  if (!affiliateRef) {
+    return { finalSellerAmount: sellerAmount };
+  }
+
+  try {
+    const affiliateUserSnap = await db.collection('users').doc(affiliateRef).get();
+    if (!affiliateUserSnap.exists) {
+      console.warn(`[affiliate] Referring user "${affiliateRef}" not found — skipping commission for order ${orderId}.`);
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    const affiliateUser = affiliateUserSnap.data();
+    if (affiliateUser.affiliateEnabled !== true) {
+      console.warn(`[affiliate] Referring user "${affiliateRef}" has not opted in — skipping commission for order ${orderId}.`);
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    if (affiliateRef === order.sellerUid) {
+      console.warn(`[affiliate] Self-referral detected for order ${orderId}. Skipping.`);
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    let commissionPercent = 0;
+    try {
+      const productSnap = await db.collection('products').doc(order.productId).get();
+      if (productSnap.exists) {
+        const productData = productSnap.data();
+        if (productData.affiliateEnabled !== true) {
+          console.log(`[affiliate] Product "${order.productId}" does not have affiliateEnabled — skipping for order ${orderId}.`);
+          return { finalSellerAmount: sellerAmount };
+        }
+        commissionPercent = Number(productData.affiliateCommissionPercent) || 0;
+      } else {
+        console.warn(`[affiliate] Product "${order.productId}" not found — skipping for order ${orderId}.`);
+        return { finalSellerAmount: sellerAmount };
+      }
+    } catch (err) {
+      console.warn(`[affiliate] Could not read product doc: ${err.message} — skipping for order ${orderId}.`);
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    if (commissionPercent <= 0) {
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    const commissionAmount  = +(sellerAmount * (commissionPercent / 100)).toFixed(2);
+    const finalSellerAmount = +(sellerAmount - commissionAmount).toFixed(2);
+
+    if (commissionAmount <= 0) {
+      return { finalSellerAmount: sellerAmount };
+    }
+
+    await db.collection('users').doc(affiliateRef).update({
+      affiliateBalance:      FieldValue.increment(commissionAmount),
+      affiliateTotalEarned:  FieldValue.increment(commissionAmount),
+      updatedAt:             FieldValue.serverTimestamp(),
+    });
+
+    await db.collection('affiliate-earnings').add({
+      affiliateUid:       affiliateRef,
+      sellerUid:          order.sellerUid      || null,
+      buyerUid:           order.buyerUid       || null,
+      orderId,
+      productId:          order.productId      || null,
+      commissionPercent,
+      commissionAmount,
+      currency:           confirmedCurrency,
+      confirmedAmount,
+      gateway,
+      status:             'pending',
+      createdAt:          FieldValue.serverTimestamp(),
+    });
+
+    await db.collection('product-orders').doc(orderId).update({
+      affiliateCommissionPaid:    true,
+      affiliateCommissionAmount:  commissionAmount,
+      affiliateCommissionPercent: commissionPercent,
+      sellerAmount:               finalSellerAmount,
+    });
+
+    console.log(`[affiliate] Commission credited — order: ${orderId}, affiliate: ${affiliateRef}, amount: ${commissionAmount} ${confirmedCurrency} (${commissionPercent}%), finalSellerAmount: ${finalSellerAmount}`);
+
+    return { finalSellerAmount };
+
+  } catch (err) {
+    console.error(`[affiliate] Commission crediting failed for order ${orderId}:`, err.message);
+    return { finalSellerAmount: sellerAmount };
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
    HANDLE FAILED / EXPIRED / REFUNDED PAYMENT
    Marks the project or product-order payment status so the buyer
    can retry. Checks product-orders first, then falls back to projects.
@@ -493,6 +730,56 @@ async function callFunction(name, payload) {
   }
 }
 
+
+/* ── Pro Upgrade handler ── */
+async function handleProUpgrade({ db, uid, billingPeriod, subscriptionId, gateway, amount }) {
+  if (!uid) {
+    console.error('[pro_upgrade] Missing uid — cannot activate Pro.');
+    return;
+  }
+  const now       = new Date();
+  const daysToAdd = billingPeriod === 'annual' ? 365 : 30;
+  const endDate   = new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+  try {
+    await db.collection('users').doc(uid).update({
+      plan:             'pro',
+      premiumStatus:    'active',
+      planStatus:       'active',
+      premiumStartDate: now,
+      premiumEndDate:   endDate,
+      updatedAt:        require('firebase-admin/firestore').FieldValue.serverTimestamp(),
+    });
+    if (subscriptionId) {
+      await db.collection('subscriptions').doc(subscriptionId).update({
+        status:         'active',
+        activatedAt:    now,
+        premiumEndDate: endDate,
+      }).catch(() => {});
+    }
+    console.log(`[pro_upgrade] uid: ${uid} activated Pro via ${gateway} — expires ${endDate.toISOString()}`);
+    const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+    if (platformUrl) {
+      const userSnap = await db.collection('users').doc(uid).get().catch(() => null);
+      const userData = userSnap?.exists ? userSnap.data() : {};
+      const toEmail  = userData.email || null;
+      const name     = userData.displayName || userData.name || 'Freelancer';
+      if (toEmail) {
+        await fetch(`${platformUrl}/.netlify/functions/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: toEmail, type: 'premium-activated',
+            data: { name, plan: 'Pro', billingPeriod: billingPeriod === 'annual' ? 'Annual' : 'Monthly',
+              endDate: endDate.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' }),
+              dashboardUrl: `${platformUrl}/dashboard.html` },
+          }),
+        }).catch(e => console.warn('[pro_upgrade] send-email failed:', e.message));
+      }
+    }
+  } catch (err) {
+    console.error('[pro_upgrade] Firestore update failed:', err.message);
+  }
+}
 
 /* ── Utility: build a Netlify function response ── */
 function respond(statusCode, body) {

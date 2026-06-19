@@ -134,6 +134,69 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   #page-content{padding:28px 24px!important}
 }
 </style>
+<style id="mobile-first-patch">
+/* 1. BODY — no horizontal scroll on mobile */
+body { overflow-x: hidden !important; }
+
+/* 2. SIDEBAR — safe area on desktop */
+#sidebar {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-top: max(30px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+
+/* 3. PAGE CONTENT — proper mobile padding, no bleed */
+#page-content {
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  min-height: 100dvh !important;
+}
+
+/* 4. HAMBURGER — always visible on mobile, proper tap size */
+#hamburger {
+  display: flex !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+@media (min-width: 768px) {
+  #hamburger { display: none !important; }
+  #sidebar { display: flex !important; }
+}
+
+/* 5. LOADING OVERLAY — full screen properly */
+#loading-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* 6. NAV LINKS — prevent text overflow in sidebar */
+.nav-link {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. TOAST — above safe area on mobile */
+#toast {
+  bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
+  max-width: calc(100vw - 32px) !important;
+}
+
+/* 8. MOBILE MENU — full height with safe area */
+#mobile-menu {
+  height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  padding-top: max(30px, env(safe-area-inset-top)) !important;
+  padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
+}
+</style>
 </head>
 <body>
 
@@ -298,6 +361,7 @@ const NAV_LINKS = {
     { label:'Browse',        href:'browse.html',             icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
     { label:'Payments',      href:'buyer-payments.html',     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
     { label:'Purchases',     href:'buyer-purchases.html',    icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+    { label:'Affiliate',     href:'dashboard-affiliate.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
     { label:'Notifications', href:'notifications.html',      icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
     { label:'Settings',      href:'dashboard-settings.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
   ],
@@ -307,6 +371,8 @@ const NAV_LINKS = {
     { label:'Projects',      href:'dashboard-projects.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
     { label:'Store',         href:'store.html',              icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
     { label:'Products',      href:'dashboard-products.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
+    { label:'Purchases',     href:'buyer-purchases.html',    icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+    { label:'Affiliate',     href:'dashboard-affiliate.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
     { label:'Contracts',     href:'dashboard-contracts.html',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
     { label:'Withdraw',      href:'dashboard-withdraw.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
     { label:'Notifications', href:'notifications.html',      icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
@@ -316,8 +382,11 @@ const NAV_LINKS = {
   ]
 };
 
-function buildNav(role) {
-  const links = NAV_LINKS[role] || NAV_LINKS.freelancer;
+function buildNav(role, affiliateEnabled) {
+  const links = (NAV_LINKS[role] || NAV_LINKS.freelancer).filter(l => {
+    if (l.label === 'Affiliate') return affiliateEnabled === true;
+    return true;
+  });
   const current = window.location.pathname.split('/').pop() || 'dashboard.html';
   const html = links.map(l => {
     let href = l.href;
@@ -477,9 +546,9 @@ function filterNotifs(type, btn) {
 }
 
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
-window._boot = function(user, role, db, firestoreModules) {
+window._boot = function(user, role, affiliateEnabled, db, firestoreModules) {
   window._currentUid = user.uid;
-  buildNav(role || 'freelancer');
+  buildNav(role || 'freelancer', affiliateEnabled === true);
 
   const { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch } = firestoreModules;
   const uid = user.uid;
@@ -592,7 +661,8 @@ if ('serviceWorker' in navigator) {
     if (!user) { window.location.href = '/login.html'; return; }
     getDoc(doc(db, 'users', user.uid)).then(function(snap) {
       var role = snap.exists() ? (snap.data().role || 'freelancer') : 'freelancer';
-      if (typeof window._boot === 'function') window._boot(user, role, db, { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch });
+      var affiliateEnabled = snap.exists() ? (snap.data().affiliateEnabled === true) : false;
+      if (typeof window._boot === 'function') window._boot(user, role, affiliateEnabled, db, { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch });
     });
   });
 </script>

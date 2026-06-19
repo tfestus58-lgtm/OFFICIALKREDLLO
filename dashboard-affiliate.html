@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#0d2145" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kreddlo" />
+<link rel="apple-touch-icon" href="/assets/kreddlo-192.png" />
+<title>Affiliate Dashboard — Kreddlo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="dns-prefetch" href="https://www.gstatic.com"/>
+<link rel="dns-prefetch" href="https://firestore.googleapis.com"/>
+<link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        navy:'#0d2145','navy-deep':'#091830','navy-mid':'#162f5e',
+        green:'#2d8a5e','green-light':'#3dbd7a','green-pale':'#e8f5ef',
+        cream:'#f8f9fb',border:'#e2e8f0'
+      },
+      fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }
+    }
+  }
+};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+
+.glass{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:20px;box-shadow:0 8px 32px rgba(13,33,69,0.08)}
+
+.btn-green{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#2d8a5e;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(45,138,94,0.30);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-green:hover{background:#236b49;transform:translateY(-1px);box-shadow:0 6px 20px rgba(45,138,94,0.38)}
+.btn-green:active{transform:translateY(0)}
+.btn-green:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0d2145;color:#fff;border:none;border-radius:50px;padding:11px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;box-shadow:0 4px 16px rgba(13,33,69,0.20);transition:transform .15s,box-shadow .15s,background .15s}
+.btn-primary:hover{background:#162f5e;transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:transparent;color:#0d2145;border:1.5px solid #e2e8f0;border-radius:50px;padding:10px 22px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,border-color .15s,background .15s}
+.btn-ghost:hover{border-color:#0d2145;background:rgba(13,33,69,0.04);transform:translateY(-1px)}
+
+.badge{display:inline-flex;align-items:center;padding:3px 11px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.badge-green{background:#e8f5ef;color:#2d8a5e}
+.badge-amber{background:#fff3cd;color:#856404}
+.badge-navy{background:rgba(13,33,69,0.08);color:#0d2145}
+.badge-red{background:#fff0f0;color:#c81e1e}
+
+.lbl{font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(13,33,69,0.48)}
+
+.sk{background:linear-gradient(90deg,#f0f2f6 25%,#e8eaf0 50%,#f0f2f6 75%);background-size:200% 100%;animation:sk 1.5s infinite linear;border-radius:8px}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.nav-link{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;transition:background .15s,color .15s;cursor:pointer;border:none;background:transparent;width:100%;text-align:left}
+.nav-link:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.88)}
+.nav-link.active{background:rgba(45,138,94,0.22);color:#fff;border-left:3px solid #3dbd7a;padding-left:10px}
+
+.slide-in{transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.slide-in.open{transform:translateX(0)}
+.dim{opacity:0;pointer-events:none;transition:opacity .28s}
+.dim.open{opacity:1;pointer-events:all}
+
+.modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(9,24,48,0.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-box{background:#fff;border-radius:24px;box-shadow:0 24px 80px rgba(13,33,69,0.20);width:100%;max-width:480px;max-height:90vh;max-height:90dvh;overflow-y:auto;padding:28px}
+
+/* stat cards */
+.stat-card{background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:18px;box-shadow:0 4px 20px rgba(13,33,69,0.07);padding:18px 18px 16px}
+
+/* table */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(13,33,69,0.45);padding:0 10px 10px;white-space:nowrap}
+td{padding:11px 10px;border-top:1px solid #f0f2f6;font-weight:500;color:#0d2145;vertical-align:middle}
+tr:last-child td{border-bottom:1px solid #f0f2f6}
+
+/* blob decorations */
+.blob-n{position:fixed;top:-120px;right:-80px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(13,33,69,0.06) 0%,transparent 70%);pointer-events:none;z-index:0}
+.blob-g{position:fixed;bottom:-100px;left:-60px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(45,138,94,0.07) 0%,transparent 70%);pointer-events:none;z-index:0}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#0d2145;color:#fff;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Sidebar responsive */
+@media(min-width:900px){
+  #sidebar{display:flex!important}
+  #hamburger{display:none!important}
+  #main-wrap{margin-left:248px}
+}
+
+/* NAV — prevent text overflow */
+.nav-link {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Stat grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* Product stats row */
+.prod-row{display:grid;grid-template-columns:1fr;gap:0}
+@media(min-width:600px){.prod-row{grid-template-columns:2fr 1fr 1fr 1fr 1fr}}
+
+/* Section header */
+.sec-hd{font-size:15px;font-weight:700;color:#0d2145;margin:0 0 14px}
+
+/* empty state */
+.empty{text-align:center;padding:40px 20px}
+.empty svg{margin:0 auto 12px;display:block;opacity:.3}
+.empty p{font-size:13px;font-weight:500;color:rgba(13,33,69,0.48);margin:0}
+
+/* Withdrawal input */
+.wd-input{width:100%;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:#0d2145;outline:none;transition:border-color .2s,box-shadow .2s;background:rgba(255,255,255,0.9);-webkit-appearance:none}
+.wd-input:focus{border-color:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.11)}
+</style>
+</head>
+<body>
+
+<!-- MOBILE SLIDE-IN MENU -->
+<div id="mobile-dim" class="dim" onclick="closeMobileMenu()" style="position:fixed;inset:0;background:rgba(9,24,48,0.45);z-index:399;"></div>
+<div id="mobile-menu" class="slide-in" style="position:fixed;top:0;right:0;width:260px;height:100%;background:#091830;z-index:400;padding:30px 18px;display:flex;flex-direction:column;overflow-y:auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;">
+    <a href="/dashboard.html" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+    <button onclick="closeMobileMenu()" style="width:32px;height:32px;background:rgba(255,255,255,0.07);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <nav id="mobile-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="mb-signout" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;width:248px;height:100%;background:#091830;z-index:300;padding:30px 18px;display:none;flex-direction:column;overflow-y:auto;">
+  <a href="/dashboard.html" id="sidebar-logo" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px;text-decoration:none;display:block;margin-bottom:44px;">Kreddl<span style="color:#3dbd7a;">o</span></a>
+  <nav id="desktop-nav" style="flex:1;display:flex;flex-direction:column;gap:3px;"></nav>
+  <button id="dt-signout" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:11px 15px;color:rgba(255,255,255,0.58);font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,color .2s;" onmouseover="this.style.background='rgba(255,255,255,0.10)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.58)'">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign Out
+  </button>
+</aside>
+
+<!-- MAIN WRAPPER -->
+<div id="main-wrap" style="min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOPBAR -->
+  <header style="position:sticky;top:0;z-index:200;height:64px;background:rgba(248,249,251,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;">
+    <h1 style="font-size:17px;font-weight:800;color:#0d2145;letter-spacing:-0.3px;margin:0;">Affiliate</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="window.location.href='/notifications.html'" style="position:relative;width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bell-dot" style="display:none;position:absolute;top:7px;right:7px;width:8px;height:8px;background:#c81e1e;border-radius:50%;border:2px solid #f8f9fb;"></span>
+      </button>
+      <div id="user-avatar" style="width:35px;height:35px;background:linear-gradient(135deg,#2d8a5e,#3dbd7a);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;cursor:pointer;"></div>
+      <button id="hamburger" onclick="openMobileMenu()" style="width:38px;height:38px;background:transparent;border:none;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='rgba(13,33,69,0.06)'" onmouseout="this.style.background='transparent'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE CONTENT -->
+  <main style="flex:1;padding:22px 18px;width:100%;position:relative;">
+    <div class="blob-n"></div>
+    <div class="blob-g"></div>
+    <div style="position:relative;z-index:1;max-width:900px;margin:0 auto;">
+
+      <!-- GATE: not enrolled -->
+      <div id="not-enrolled-state" style="display:none;text-align:center;padding:60px 20px;">
+        <div style="width:64px;height:64px;background:rgba(45,138,94,0.10);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h2 style="font-size:20px;font-weight:800;color:#0d2145;margin:0 0 8px;">You haven't joined the Affiliate Program</h2>
+        <p style="font-size:14px;font-weight:500;color:rgba(13,33,69,0.55);margin:0 0 24px;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.6;">Enable affiliate mode in your settings to start earning commissions on products you promote.</p>
+        <a href="/dashboard-settings.html" class="btn-green" style="text-decoration:none;">Go to Settings to Enable</a>
+      </div>
+
+      <!-- MAIN CONTENT: enrolled -->
+      <div id="enrolled-state" style="display:none;">
+
+        <!-- Balance + Withdraw row -->
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;">
+          <div>
+            <p class="lbl" style="margin:0 0 4px;">Available Balance</p>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <span id="bal-amount" style="font-size:32px;font-weight:800;color:#0d2145;letter-spacing:-1px;" class="sk" style="min-width:120px;height:36px;">&nbsp;</span>
+              <span id="bal-currency" style="font-size:14px;font-weight:600;color:rgba(13,33,69,0.45);">USD</span>
+            </div>
+            <p id="bal-pending" style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.48);margin:4px 0 0;"></p>
+          </div>
+          <button id="withdraw-btn" class="btn-green" onclick="openWithdrawModal()" style="margin-top:4px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Withdraw
+          </button>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="stats-grid" style="margin-bottom:22px;">
+          <div class="stat-card">
+            <p class="lbl" style="margin:0 0 6px;">Total Earned</p>
+            <p id="stat-total" style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">—</p>
+          </div>
+          <div class="stat-card">
+            <p class="lbl" style="margin:0 0 6px;">Pending</p>
+            <p id="stat-pending" style="font-size:20px;font-weight:800;color:#856404;margin:0;">—</p>
+          </div>
+          <div class="stat-card">
+            <p class="lbl" style="margin:0 0 6px;">Paid Out</p>
+            <p id="stat-paid" style="font-size:20px;font-weight:800;color:#2d8a5e;margin:0;">—</p>
+          </div>
+          <div class="stat-card">
+            <p class="lbl" style="margin:0 0 6px;">Conversions</p>
+            <p id="stat-conversions" style="font-size:20px;font-weight:800;color:#0d2145;margin:0;">—</p>
+          </div>
+        </div>
+
+        <!-- Promoted products -->
+        <div class="glass" style="padding:20px;margin-bottom:20px;">
+          <h3 class="sec-hd">Products You're Promoting</h3>
+          <div id="products-loading" style="padding:16px 0;">
+            <div class="sk" style="height:42px;border-radius:10px;margin-bottom:10px;"></div>
+            <div class="sk" style="height:42px;border-radius:10px;margin-bottom:10px;"></div>
+            <div class="sk" style="height:42px;border-radius:10px;"></div>
+          </div>
+          <div id="products-empty" class="empty" style="display:none;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="1.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            <p>No affiliate links created yet.<br>Browse products and copy your link.</p>
+            <a href="/browse.html" class="btn-green" style="margin-top:14px;text-decoration:none;font-size:13px;">Browse Products</a>
+          </div>
+          <div id="products-list" style="display:none;">
+            <!-- Scrollable on mobile -->
+            <div class="tbl-wrap">
+              <table id="products-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th style="text-align:right;">Clicks</th>
+                    <th style="text-align:right;">Conv.</th>
+                    <th style="text-align:right;">Pending</th>
+                    <th style="text-align:right;">Earned</th>
+                  </tr>
+                </thead>
+                <tbody id="products-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Earnings history -->
+        <div class="glass" style="padding:20px;margin-bottom:20px;">
+          <h3 class="sec-hd">Earnings History</h3>
+          <div id="earnings-loading" style="padding:16px 0;">
+            <div class="sk" style="height:38px;border-radius:10px;margin-bottom:10px;"></div>
+            <div class="sk" style="height:38px;border-radius:10px;margin-bottom:10px;"></div>
+            <div class="sk" style="height:38px;border-radius:10px;"></div>
+          </div>
+          <div id="earnings-empty" class="empty" style="display:none;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <p>No earnings yet. Share your affiliate links to get started.</p>
+          </div>
+          <div id="earnings-list" style="display:none;">
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Product</th>
+                    <th style="text-align:right;">Commission</th>
+                    <th style="text-align:right;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="earnings-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payout history -->
+        <div class="glass" style="padding:20px;">
+          <h3 class="sec-hd">Payout History</h3>
+          <div id="payouts-loading" style="padding:16px 0;">
+            <div class="sk" style="height:38px;border-radius:10px;margin-bottom:10px;"></div>
+            <div class="sk" style="height:38px;border-radius:10px;"></div>
+          </div>
+          <div id="payouts-empty" class="empty" style="display:none;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <p>No payouts yet.</p>
+          </div>
+          <div id="payouts-list" style="display:none;">
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th style="text-align:right;">Gross</th>
+                    <th style="text-align:right;">Fee</th>
+                    <th style="text-align:right;">Net</th>
+                    <th style="text-align:right;">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="payouts-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /enrolled-state -->
+
+    </div><!-- /max-width -->
+  </main>
+</div><!-- /main-wrap -->
+
+<!-- WITHDRAW MODAL -->
+<div id="withdraw-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="wd-modal-title">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 id="wd-modal-title" style="font-size:18px;font-weight:800;color:#0d2145;margin:0;">Withdraw Earnings</h3>
+      <button onclick="closeWithdrawModal()" style="width:32px;height:32px;background:rgba(13,33,69,0.06);border:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Balance info -->
+    <div style="background:#f8f9fb;border-radius:14px;padding:16px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);">Available balance</span>
+        <span id="wd-available" style="font-size:15px;font-weight:800;color:#2d8a5e;">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:600;color:rgba(13,33,69,0.55);">Withdrawal fee (<span id="wd-fee-pct">—</span>%)</span>
+        <span id="wd-fee-display" style="font-size:13px;font-weight:700;color:#c81e1e;">—</span>
+      </div>
+    </div>
+
+    <!-- Amount input -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Amount to withdraw</label>
+      <input id="wd-amount-input" type="number" min="1" step="0.01" class="wd-input" placeholder="0.00" oninput="updateWithdrawCalc()" />
+    </div>
+
+    <!-- Net display -->
+    <div style="background:rgba(45,138,94,0.06);border:1px solid rgba(45,138,94,0.15);border-radius:14px;padding:14px;margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:600;color:rgba(13,33,69,0.65);">You'll receive</span>
+        <span id="wd-net-display" style="font-size:18px;font-weight:800;color:#2d8a5e;">—</span>
+      </div>
+    </div>
+
+    <!-- Wallet note -->
+    <div style="background:#fff3cd;border:1px solid #f6c843;border-radius:12px;padding:12px 14px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+      <p style="font-size:12px;font-weight:500;color:#856404;margin:0;line-height:1.5;">Payout will be sent to the withdrawal wallet set in your <a href="/dashboard-settings.html" style="color:#856404;font-weight:700;">Settings</a>. Ensure it is correct before proceeding.</p>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeWithdrawModal()" class="btn-ghost" style="flex:1;">Cancel</button>
+      <button id="wd-confirm-btn" onclick="confirmWithdraw()" class="btn-green" style="flex:1;">Withdraw</button>
+    </div>
+    <p id="wd-error" style="font-size:12px;font-weight:600;color:#c81e1e;margin:12px 0 0;text-align:center;display:none;"></p>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- SHARED JS (bell dot etc.) -->
+<script src="/assets/shared.js" defer></script>
+
+<script type="module">
+import { initializeApp }                              from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut }       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, collection,
+         query, where, orderBy, limit, getDocs,
+         onSnapshot }                                 from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+var FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
+  authDomain:        'kreddlo.firebaseapp.com',
+  projectId:         'kreddlo',
+  storageBucket:     'kreddlo.firebasestorage.app',
+  messagingSenderId: '764500458567',
+  appId:             '1:764500458567:web:2389d5cf8c688caafd0562'
+};
+
+var app  = initializeApp(FIREBASE_CONFIG);
+var auth = getAuth(app);
+var db   = getFirestore(app);
+
+// Expose for shared.js
+window.auth             = auth;
+window.db               = db;
+window.onAuthStateChanged = onAuthStateChanged;
+window.fsCollection     = collection;
+window.fsQuery          = query;
+window.fsWhere          = where;
+window.fsLimit          = limit;
+window.fsOnSnapshot     = onSnapshot;
+window.fsGetDoc         = getDoc;
+window.fsDoc            = doc;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var _uid          = null;
+var _userRole     = null;
+var _affiliateBal = 0;
+var _settings     = {};
+var _walletAddr   = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(n, cur) {
+  cur = cur || _settings.platformCurrency || 'USD';
+  var v = Number(n) || 0;
+  return cur + ' ' + v.toFixed(2);
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  var d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+// Nav arrays keyed by role — Affiliate link always shown (page is only
+// reachable for opted-in users; gate enforced client-side on auth)
+var NAV_FREELANCER = [
+  { label:'Dashboard',    href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Earnings',     href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
+  { label:'Projects',     href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Store',        href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Products',     href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
+  { label:'Purchases',    href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate',    href:'/dashboard-affiliate.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
+  { label:'Contracts',    href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Withdraw',     href:'/dashboard-withdraw.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' },
+  { label:'Notifications',href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Browse',       href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Settings',     href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' },
+  { label:'Profile',      href:'/profile.html',            icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' }
+];
+
+var NAV_BUYER = [
+  { label:'Dashboard',    href:'/buyer-dashboard.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { label:'Projects',     href:'/buyer-projects.html',     icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Contracts',    href:'/dashboard-contracts.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>' },
+  { label:'Browse',       href:'/browse.html',             icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' },
+  { label:'Payments',     href:'/buyer-payments.html',     icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' },
+  { label:'Purchases',    href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
+  { label:'Affiliate',    href:'/dashboard-affiliate.html',icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' },
+  { label:'Notifications',href:'/notifications.html',      icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
+  { label:'Settings',     href:'/dashboard-settings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>' }
+];
+
+function buildNav(uid, role) {
+  var navItems = (role === 'buyer') ? NAV_BUYER : NAV_FREELANCER;
+  var cur = (window.location.pathname.split('/').pop() || 'dashboard-affiliate.html');
+  var html = navItems.map(function(n) {
+    var href = n.href;
+    if (n.label === 'Store'   && uid) href = '/store.html?uid=' + uid;
+    if (n.label === 'Profile' && uid) href = '/profile.html?uid=' + uid;
+    var active = cur === n.href.replace('/','') ? ' active' : '';
+    return '<a href="' + href + '" class="nav-link' + active + '">' + n.icon + n.label + '</a>';
+  }).join('');
+  document.getElementById('mobile-nav').innerHTML  = html;
+  document.getElementById('desktop-nav').innerHTML = html;
+}
+
+// ── Mobile menu ───────────────────────────────────────────────────────────────
+window.openMobileMenu  = function() {
+  document.getElementById('mobile-menu').classList.add('open');
+  document.getElementById('mobile-dim').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+window.closeMobileMenu = function() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('mobile-dim').classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+window.showToast = function(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 3000);
+};
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+function handleLogout() {
+  signOut(auth).then(function() {
+    window.location.href = '/login.html';
+  }).catch(function() {
+    showToast('Could not sign out. Try again.');
+  });
+}
+document.getElementById('mb-signout').onclick = handleLogout;
+document.getElementById('dt-signout').onclick = handleLogout;
+
+// ── Fetch platform settings ───────────────────────────────────────────────────
+async function fetchSettings() {
+  try {
+    var snap = await getDoc(doc(db, 'config', 'platform'));
+    _settings = snap.exists() ? snap.data() : {};
+  } catch(e) {
+    _settings = {};
+  }
+  // defaults
+  if (!_settings.platformCurrency)             _settings.platformCurrency = 'USD';
+  if (_settings.affiliateWithdrawFeePercent == null) _settings.affiliateWithdrawFeePercent = 2.0;
+  if (!_settings.minAffiliateWithdrawalUsd)    _settings.minAffiliateWithdrawalUsd = 5;
+}
+
+// ── Load affiliate data ───────────────────────────────────────────────────────
+async function loadAffiliateDashboard(uid) {
+  var cur = _settings.platformCurrency || 'USD';
+
+  // 1. User doc for balance
+  var userSnap = await getDoc(doc(db, 'users', uid));
+  var userData = userSnap.exists() ? userSnap.data() : {};
+  _affiliateBal  = Number(userData.affiliateBalance)     || 0;
+  _walletAddr    = userData.walletAddress                || null;
+  var totalEarned= Number(userData.affiliateTotalEarned) || 0;
+  var totalPaid  = Number(userData.affiliateTotalPaid)   || 0;
+
+  // Render avatar
+  var initials = ((userData.displayName || userData.name || 'U').trim().charAt(0) || 'U').toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+
+  // Balance header
+  document.getElementById('bal-amount').textContent   = _affiliateBal.toFixed(2);
+  document.getElementById('bal-currency').textContent = cur;
+
+  // Pending = totalEarned - totalPaid - available (approximate from balance)
+  var pendingEst = Math.max(0, totalEarned - totalPaid - _affiliateBal);
+  if (pendingEst > 0) {
+    document.getElementById('bal-pending').textContent = cur + ' ' + pendingEst.toFixed(2) + ' pending';
+  }
+
+  // Stats — query affiliate-earnings
+  var earningsColl  = collection(db, 'affiliate-earnings');
+  var earningsQ     = query(earningsColl, where('affiliateUid', '==', uid), orderBy('createdAt', 'desc'), limit(100));
+  var earningsSnap  = await getDocs(earningsQ);
+  var earningDocs   = [];
+  var totalPendingAmt = 0, totalConversions = 0;
+  earningsSnap.forEach(function(d) {
+    var e = d.data();
+    e._id = d.id;
+    earningDocs.push(e);
+    totalConversions++;
+    if (e.status === 'pending') totalPendingAmt += Number(e.amount) || 0;
+  });
+
+  // Stat cards
+  document.getElementById('stat-total').textContent       = fmt(totalEarned, cur);
+  document.getElementById('stat-pending').textContent     = fmt(totalPendingAmt, cur);
+  document.getElementById('stat-paid').textContent        = fmt(totalPaid, cur);
+  document.getElementById('stat-conversions').textContent = totalConversions;
+
+  // 2. Affiliate-links for promoted products
+  var linksColl = collection(db, 'affiliate-links');
+  var linksQ    = query(linksColl, where('affiliateUid', '==', uid));
+  var linksSnap = await getDocs(linksQ);
+  var linksArr  = [];
+  linksSnap.forEach(function(d) { var l = d.data(); l._id = d.id; linksArr.push(l); });
+
+  // Hide loaders
+  document.getElementById('products-loading').style.display = 'none';
+  document.getElementById('earnings-loading').style.display = 'none';
+  document.getElementById('payouts-loading').style.display  = 'none';
+
+  // ── Promoted products table ───────────────────────────────────────────────
+  if (linksArr.length === 0) {
+    document.getElementById('products-empty').style.display = 'block';
+  } else {
+    document.getElementById('products-list').style.display = 'block';
+    var tbody = document.getElementById('products-tbody');
+    tbody.innerHTML = '';
+
+    // Build per-product earning sums
+    var prodEarnings = {};
+    earningDocs.forEach(function(e) {
+      if (!prodEarnings[e.productId]) prodEarnings[e.productId] = { pending:0, total:0 };
+      var amt = Number(e.amount) || 0;
+      prodEarnings[e.productId].total += amt;
+      if (e.status === 'pending') prodEarnings[e.productId].pending += amt;
+    });
+
+    linksArr.forEach(function(lnk) {
+      var pe = prodEarnings[lnk.productId] || { pending:0, total:0 };
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escHtml(lnk.productTitle || lnk.productId || '—') + '</td>' +
+        '<td style="text-align:right;color:rgba(13,33,69,0.60);">' + (lnk.clicks || 0) + '</td>' +
+        '<td style="text-align:right;color:rgba(13,33,69,0.60);">' + (lnk.conversions || 0) + '</td>' +
+        '<td style="text-align:right;color:#856404;">' + fmt(pe.pending, cur) + '</td>' +
+        '<td style="text-align:right;color:#2d8a5e;font-weight:700;">' + fmt(pe.total, cur) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Earnings history table ─────────────────────────────────────────────────
+  if (earningDocs.length === 0) {
+    document.getElementById('earnings-empty').style.display = 'block';
+  } else {
+    document.getElementById('earnings-list').style.display = 'block';
+    var etbody = document.getElementById('earnings-tbody');
+    etbody.innerHTML = '';
+    earningDocs.slice(0, 50).forEach(function(e) {
+      var statusBadge = e.status === 'paid'
+        ? '<span class="badge badge-green">Paid</span>'
+        : '<span class="badge badge-amber">Pending</span>';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="color:rgba(13,33,69,0.60);white-space:nowrap;">' + fmtDate(e.createdAt) + '</td>' +
+        '<td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escHtml(e.productTitle || e.productId || '—') + '</td>' +
+        '<td style="text-align:right;font-weight:700;color:#2d8a5e;">' + fmt(e.amount, e.currency || cur) + '</td>' +
+        '<td style="text-align:right;">' + statusBadge + '</td>';
+      etbody.appendChild(tr);
+    });
+  }
+
+  // ── Payout history ────────────────────────────────────────────────────────
+  var payoutsQ    = query(collection(db, 'affiliate-payouts'), where('uid', '==', uid), orderBy('createdAt', 'desc'), limit(30));
+  var payoutsSnap = await getDocs(payoutsQ);
+  var payoutDocs  = [];
+  payoutsSnap.forEach(function(d) { var p = d.data(); p._id = d.id; payoutDocs.push(p); });
+
+  if (payoutDocs.length === 0) {
+    document.getElementById('payouts-empty').style.display = 'block';
+  } else {
+    document.getElementById('payouts-list').style.display = 'block';
+    var ptbody = document.getElementById('payouts-tbody');
+    ptbody.innerHTML = '';
+    payoutDocs.forEach(function(p) {
+      var statusBadge = p.status === 'paid'
+        ? '<span class="badge badge-green">Paid</span>'
+        : p.status === 'pending'
+          ? '<span class="badge badge-amber">Pending</span>'
+          : '<span class="badge badge-navy">' + escHtml(p.status || '—') + '</span>';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td style="color:rgba(13,33,69,0.60);white-space:nowrap;">' + fmtDate(p.createdAt) + '</td>' +
+        '<td style="text-align:right;font-weight:600;">' + fmt(p.grossAmount, p.currency || cur) + '</td>' +
+        '<td style="text-align:right;color:#c81e1e;">' + fmt(p.feeAmount, p.currency || cur) + '</td>' +
+        '<td style="text-align:right;font-weight:700;color:#2d8a5e;">' + fmt(p.netAmount, p.currency || cur) + '</td>' +
+        '<td style="text-align:right;">' + statusBadge + '</td>';
+      ptbody.appendChild(tr);
+    });
+  }
+}
+
+// ── Withdraw modal ────────────────────────────────────────────────────────────
+window.openWithdrawModal = function() {
+  var cur = _settings.platformCurrency || 'USD';
+  var feePct = Number(_settings.affiliateWithdrawFeePercent) || 2;
+
+  document.getElementById('wd-available').textContent  = cur + ' ' + _affiliateBal.toFixed(2);
+  document.getElementById('wd-fee-pct').textContent    = feePct;
+  document.getElementById('wd-fee-display').textContent= '—';
+  document.getElementById('wd-net-display').textContent= '—';
+  document.getElementById('wd-amount-input').value     = '';
+  document.getElementById('wd-error').style.display    = 'none';
+  document.getElementById('wd-confirm-btn').disabled   = false;
+  document.getElementById('withdraw-modal').classList.add('open');
+};
+
+window.closeWithdrawModal = function() {
+  document.getElementById('withdraw-modal').classList.remove('open');
+};
+
+window.updateWithdrawCalc = function() {
+  var cur    = _settings.platformCurrency || 'USD';
+  var feePct = Number(_settings.affiliateWithdrawFeePercent) || 2;
+  var amt    = parseFloat(document.getElementById('wd-amount-input').value) || 0;
+  var fee    = parseFloat((amt * feePct / 100).toFixed(2));
+  var net    = Math.max(0, amt - fee);
+
+  document.getElementById('wd-fee-display').textContent = amt > 0 ? ('−' + cur + ' ' + fee.toFixed(2)) : '—';
+  document.getElementById('wd-net-display').textContent = amt > 0 ? (cur + ' ' + net.toFixed(2)) : '—';
+};
+
+window.confirmWithdraw = async function() {
+  var errEl   = document.getElementById('wd-error');
+  var btn     = document.getElementById('wd-confirm-btn');
+  var amt     = parseFloat(document.getElementById('wd-amount-input').value) || 0;
+  var cur     = _settings.platformCurrency || 'USD';
+  var feePct  = Number(_settings.affiliateWithdrawFeePercent) || 2;
+  var minWd   = Number(_settings.minAffiliateWithdrawalUsd) || 5;
+
+  errEl.style.display = 'none';
+
+  if (amt <= 0) {
+    errEl.textContent = 'Please enter a valid amount.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (amt < minWd) {
+    errEl.textContent = 'Minimum withdrawal is ' + cur + ' ' + minWd.toFixed(2) + '.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (amt > _affiliateBal) {
+    errEl.textContent = 'Amount exceeds your available balance (' + cur + ' ' + _affiliateBal.toFixed(2) + ').';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!_walletAddr) {
+    errEl.innerHTML = 'No withdrawal wallet set. <a href="/dashboard-settings.html" style="color:#c81e1e;font-weight:700;">Add one in Settings.</a>';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled     = true;
+  btn.textContent  = 'Processing…';
+
+  try {
+    var idToken = await auth.currentUser.getIdToken();
+    var res = await fetch('/.netlify/functions/affiliate-withdraw', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body:    JSON.stringify({ amount: amt, currency: cur, feePct: feePct })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Withdrawal failed');
+
+    closeWithdrawModal();
+    showToast('Withdrawal submitted! You will receive ' + cur + ' ' + data.netAmount.toFixed(2));
+
+    // Refresh balance display optimistically
+    _affiliateBal = Math.max(0, _affiliateBal - amt);
+    document.getElementById('bal-amount').textContent = _affiliateBal.toFixed(2);
+
+    // Reload payout history row
+    setTimeout(function() { location.reload(); }, 1800);
+
+  } catch(err) {
+    errEl.textContent = err.message || 'Something went wrong. Try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Withdraw';
+  }
+};
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Auth guard + boot ─────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async function(user) {
+  if (!user) {
+    window.location.href = '/login.html';
+    return;
+  }
+  _uid = user.uid;
+
+  // Fetch settings first
+  await fetchSettings();
+
+  // Load user doc to check affiliateEnabled + role
+  var userSnap = await getDoc(doc(db, 'users', user.uid));
+  var userData = userSnap.exists() ? userSnap.data() : {};
+  _userRole    = userData.role || 'freelancer';
+
+  // Build nav based on role
+  buildNav(user.uid, _userRole);
+
+  // Update sidebar logo link for buyer role
+  if (_userRole === 'buyer') {
+    document.getElementById('sidebar-logo').href = '/buyer-dashboard.html';
+  }
+
+  // Gate: must have affiliateEnabled
+  if (userData.affiliateEnabled !== true) {
+    document.getElementById('not-enrolled-state').style.display = 'block';
+    // Render avatar anyway
+    var initials = ((userData.displayName || userData.name || 'U').trim().charAt(0) || 'U').toUpperCase();
+    document.getElementById('user-avatar').textContent = initials;
+    return;
+  }
+
+  // Show dashboard
+  document.getElementById('enrolled-state').style.display = 'block';
+
+  try {
+    await loadAffiliateDashboard(user.uid);
+  } catch(err) {
+    console.error('[affiliate-dashboard] load failed:', err);
+    showToast('Could not load affiliate data. Please refresh.');
+    // Hide loaders on error
+    document.getElementById('products-loading').style.display = 'none';
+    document.getElementById('earnings-loading').style.display = 'none';
+    document.getElementById('payouts-loading').style.display  = 'none';
+    document.getElementById('products-empty').style.display   = 'block';
+    document.getElementById('earnings-empty').style.display   = 'block';
+    document.getElementById('payouts-empty').style.display    = 'block';
+  }
+});
+
+// Close withdraw modal on backdrop click
+document.getElementById('withdraw-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeWithdrawModal();
+});
+</script>
+</body>
+</html>

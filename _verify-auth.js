@@ -12,7 +12,7 @@
  *   const callerUid = await verifyCaller(event);
  *   if (!callerUid) return respond(401, { error: 'Unauthorized.' });
  *
- * Keep webhooks (stripe, paystack, nowpayments) untouched —
+ * Keep webhooks (stripe, flutterwave, nowpayments) untouched —
  * they use signature verification, not user tokens.
  */
 
