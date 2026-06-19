@@ -187,6 +187,14 @@ exports.handler = async function(event) {
       };
     }
 
+    // 5b. Gate: payoutsFrozen
+    if (userData.payoutsFrozen === true) {
+      return {
+        statusCode: 403, headers: CORS,
+        body: JSON.stringify({ error: 'Withdrawals temporarily paused by platform. Please contact support for assistance.' }),
+      };
+    }
+
     // 6. Check balance
     const available = Number(userData.affiliateBalance) || 0;
     if (requestedAmount > available) {
@@ -196,19 +204,40 @@ exports.handler = async function(event) {
       };
     }
 
-    // 7. Check wallet
-    const walletAddress = userData.walletAddress || null;
-    if (!walletAddress) {
-      return {
-        statusCode: 400, headers: CORS,
-        body: JSON.stringify({ error: 'No withdrawal wallet set. Add one in Settings.' }),
-      };
+    // 7. Check wallet / bank details based on method
+    const method = body.method || 'crypto';
+
+    let walletAddress = null;
+    let bankPayload   = null;
+
+    if (method === 'bank') {
+      const bankCode      = body.bankCode      || null;
+      const accountNumber = body.accountNumber || null;
+      const accountName   = body.accountName   || null;
+      if (!bankCode || !accountNumber || !accountName) {
+        return {
+          statusCode: 400, headers: CORS,
+          body: JSON.stringify({ error: 'Bank details incomplete. Please provide bank, account number, and account name.' }),
+        };
+      }
+      bankPayload = { bankCode, accountNumber, accountName, bankName: body.bankName || '' };
+    } else {
+      walletAddress = userData.walletAddress || null;
+      if (!walletAddress) {
+        return {
+          statusCode: 400, headers: CORS,
+          body: JSON.stringify({ error: 'No withdrawal wallet set. Add one in Settings.' }),
+        };
+      }
     }
 
     // 8. Calculate amounts
     const grossAmount = parseFloat(requestedAmount.toFixed(2));
     const feeAmount   = parseFloat((grossAmount * feePct / 100).toFixed(2));
     const netAmount   = parseFloat((grossAmount - feeAmount).toFixed(2));
+
+    // Determine paymentMethod bucket for this withdrawal
+    const earningsBucket = (method === 'bank') ? 'fiat' : 'crypto';
 
     // 9. Create payout record in Firestore first (pending)
     const payoutRef = await db.collection('affiliate-payouts').add({
@@ -217,10 +246,16 @@ exports.handler = async function(event) {
       feeAmount,
       netAmount,
       feePct,
-      currency:   cur,
-      walletAddress,
-      status:     'pending',
-      createdAt:  new Date(),
+      currency:      cur,
+      method,
+      paymentMethod: earningsBucket,
+      walletAddress: walletAddress || null,
+      bankCode:      bankPayload ? bankPayload.bankCode      : null,
+      bankName:      bankPayload ? bankPayload.bankName      : null,
+      accountNumber: bankPayload ? bankPayload.accountNumber : null,
+      accountName:   bankPayload ? bankPayload.accountName   : null,
+      status:        'pending',
+      createdAt:     new Date(),
     });
     const payoutId = payoutRef.id;
 
@@ -230,11 +265,14 @@ exports.handler = async function(event) {
       affiliateTotalPaid:  FieldValue.increment(grossAmount),
     });
 
-    // 11. Mark any pending earnings as paid (best-effort, non-fatal)
+    // 11. Mark pending earnings in the matching bucket as paid (best-effort, non-fatal)
+    // Only crypto earnings are marked when withdrawing via crypto; only fiat earnings
+    // when withdrawing via bank — so funds never get mixed across buckets.
     try {
       const pendingQ    = db.collection('affiliate-earnings')
-        .where('affiliateUid', '==', uid)
-        .where('status', '==', 'pending')
+        .where('affiliateUid',  '==', uid)
+        .where('status',        '==', 'pending')
+        .where('paymentMethod', '==', earningsBucket)
         .limit(200);
       const pendingSnap = await pendingQ.get();
       const batch       = db.batch();
@@ -246,17 +284,45 @@ exports.handler = async function(event) {
       console.warn('[affiliate-withdraw] Could not mark earnings as paid:', batchErr.message);
     }
 
-    // 12. Trigger NOWPayments payout (non-fatal if it fails — payout record is already written)
+    // 12. Trigger payout via appropriate provider
     let nowPaymentsId = null;
+    let flutterwaveId = null;
     try {
-      const npRes   = await sendNowPaymentsPayout(walletAddress, netAmount, cur, payoutId);
-      nowPaymentsId = npRes.id || null;
-
-      // Stamp the NOWPayments batch ID on the payout record
-      await payoutRef.update({ nowPaymentsId, status: 'processing' });
+      if (method === 'bank' && bankPayload) {
+        // Flutterwave bank transfer
+        const fwKey = process.env.FLW_SECRET_KEY;
+        if (fwKey) {
+          const fwRes = await httpsPost(
+            'api.flutterwave.com',
+            '/v3/transfers',
+            {
+              account_bank:    bankPayload.bankCode,
+              account_number:  bankPayload.accountNumber,
+              amount:          netAmount,
+              currency:        cur,
+              narration:       'Kreddlo affiliate payout ' + payoutId,
+              reference:       'aff-' + payoutId,
+              debit_currency:  cur,
+            },
+            { 'Authorization': 'Bearer ' + fwKey }
+          );
+          if (fwRes.status !== 200 && fwRes.status !== 201) {
+            throw new Error('Flutterwave transfer failed: ' + JSON.stringify(fwRes.body));
+          }
+          flutterwaveId = (fwRes.body.data && fwRes.body.data.id) ? String(fwRes.body.data.id) : null;
+          await payoutRef.update({ flutterwaveId, status: 'processing' });
+        } else {
+          console.warn('[affiliate-withdraw] FLW_SECRET_KEY not set — skipping bank payout in dev mode');
+          await payoutRef.update({ status: 'processing', devMode: true });
+        }
+      } else {
+        // NOWPayments crypto payout
+        const npRes   = await sendNowPaymentsPayout(walletAddress, netAmount, cur, payoutId);
+        nowPaymentsId = npRes.id || null;
+        await payoutRef.update({ nowPaymentsId, status: 'processing' });
+      }
     } catch (npErr) {
-      console.error('[affiliate-withdraw] NOWPayments payout call failed:', npErr.message);
-      // Payout record stays as pending — admin can retry manually
+      console.error('[affiliate-withdraw] Payout call failed:', npErr.message);
       await payoutRef.update({ npError: npErr.message });
     }
 
@@ -269,7 +335,9 @@ exports.handler = async function(event) {
         grossAmount,
         feeAmount,
         netAmount,
+        method,
         nowPaymentsId,
+        flutterwaveId,
       }),
     };
 

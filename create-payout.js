@@ -256,6 +256,14 @@ exports.handler = async function (event) {
       return { statusCode: 403, body: JSON.stringify({ error: 'KYC verification required before withdrawing.' }) };
     }
 
+    /* Payout freeze check */
+    if (userData.payoutsFrozen === true) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: 'Withdrawals temporarily paused by platform. Please contact support for assistance.' }),
+      };
+    }
+
     /* ────────────────────────────────────────
        STEP 1b — Server-side fee validation
        Load the expected platform fee rate from Firestore config,

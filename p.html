@@ -442,7 +442,7 @@ async function renderProduct(p) {
   document.getElementById('product-root').style.display = 'grid';
 
   // ── SEO — use stored sellerName as initial value (will be updated after live fetch) ──
-  const _seoSellerName = p.sellerName || 'Kreddlo Seller';
+  const _seoSellerName = p.sellerName || p.displayName || 'Kreddlo Seller';
   document.title = `${p.title} — ${_seoSellerName} | Kreddlo`;
   document.querySelector('meta[name="description"]').setAttribute('content', (p.description || '').slice(0, 155));
   document.querySelector('meta[property="og:title"]').setAttribute('content', `${p.title} — ${_seoSellerName} | Kreddlo`);
@@ -464,14 +464,14 @@ async function renderProduct(p) {
   // ── Cover image ──
   const coverWrap = document.getElementById('cover-wrap');
   if (p.coverImage) {
-    coverWrap.innerHTML = `<img class="cover-img" src="${p.coverImage}" alt="${escHtml(p.title)}" loading="eager" decoding="async"/>`;
+    coverWrap.innerHTML = `<img class="cover-img" src="${p.coverImage}" alt="${escHtml(p.title)}" loading="eager" decoding="async" onerror="this.parentElement.innerHTML='<div class=\\'cover-placeholder\\'><svg width=\\'48\\' height=\\'48\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'rgba(13,33,69,0.2)\\' stroke-width=\\'1.5\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\'/><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'/><path d=\\'M21 15l-5-5L5 21\\'/></svg></div>'"/>`;
   } else {
     coverWrap.innerHTML = `<div class="cover-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.2)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
   }
 
   // ── Seller row — fetch live from users collection for accurate name/photo ──
   const sellerRow = document.getElementById('seller-row');
-  let sellerName = p.sellerName || 'Kreddlo Seller';
+  let sellerName = p.sellerName || p.displayName || 'Kreddlo Seller';
   let sellerPhoto = p.sellerPhoto || null;
   let kycVerified = p.kycStatus === 'verified';
 
@@ -481,7 +481,7 @@ async function renderProduct(p) {
       const userSnap = await getDoc(doc(window._db, 'users', p.uid));
       if (userSnap.exists()) {
         const u = userSnap.data();
-        if (u.name)      sellerName  = u.name;
+        if (u.displayName || u.name) sellerName = u.displayName || u.name;
         if (u.photoURL)  sellerPhoto = u.photoURL;
         if (u.kycStatus) kycVerified = u.kycStatus === 'verified';
       }

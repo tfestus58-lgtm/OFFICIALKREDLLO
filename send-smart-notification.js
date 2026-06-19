@@ -28,6 +28,7 @@
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }     = require('firebase-admin/firestore');
 const crypto                           = require('crypto');
+const { verifyCaller }                 = require('./_verify-auth');
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -169,6 +170,25 @@ exports.handler = async (event) => {
     return respond(405, { error: 'Method not allowed.' });
   }
 
+  // Verify the caller is authenticated and has the admin role before
+  // allowing them to send a notification to another user.
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return respond(401, { error: 'Unauthorized.' });
+  }
+
+  let db;
+  try {
+    db = getDb();
+    const callerSnap = await db.collection('users').doc(callerUid).get();
+    if (!callerSnap.exists || callerSnap.data().role !== 'admin') {
+      return respond(403, { error: 'Forbidden — admin role required.' });
+    }
+  } catch (err) {
+    console.error('Caller role check failed:', err.message);
+    return respond(500, { error: 'Could not verify caller permissions.' });
+  }
+
   let payload;
   try {
     payload = JSON.parse(event.body || '{}');
@@ -187,18 +207,20 @@ exports.handler = async (event) => {
     delayMinutes = 15,
   } = payload;
 
-  if (!userUid)    return respond(400, { error: 'userUid is required.' });
-  if (!title)      return respond(400, { error: 'title is required.' });
-  if (!body)       return respond(400, { error: 'body is required.' });
-  if (!templateId) return respond(400, { error: 'templateId is required.' });
+  if (!userUid) return respond(400, { error: 'userUid is required.' });
+  if (!title)   return respond(400, { error: 'title is required.' });
+  if (!body)    return respond(400, { error: 'body is required.' });
+  // templateId is only required when an email will actually be sent
+  if (!templateId && emailMode !== 'never') {
+    return respond(400, { error: 'templateId is required when emailMode is not "never".' });
+  }
 
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   const notifUrl    = url || `${platformUrl}/dashboard.html`;
 
   /* ── Step 1: Fetch user from Firestore ── */
-  let db, userSnap;
+  let userSnap;
   try {
-    db       = getDb();
     userSnap = await db.collection('users').doc(userUid).get();
   } catch (err) {
     console.error('Firestore read failed:', err.message);

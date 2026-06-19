@@ -5,6 +5,10 @@
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
+// Live site domain — used for every link inside transactional emails.
+// Falls back to the production domain only if PLATFORM_URL is not set in Netlify env vars.
+const PLATFORM_URL = (process.env.PLATFORM_URL || 'https://kreddlo.com').replace(/\/+$/, '');
+
 const BRAND = {
   navy:      '#0d2145',
   navyDeep:  '#091830',
@@ -102,11 +106,11 @@ function baseLayout(subject, preheader, bodyContent) {
                 You received this email because you have an account on Kreddlo.
               </p>
               <p style="margin:0 0 6px;font-size:12px;color:${BRAND.textMuted};font-family:Arial,Helvetica,sans-serif;">
-                <a href="https://kreddlo.com" style="color:${BRAND.green};text-decoration:none;">kreddlo.com</a>
+                <a href="${PLATFORM_URL}" style="color:${BRAND.green};text-decoration:none;">${PLATFORM_URL.replace(/^https?:\/\//, '')}</a>
                 &nbsp;&bull;&nbsp;
-                <a href="https://kreddlo.com/privacy.html" style="color:${BRAND.textMuted};text-decoration:none;">Privacy</a>
+                <a href="${PLATFORM_URL}/privacy.html" style="color:${BRAND.textMuted};text-decoration:none;">Privacy</a>
                 &nbsp;&bull;&nbsp;
-                <a href="https://kreddlo.com/terms.html" style="color:${BRAND.textMuted};text-decoration:none;">Terms</a>
+                <a href="${PLATFORM_URL}/terms.html" style="color:${BRAND.textMuted};text-decoration:none;">Terms</a>
               </p>
               <p style="margin:0;font-size:12px;color:${BRAND.textMuted};font-family:Arial,Helvetica,sans-serif;">
                 &copy; ${new Date().getFullYear()} Kreddlo. All rights reserved.
@@ -182,7 +186,7 @@ function templateWelcome({ name = 'there' }) {
       <p style="margin:0 0 6px;font-weight:700;font-size:14px;color:${BRAND.navy};font-family:Arial,Helvetica,sans-serif;">Your next step</p>
       <p style="margin:0;font-size:14px;color:${BRAND.textBody};font-family:Arial,Helvetica,sans-serif;">Complete your KYC verification to unlock payments and your public profile.</p>
     `)}
-    ${btn('Complete Verification', 'https://kreddlo.com/dashboard.html', BRAND.green)}
+    ${btn('Complete Verification', `${PLATFORM_URL}/dashboard.html`, BRAND.green)}
     ${divider()}
     ${mutedText('If you did not create this account, please disregard this email. No action is required.')}
   `;
@@ -199,7 +203,7 @@ function templateKycApproved({ name = 'there' }) {
     ${heading('You are verified.')}
     ${bodyText(`Hi ${name}, your identity verification was approved. Your Kreddlo profile is now active and visible to clients worldwide.`)}
     ${bodyText('You can now receive payments, sign contracts, and withdraw your earnings to your preferred wallet.')}
-    ${btn('Go to Dashboard', 'https://kreddlo.com/dashboard.html', BRAND.green)}
+    ${btn('Go to Dashboard', `${PLATFORM_URL}/dashboard.html`, BRAND.green)}
   `;
   return { subject: 'Your identity has been verified', preheader, body };
 }
@@ -230,7 +234,7 @@ function templateKycDeclined({ name = 'there' }) {
     ${heading('We could not verify your identity.')}
     ${bodyText(`Hi ${name}, unfortunately we were unable to verify your identity at this time.`)}
     ${bodyText('This can happen if document images were unclear, cropped, or expired. You can resubmit with clear photos of a valid government-issued ID. Make sure both sides are fully visible and the selfie matches the photo on your document.')}
-    ${btn('Try Again', 'https://kreddlo.com/dashboard.html', BRAND.navy)}
+    ${btn('Try Again', `${PLATFORM_URL}/dashboard.html`, BRAND.navy)}
     ${divider()}
     ${mutedText('If you believe this is an error, reply to this email and our team will assist you.')}
   `;
@@ -242,7 +246,7 @@ function templateKycDeclined({ name = 'there' }) {
 // ---------------------------------------------------------------------------
 function templateContractSigned({ name = 'there', projectTitle = 'Your project', otherPartyName = '', contractUrl = '' }) {
   const preheader = `The contract for "${projectTitle}" has been signed by both parties.`;
-  const dashUrl = contractUrl || 'https://kreddlo.com/dashboard-contracts.html';
+  const dashUrl = contractUrl || `${PLATFORM_URL}/dashboard-contracts.html`;
   const body = `
     ${badge('Contract Signed')}
     ${heading('Both parties have signed.')}
@@ -279,7 +283,7 @@ function templatePaymentReceived({ name = 'there', projectTitle = 'Your project'
       ${infoRow('Project', projectTitle)}
       ${infoRow('Status', '<span style="color:#2d8a5e;font-weight:600;">In Escrow</span>', true)}
     `)}
-    ${btn('View Project', 'https://kreddlo.com/dashboard-projects.html', BRAND.navy)}
+    ${btn('View Project', `${PLATFORM_URL}/dashboard-projects.html`, BRAND.navy)}
   `;
   return { subject: `Payment received: ${projectTitle}`, preheader, body };
 }
@@ -299,7 +303,7 @@ function templateWorkDelivered({ name = 'there', projectTitle = 'Your project', 
       ${deliveryNote ? `<div style="height:1px;background:${BRAND.border};margin:12px 0;"></div><p style="margin:0;font-size:14px;color:${BRAND.textBody};font-family:Arial,Helvetica,sans-serif;">${deliveryNote}</p>` : ''}
     `)}
     ${bodyText('If you are satisfied with the work, approve the delivery to release the escrowed funds. If there is an issue, you can raise a dispute from your dashboard.')}
-    ${btn('Review and Approve', 'https://kreddlo.com/buyer-projects.html', BRAND.green)}
+    ${btn('Review and Approve', `${PLATFORM_URL}/buyer-projects.html`, BRAND.green)}
     ${divider()}
     ${mutedText('Escrow funds are released automatically 7 days after delivery if no action is taken.')}
   `;
@@ -330,7 +334,7 @@ function templateWithdrawalInitiated({ name = 'there', amount = '', currency = '
       ${infoRow('Status', '<span style="color:#856404;font-weight:600;">Processing</span>', true)}
     `)}
     ${bodyText('You will receive a confirmation once the transfer has been sent to your wallet.')}
-    ${btn('View Dashboard', 'https://kreddlo.com/dashboard-withdraw.html', BRAND.navy)}
+    ${btn('View Dashboard', `${PLATFORM_URL}/dashboard-withdraw.html`, BRAND.navy)}
     ${divider()}
     ${mutedText('If you did not initiate this withdrawal, contact our support team immediately.')}
   `;
@@ -385,7 +389,7 @@ function templateDisputeResolved({ name = 'there', projectTitle = 'Your project'
       ${infoRow('Reference', `<span style="font-family:monospace;font-size:12px;">${disputeId}</span>`, true)}
     `)}
     ${bodyText('Escrow funds will be distributed according to this ruling within 1 to 2 business days. If you believe this ruling is in error, reply to this email within 14 days to request a review.')}
-    ${btn('View Project', 'https://kreddlo.com/dashboard-projects.html', BRAND.navy)}
+    ${btn('View Project', `${PLATFORM_URL}/dashboard-projects.html`, BRAND.navy)}
   `;
   return { subject: `Dispute resolved: ${projectTitle}`, preheader, body };
 }
@@ -410,7 +414,7 @@ function templatePremiumActivated({ name = 'there' }) {
     ${heading('Welcome to Kreddlo Pro.')}
     ${bodyText(`Hi ${name}, your Pro plan is now active. Here is what you have unlocked:`)}
     ${highlightBox(featureList)}
-    ${btn('Go to Dashboard', 'https://kreddlo.com/dashboard.html', BRAND.green)}
+    ${btn('Go to Dashboard', `${PLATFORM_URL}/dashboard.html`, BRAND.green)}
   `;
   return { subject: 'Pro plan activated', preheader, body };
 }
@@ -425,7 +429,7 @@ function templatePremiumExpired({ name = 'there' }) {
     ${heading('Your Pro plan has ended.')}
     ${bodyText(`Hi ${name}, your Kreddlo Pro plan has ended. Your profile has returned to the standard tier.`)}
     ${bodyText('You can renew anytime from your settings to restore your Pro badge, featured placement, and all other premium features.')}
-    ${btn('Renew Pro', 'https://kreddlo.com/dashboard-settings.html', BRAND.green)}
+    ${btn('Renew Pro', `${PLATFORM_URL}/dashboard-settings.html`, BRAND.green)}
   `;
   return { subject: 'Your Pro plan has ended', preheader, body };
 }
@@ -440,7 +444,7 @@ function templateBoostPurchased({ name = 'there', duration = '' }) {
     ${heading('Your profile is now boosted.')}
     ${bodyText(`Hi ${name}, your profile boost is active and your profile will appear at the top of search results${duration ? ` for ${duration}` : ''}.`)}
     ${bodyText('Make sure your profile is complete, your portfolio is up to date, and your response time is fast to convert the extra visibility into work.')}
-    ${btn('View Your Profile', 'https://kreddlo.com/dashboard.html', BRAND.navy)}
+    ${btn('View Your Profile', `${PLATFORM_URL}/dashboard.html`, BRAND.navy)}
   `;
   return { subject: 'Profile boost is live', preheader, body };
 }
@@ -455,7 +459,7 @@ function templateReferralCredited({ name = 'there', referredName = 'Someone you 
     ${heading('You earned a credit.')}
     ${bodyText(`Hi ${name}, ${referredName} has completed their first project on Kreddlo and you have earned a referral credit.`)}
     ${bodyText('The credit has been added to your account and will automatically reduce the fee on your next withdrawal. Keep sharing your referral link to earn more credits.')}
-    ${btn('View Dashboard', 'https://kreddlo.com/dashboard.html', BRAND.navy)}
+    ${btn('View Dashboard', `${PLATFORM_URL}/dashboard.html`, BRAND.navy)}
   `;
   return { subject: 'Referral credit earned', preheader, body };
 }
@@ -486,6 +490,26 @@ function tplEmailVerification({ name = 'there', code = '------' }) {
     ${mutedText('If you did not create a Kreddlo account you can safely ignore this email.')}
   `;
   return { subject: 'Your Kreddlo verification code', preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: withdrawal-otp — 6-digit OTP sent before a withdrawal is processed
+// ---------------------------------------------------------------------------
+function tplWithdrawalOtp({ name = 'there', code = '------' }) {
+  const preheader = `Your Kreddlo withdrawal code is ${code}. It expires in 10 minutes.`;
+  const body = `
+    ${badge('Withdrawal Verification', BRAND.navy, '#fff')}
+    ${heading('Confirm your withdrawal.')}
+    ${bodyText(`Hi ${name}, we received a withdrawal request on your Kreddlo account. Enter the 6-digit code below to authorise it.`)}
+    ${highlightBox(`
+      <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#2d8a5e;font-family:Arial,Helvetica,sans-serif;">Your withdrawal code</p>
+      <p style="margin:0;font-size:44px;font-weight:800;letter-spacing:10px;color:#0d2145;font-family:Arial,Helvetica,sans-serif;line-height:1.1;">${code}</p>
+      <p style="margin:10px 0 0;font-size:12px;color:rgba(13,33,69,0.50);font-family:Arial,Helvetica,sans-serif;">Expires in 10 minutes &bull; Single use only</p>
+    `)}
+    ${divider()}
+    ${mutedText('If you did not request this withdrawal, contact our support team immediately and do not share this code with anyone.')}
+  `;
+  return { subject: 'Your Kreddlo withdrawal verification code', preheader, body };
 }
 
 // ---------------------------------------------------------------------------
@@ -550,7 +574,7 @@ function templateProductSale({ name = 'there', buyerName = 'A buyer', buyerEmail
     ${heading(`New sale on ${productTitle}.`)}
     ${bodyText(`Hi ${name}, <strong>${buyerName}</strong> (${buyerEmail}) just purchased <strong>${productTitle}</strong> for <strong>$${amount} USD</strong>.`)}
     ${bodyText('The funds will be available in your dashboard shortly.')}
-    ${btn('View Dashboard', 'https://kreddlo.com/dashboard.html', BRAND.navy)}
+    ${btn('View Dashboard', `${PLATFORM_URL}/dashboard.html`, BRAND.navy)}
   `;
   return { subject: 'You made a sale', preheader, body };
 }
@@ -559,7 +583,7 @@ function templateProductSale({ name = 'there', buyerName = 'A buyer', buyerEmail
 // TEMPLATE: new-review
 // Receives: name (client name), invoiceNumber, amount, freelancerName, payLink, dueDate
 // ---------------------------------------------------------------------------
-function templateInvoiceSent({ name = 'there', invoiceNumber = '', amount = '', freelancerName = 'Your Kreddlo freelancer', payLink = 'https://kreddlo.com', dueDate = '' }) {
+function templateInvoiceSent({ name = 'there', invoiceNumber = '', amount = '', freelancerName = 'Your Kreddlo freelancer', payLink = PLATFORM_URL, dueDate = '' }) {
   const preheader = `${freelancerName} sent you an invoice for ${amount}.`;
   const body = `
     ${badge('Invoice')}
@@ -592,7 +616,7 @@ function templateInvoicePaid({ name = 'there', invoiceNumber = '', amount = '', 
       ${infoRow('Paid By', clientName)}
       ${infoRow('Amount', amount, true)}
     `)}
-    ${btn('View Invoices', 'https://kreddlo.com/dashboard-invoices.html', BRAND.navy)}
+    ${btn('View Invoices', `${PLATFORM_URL}/dashboard-invoices.html`, BRAND.navy)}
   `;
   return { subject: `Paid: Invoice ${invoiceNumber || ''} — ${amount}`, preheader, body };
 }
@@ -607,7 +631,7 @@ function templateNewReview({ name = 'there', reviewerName = 'Someone', productTi
     <div style="border-left:4px solid ${BRAND.green};background-color:${BRAND.cream};border-radius:0 10px 10px 0;padding:16px 20px;margin:20px 0;">
       <p style="margin:0;font-size:15px;line-height:1.7;color:${BRAND.textBody};font-style:italic;font-family:Arial,Helvetica,sans-serif;">${comment}</p>
     </div>
-    ${btn('View Profile', 'https://kreddlo.com/profile.html', BRAND.navy)}
+    ${btn('View Profile', `${PLATFORM_URL}/profile.html`, BRAND.navy)}
   `;
   return { subject: 'New review on your profile', preheader, body };
 }
@@ -648,6 +672,8 @@ function buildEmail(type, data) {
       return templateReferralCredited(data);
     case 'email-verification':
       return tplEmailVerification(data);
+    case 'withdrawal-otp':
+      return tplWithdrawalOtp(data);
     case 'product-delivery':
       return templateProductDelivery(data);
     case 'review-request':

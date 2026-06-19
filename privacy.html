@@ -252,7 +252,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
       <!-- Section 4 -->
       <div class="policy-section" id="s4">
         <h2 class="policy-h">Your Rights</h2>
-        <p class="policy-p">You have the following rights regarding your personal data. To exercise any of them, email us at <a href="mailto:privacy@kreddlo.com" style="color:#2d8a5e;font-weight:600;text-decoration:none;">privacy@kreddlo.com</a>.</p>
+        <p class="policy-p">You have the following rights regarding your personal data. To exercise any of them, email us at <a href="mailto:privacy@kreddlo.com" id="privacy-mailto-link-1" style="color:#2d8a5e;font-weight:600;text-decoration:none;">privacy@kreddlo.com</a>.</p>
         <ul class="policy-ul">
           <li><strong style="color:#0d2145;font-weight:700;">Right of access</strong> - You may request a copy of all personal data we hold about you. We will respond within 30 days.</li>
           <li><strong style="color:#0d2145;font-weight:700;">Right to deletion</strong> - You may request that we delete your account and personal data. Some data may be retained where required by law (such as transaction records for tax compliance).</li>
@@ -334,9 +334,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
         <p class="policy-p">For any questions about this Privacy Policy, to exercise your data rights, or to report a concern:</p>
         <div style="background:rgba(13,33,69,0.04);border-radius:14px;padding:20px 22px;margin-top:8px;">
           <p style="font-size:14px;font-weight:700;color:#0d2145;margin:0 0 4px;">Kreddlo Data Privacy</p>
-          <a href="mailto:privacy@kreddlo.com" style="font-size:14px;font-weight:600;color:#2d8a5e;text-decoration:none;display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+          <a href="mailto:privacy@kreddlo.com" id="privacy-mailto-link-2" style="font-size:14px;font-weight:600;color:#2d8a5e;text-decoration:none;display:flex;align-items:center;gap:8px;margin-bottom:2px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            privacy@kreddlo.com
+            <span id="privacy-mailto-text-2">privacy@kreddlo.com</span>
           </a>
           <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.44);margin:8px 0 0;">We aim to respond to all privacy enquiries within 5 business days.</p>
         </div>
@@ -369,7 +369,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
           <div style="display:flex;flex-direction:column;gap:10px;">
             <a href="privacy.html" style="font-size:13px;font-weight:500;color:#3dbd7a;text-decoration:none;">Privacy Policy</a>
             <a href="terms.html" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Terms of Service</a>
-            <a href="mailto:support@kreddlo.com" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Support</a>
+            <a href="mailto:support@kreddlo.com" id="support-mailto-link" style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.55);text-decoration:none;transition:color .15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Support</a>
           </div>
         </div>
       </div>
@@ -433,12 +433,32 @@ if ('serviceWorker' in navigator) {
 </script>
 
   <script type="module">
-    // Load social links from Firestore config
+    // Load social links + contact emails from Firestore config
     (async () => {
       try {
-        const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const snap = await getDoc(doc(window.db, 'config', 'platform'));
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+        // Reuse existing app/db if another script on this page already initialized Firebase;
+        // otherwise do a minimal read-only init just for this config lookup.
+        let db = window.db;
+        if (!db) {
+          const firebaseConfig = {
+            apiKey:            "AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk",
+            authDomain:        "kreddlo.firebaseapp.com",
+            projectId:         "kreddlo",
+            storageBucket:     "kreddlo.firebasestorage.app",
+            messagingSenderId: "764500458567",
+            appId:             "1:764500458567:web:2389d5cf8c688caafd0562",
+          };
+          const app = initializeApp(firebaseConfig);
+          db = getFirestore(app);
+          window.db = db;
+        }
+
+        const snap = await getDoc(doc(db, 'config', 'platform'));
         const s = snap.exists() ? snap.data() : {};
+
         const links = { twitter: s.twitterUrl || '', linkedin: s.linkedinUrl || '', instagram: s.instagramUrl || '' };
         ['twitter', 'linkedin', 'instagram'].forEach(name => {
           const el = document.getElementById('social-' + name);
@@ -446,7 +466,20 @@ if ('serviceWorker' in navigator) {
           if (links[name]) { el.href = links[name]; el.style.display = 'flex'; }
           else { el.style.display = 'none'; }
         });
-      } catch (e) { /* silent fail */ }
+
+        if (s.privacyEmail) {
+          const p1 = document.getElementById('privacy-mailto-link-1');
+          if (p1) { p1.href = 'mailto:' + s.privacyEmail; p1.textContent = s.privacyEmail; }
+          const p2 = document.getElementById('privacy-mailto-link-2');
+          if (p2) p2.href = 'mailto:' + s.privacyEmail;
+          const p2text = document.getElementById('privacy-mailto-text-2');
+          if (p2text) p2text.textContent = s.privacyEmail;
+        }
+        if (s.supportEmail) {
+          const sup = document.getElementById('support-mailto-link');
+          if (sup) sup.href = 'mailto:' + s.supportEmail;
+        }
+      } catch (e) { /* silent fail — static fallback emails/links stay in place */ }
     })();
   </script>
 </body>

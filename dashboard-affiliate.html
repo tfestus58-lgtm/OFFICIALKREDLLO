@@ -196,7 +196,7 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
         <!-- Payouts frozen notice -->
         <div id="payouts-frozen-notice" style="display:none;align-items:center;gap:12px;background:rgba(99,60,180,0.08);border:1.5px solid rgba(99,60,180,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#633cb4" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
-          <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
+          <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" id="support-mailto-link" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
         </div>
 
         <!-- Balance + Withdraw row — split into crypto / fiat buckets -->
@@ -569,6 +569,7 @@ var NAV_FREELANCER = [
   { label:'Dashboard',    href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',     href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',     href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Invoices',     href:'/dashboard-invoices.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
   { label:'Store',        href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',     href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
   { label:'Purchases',    href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
@@ -1229,6 +1230,21 @@ onAuthStateChanged(auth, async function(user) {
 document.getElementById('withdraw-modal').addEventListener('click', function(e) {
   if (e.target === this) closeWithdrawModal();
 });
+</script>
+
+<script type="module">
+  // Load support email from Firestore config (falls back to the static address already in the link)
+  (async () => {
+    try {
+      if (!window.db) return;
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(window.db, 'config', 'platform'));
+      const email = snap.exists() && snap.data().supportEmail ? snap.data().supportEmail : '';
+      if (!email) return;
+      const link = document.getElementById('support-mailto-link');
+      if (link) { link.href = 'mailto:' + email; }
+    } catch (e) { /* silent fail — static fallback email stays in place */ }
+  })();
 </script>
 </body>
 </html>

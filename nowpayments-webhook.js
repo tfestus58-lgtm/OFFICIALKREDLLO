@@ -618,11 +618,22 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       return { finalSellerAmount: sellerAmount };
     }
 
-    await db.collection('users').doc(affiliateRef).update({
-      affiliateBalance:      FieldValue.increment(commissionAmount),
-      affiliateTotalEarned:  FieldValue.increment(commissionAmount),
-      updatedAt:             FieldValue.serverTimestamp(),
-    });
+    const settings    = await getSettings(db);
+    const holdingDays = Number(settings.affiliateHoldingDays) || 0;
+    const now         = new Date();
+    const clearsAt    = new Date(now.getTime() + holdingDays * 24 * 60 * 60 * 1000);
+    const isCleared    = holdingDays <= 0; // 0 days = instant, same as legacy behaviour
+
+    const affiliateUserUpdate = {
+      affiliateTotalEarned: FieldValue.increment(commissionAmount),
+      updatedAt:            FieldValue.serverTimestamp(),
+    };
+    if (isCleared) {
+      affiliateUserUpdate.affiliateBalance = FieldValue.increment(commissionAmount);
+    } else {
+      affiliateUserUpdate.affiliatePendingBalance = FieldValue.increment(commissionAmount);
+    }
+    await db.collection('users').doc(affiliateRef).update(affiliateUserUpdate);
 
     await db.collection('affiliate-earnings').add({
       affiliateUid:       affiliateRef,
@@ -635,7 +646,10 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       currency:           confirmedCurrency,
       confirmedAmount,
       gateway,
+      paymentMethod:      'crypto',
       status:             'pending',
+      cleared:            isCleared,
+      clearsAt:           clearsAt,
       createdAt:          FieldValue.serverTimestamp(),
     });
 

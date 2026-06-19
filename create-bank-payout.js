@@ -13,9 +13,12 @@
  *  5. If Flutterwave is enabled and currency is FLW-supported:
  *       - Look up bank code via FLW /v3/banks/:country
  *       - Initiate a Flutterwave transfer (bank details sent directly — no recipient step)
- *     If international currency (USD, EUR, GBP, etc.) not natively supported:
+ *     If Stripe is enabled and currency is Stripe-supported (USD, EUR, GBP, etc.):
+ *       - Create a Stripe bank account token with the supplied bank details
+ *       - Initiate a Stripe payout/transfer to the external bank account
+ *     If neither gateway supports the currency:
  *       - Mark as 'pending_manual' — requires manual wire processing
- *     On any Flutterwave API failure:
+ *     On any gateway API failure:
  *       - Mark as 'pending_review' for manual processing
  *  6. Deduct amount from user's balances.{currency} + increment totalWithdrawn
  *  7. Send a withdrawal confirmation notification
@@ -23,6 +26,7 @@
  *
  * Environment variables required (set in Netlify dashboard):
  *   FLW_SECRET_KEY            — Flutterwave secret key (FLWSECK_TEST-... or FLWSECK-...)
+ *   STRIPE_SECRET_KEY         — Stripe secret key (sk_live_... or sk_test_...)
  *   FIREBASE_SERVICE_ACCOUNT  — Full Firebase service account JSON as one-line string
  *   PLATFORM_URL              — e.g. https://kreddlo.com
  */
@@ -96,6 +100,35 @@ const FLW_TRANSFER_CURRENCIES = [
   'NGN', 'GHS', 'KES', 'UGX', 'TZS', 'RWF',
   'ZAR', 'XOF', 'XAF', 'MWK', 'ZMW',
 ];
+
+/**
+ * Currencies Stripe can natively payout to external bank accounts.
+ * Covers major international currencies.
+ * Docs: https://stripe.com/docs/payouts
+ */
+const STRIPE_TRANSFER_CURRENCIES = [
+  'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF',
+  'DKK', 'NOK', 'SEK', 'NZD', 'SGD', 'HKD',
+];
+
+/**
+ * Maps a Stripe-supported currency to its bank account country code
+ * and the fields required for Stripe bank account tokenization.
+ */
+const STRIPE_CURRENCY_CONFIG = {
+  USD: { country: 'US', currency: 'usd', type: 'routing_account' },
+  EUR: { country: 'DE', currency: 'eur', type: 'iban' },        // Generic EU
+  GBP: { country: 'GB', currency: 'gbp', type: 'sort_account' },
+  CAD: { country: 'CA', currency: 'cad', type: 'routing_account' },
+  AUD: { country: 'AU', currency: 'aud', type: 'routing_account' },
+  CHF: { country: 'CH', currency: 'chf', type: 'iban' },
+  DKK: { country: 'DK', currency: 'dkk', type: 'iban' },
+  NOK: { country: 'NO', currency: 'nok', type: 'iban' },
+  SEK: { country: 'SE', currency: 'sek', type: 'iban' },
+  NZD: { country: 'NZ', currency: 'nzd', type: 'routing_account' },
+  SGD: { country: 'SG', currency: 'sgd', type: 'routing_account' },
+  HKD: { country: 'HK', currency: 'hkd', type: 'routing_account' },
+};
 
 /**
  * Map a currency code to the Flutterwave country code used
@@ -205,6 +238,126 @@ async function initiateFlutterwaveTransfer(flwKey, {
   };
 }
 
+/**
+ * Initiate a Stripe bank transfer to an external bank account.
+ *
+ * Flow:
+ *  1. Create a Stripe bank account token from the supplied bank details
+ *     (routing + account for USD/CAD/AUD/NZD/SGD/HKD,
+ *      sort code + account for GBP,
+ *      IBAN for EUR/CHF/DKK/NOK/SEK)
+ *  2. The token contains the validated bank_name from Stripe
+ *  3. Create a Stripe Payout to the external account using the token
+ *
+ * Note: Stripe Payouts require the platform to have a Stripe Connect
+ * account or a positive Stripe balance in the payout currency.
+ *
+ * Docs:
+ *   POST /v1/tokens     — https://stripe.com/docs/api/tokens/create_bank_account
+ *   POST /v1/payouts    — https://stripe.com/docs/api/payouts/create
+ */
+async function initiateStripeTransfer(stripeKey, {
+  amountLocal,
+  currency,
+  accountNumber,
+  accountName,
+  routingNumber,   // USD/CAD/AUD/NZD/SGD/HKD: ABA/BSB/transit routing number
+  sortCode,        // GBP: sort code (6 digits, no dashes)
+  iban,            // EUR/CHF/DKK/NOK/SEK: full IBAN
+  bankName,
+  reference,
+}) {
+  const cfg = STRIPE_CURRENCY_CONFIG[currency.toUpperCase()];
+  if (!cfg) {
+    throw new Error(`No Stripe config for currency: ${currency}`);
+  }
+
+  const STRIPE_API = 'https://api.stripe.com/v1';
+  const authHeader = 'Basic ' + Buffer.from(stripeKey + ':').toString('base64');
+
+  /* ── Step 1: Create bank account token ── */
+  const tokenParams = new URLSearchParams();
+  tokenParams.append('bank_account[country]',       cfg.country);
+  tokenParams.append('bank_account[currency]',       cfg.currency);
+  tokenParams.append('bank_account[account_holder_name]', accountName);
+  tokenParams.append('bank_account[account_holder_type]', 'individual');
+
+  if (cfg.type === 'iban') {
+    // EUR, CHF, DKK, NOK, SEK — IBAN-based
+    tokenParams.append('bank_account[account_number]', iban || accountNumber);
+  } else if (cfg.type === 'sort_account') {
+    // GBP — sort code + account number
+    const cleanSort = (sortCode || '').replace(/[-\s]/g, '');
+    tokenParams.append('bank_account[routing_number]', cleanSort);
+    tokenParams.append('bank_account[account_number]', accountNumber);
+  } else {
+    // USD/CAD/AUD/NZD/SGD/HKD — routing number + account number
+    if (routingNumber) {
+      tokenParams.append('bank_account[routing_number]', routingNumber);
+    }
+    tokenParams.append('bank_account[account_number]', accountNumber);
+  }
+
+  const tokenRes = await fetch(`${STRIPE_API}/tokens`, {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type':  'application/x-www-form-urlencoded',
+    },
+    body: tokenParams.toString(),
+  });
+
+  const tokenData = await tokenRes.json().catch(() => ({}));
+
+  if (!tokenRes.ok || tokenData.error) {
+    const errMsg = tokenData.error?.message || `Stripe token creation failed (status ${tokenRes.status})`;
+    throw new Error(errMsg);
+  }
+
+  const stripeToken  = tokenData.id;
+  const stripeBankName = tokenData.bank_account?.bank_name || bankName;
+
+  /* ── Step 2: Create Stripe Payout ── */
+  // Stripe amounts are in the smallest currency unit (cents for USD/EUR/GBP, etc.)
+  // Most Stripe-supported currencies use 2 decimal places (100 cents = 1 unit)
+  // Exceptions: JPY, KRW, etc. (0 decimal). All currencies in our list use 2.
+  const amountInSmallestUnit = Math.round(amountLocal * 100);
+
+  const payoutParams = new URLSearchParams();
+  payoutParams.append('amount',      amountInSmallestUnit);
+  payoutParams.append('currency',    cfg.currency);
+  payoutParams.append('method',      'standard');
+  payoutParams.append('description', `Kreddlo withdrawal ${reference}`);
+  payoutParams.append('statement_descriptor', 'KREDDLO');
+  payoutParams.append('destination', stripeToken);
+  payoutParams.append('metadata[reference]',  reference);
+  payoutParams.append('metadata[platform]',   'kreddlo');
+  payoutParams.append('metadata[recipient]',  accountName);
+
+  const payoutRes = await fetch(`${STRIPE_API}/payouts`, {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader,
+      'Content-Type':  'application/x-www-form-urlencoded',
+    },
+    body: payoutParams.toString(),
+  });
+
+  const payoutData = await payoutRes.json().catch(() => ({}));
+
+  if (!payoutRes.ok || payoutData.error) {
+    const errMsg = payoutData.error?.message || `Stripe payout failed (status ${payoutRes.status})`;
+    throw new Error(errMsg);
+  }
+
+  return {
+    transferId:    payoutData.id                   || null,
+    stripeRef:     payoutData.balance_transaction  || reference,
+    stripeStatus:  payoutData.status               || 'pending',
+    stripeBankName,
+  };
+}
+
 /* ─────────────────────────────────────────────
    MAIN HANDLER
 ───────────────────────────────────────────── */
@@ -248,8 +401,10 @@ exports.handler = async function (event) {
     accountName,
     accountNumber,
     bankName,
-    swift,              // SWIFT / IBAN — required for international transfers
-    country,
+    bankCode,           // client-supplied Flutterwave bank code (bypasses fuzzy lookup)
+    routingNumber,      // Stripe USD/CAD/AUD: ABA routing number
+    sortCode,           // Stripe GBP: sort code (6 digits)
+    iban,               // Stripe EUR/CHF/DKK/NOK/SEK: full IBAN
     saveDetails,        // boolean — save bank details for future withdrawals
     fees,               // { platformFee }
   } = payload;
@@ -270,14 +425,16 @@ exports.handler = async function (event) {
   if (!accountName || !accountName.trim()) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Account holder name is required.' }) };
   }
-  if (!accountNumber || !accountNumber.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Bank account number is required.' }) };
+  if (!accountNumber && !iban) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Bank account number or IBAN is required.' }) };
   }
+  const isStripeCurrency = STRIPE_TRANSFER_CURRENCIES.includes(currency);
   if (!bankName || !bankName.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Bank name is required.' }) };
-  }
-  if (!country || !country.trim()) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Country is required.' }) };
+    // For Stripe IBAN currencies, bank name is resolved from token — not required from client
+    const ibanCurrency = isStripeCurrency && STRIPE_CURRENCY_CONFIG[currency]?.type === 'iban';
+    if (!ibanCurrency) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Bank name is required.' }) };
+    }
   }
 
   const amountLocal = Number(amount);
@@ -369,10 +526,17 @@ exports.handler = async function (event) {
 
     const bankDetails = {
       accountName:   accountName.trim(),
-      accountNumber: accountNumber.trim(),
-      bankName:      bankName.trim(),
-      swift:         (swift || '').trim(),
-      country:       country.trim(),
+      accountNumber: (accountNumber || '').trim(),
+      bankName:      (bankName || '').trim(),
+      // Country is no longer collected from the user (Bug 5 simplification).
+      // Derived from the withdrawal currency for routing/record-keeping until
+      // the dynamic Flutterwave bank picker (Bug 6) supplies it directly.
+      country:       CURRENCY_TO_COUNTRY[currency] || STRIPE_CURRENCY_CONFIG[currency]?.country || '',
+      // Stripe-specific fields (populated for international currencies)
+      ...(routingNumber ? { routingNumber: routingNumber.trim() } : {}),
+      ...(sortCode      ? { sortCode: sortCode.replace(/[-\s]/g, '') } : {}),
+      ...(iban          ? { iban: iban.trim().toUpperCase() } : {}),
+      ...(bankCode      ? { bankCode: bankCode.trim() } : {}),
     };
 
     const payoutData = {
@@ -407,37 +571,32 @@ exports.handler = async function (event) {
     let payoutStatus  = 'pending_review';
     let transferId    = null;
     let flwRef        = null;
+    let stripeRef     = null;
     let resultMessage = `Bank transfer request of ${formatCurrency(amountLocal, currency)} received. Our team will process this within 1-3 business days.`;
 
-    const isFlwCurrency = FLW_TRANSFER_CURRENCIES.includes(currency);
-    const flwKey        = process.env.FLW_SECRET_KEY;
+    const isFlwCurrency    = FLW_TRANSFER_CURRENCIES.includes(currency);
+    const flwKey           = process.env.FLW_SECRET_KEY;
+    const stripeKey        = process.env.STRIPE_SECRET_KEY;
 
-    if (!isFlwCurrency) {
-      /* ── International currency — queue for manual wire processing ── */
-      method        = 'pending_manual';
-      payoutStatus  = 'pending_manual';
-      resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed manually within 2-5 business days.`;
-
-      console.log(`[create-bank-payout] ${currency} withdrawal for ${uid} — queued as pending_manual (international bank transfer).`);
-
-    } else if (settings.flutterwaveEnabled && flwKey) {
+    if (isFlwCurrency && settings.flutterwaveEnabled && flwKey) {
       /* ── Attempt automated Flutterwave transfer for supported currencies ── */
       try {
         /*
-         * Flutterwave needs a bank_code to route the transfer.
-         * We look it up from their /v3/banks/:country list using the
-         * freeform bank name the freelancer entered.
-         * If we can't match it, we fall back to pending_review (manual team processing).
+         * Bug A3 fix: use client-supplied bankCode directly if provided,
+         * only fall back to fuzzy name lookup if bankCode is absent.
          */
-        const bankCode = await findFlutterwaveBankCode(flwKey, bankDetails.bankName, currency);
+        let resolvedBankCode = bankDetails.bankCode || null;
+        if (!resolvedBankCode) {
+          resolvedBankCode = await findFlutterwaveBankCode(flwKey, bankDetails.bankName, currency);
+        }
 
-        if (bankCode) {
+        if (resolvedBankCode) {
           const transferResult = await initiateFlutterwaveTransfer(flwKey, {
             amountLocal,
             currency,
             accountNumber: bankDetails.accountNumber,
             accountName:   bankDetails.accountName,
-            bankCode,
+            bankCode:      resolvedBankCode,
             bankName:      bankDetails.bankName,
             narration:     `Kreddlo withdrawal ${payoutId}`,
             reference:     `kreddlo-${uid}-${payoutId}`,
@@ -448,6 +607,9 @@ exports.handler = async function (event) {
           transferId    = transferResult.transferId;
           flwRef        = transferResult.flwRef;
           resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} sent to your bank account.`;
+
+          // Store resolved bankCode in bankDetails for audit trail
+          bankDetails.bankCode = resolvedBankCode;
 
           console.log(`[create-bank-payout] Flutterwave transfer initiated — payoutId: ${payoutId}, transferId: ${transferId}, flwRef: ${flwRef}`);
         } else {
@@ -461,6 +623,57 @@ exports.handler = async function (event) {
         console.error('[create-bank-payout] Flutterwave transfer failed, falling back to manual review:', flwErr.message);
         // Falls through — payout is still recorded, balance still deducted, team handles manually.
       }
+
+    } else if (STRIPE_TRANSFER_CURRENCIES.includes(currency) && settings.stripeEnabled && stripeKey) {
+      /* ── Attempt automated Stripe payout for international currencies ── */
+      try {
+        const stripeResult = await initiateStripeTransfer(stripeKey, {
+          amountLocal,
+          currency,
+          accountNumber: bankDetails.accountNumber,
+          accountName:   bankDetails.accountName,
+          routingNumber: bankDetails.routingNumber || routingNumber || null,
+          sortCode:      bankDetails.sortCode      || sortCode      || null,
+          iban:          bankDetails.iban          || iban          || null,
+          bankName:      bankDetails.bankName,
+          reference:     `kreddlo-${uid}-${payoutId}`,
+        });
+
+        method        = 'stripe';
+        payoutStatus  = 'sent';
+        transferId    = stripeResult.transferId;
+        stripeRef     = stripeResult.stripeRef;
+        resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} sent to your bank account via Stripe.`;
+
+        // Back-fill resolved bank name from Stripe token if we didn't have it
+        if (stripeResult.stripeBankName && !bankDetails.bankName) {
+          bankDetails.bankName = stripeResult.stripeBankName;
+        }
+
+        console.log(`[create-bank-payout] Stripe payout initiated — payoutId: ${payoutId}, stripeId: ${transferId}, stripeRef: ${stripeRef}`);
+      } catch (stripeErr) {
+        console.error('[create-bank-payout] Stripe payout failed, falling back to pending_manual:', stripeErr.message);
+        // Fall through to pending_manual — team processes manually via wire.
+        method        = 'pending_manual';
+        payoutStatus  = 'pending_manual';
+        resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed within 2-5 business days.`;
+      }
+
+    } else if (!isFlwCurrency && !STRIPE_TRANSFER_CURRENCIES.includes(currency)) {
+      /* ── Truly unsupported currency — queue for manual wire processing ── */
+      method        = 'pending_manual';
+      payoutStatus  = 'pending_manual';
+      resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed manually within 2-5 business days.`;
+
+      console.log(`[create-bank-payout] ${currency} withdrawal for ${uid} — queued as pending_manual (unsupported currency).`);
+
+    } else {
+      /* ── Gateway not enabled or key missing — fallback to pending_manual ── */
+      method        = 'pending_manual';
+      payoutStatus  = 'pending_manual';
+      resultMessage = `Withdrawal of ${formatCurrency(amountLocal, currency)} received. International bank transfers are processed manually within 2-5 business days.`;
+
+      console.log(`[create-bank-payout] ${currency} withdrawal for ${uid} — gateway not configured, queued as pending_manual.`);
     }
 
     await payoutRef.update({
@@ -468,9 +681,13 @@ exports.handler = async function (event) {
       status:      payoutStatus,
       transferId:  transferId || null,
       flwRef:      flwRef     || null,
-      // For international currencies, add a note for the team
+      stripeRef:   stripeRef  || null,
+      bankDetails,            // update with any resolved fields (bankCode, stripeBankName)
+      // Add a processing note for manual review cases
       ...(method === 'pending_manual' ? {
-        note: 'International bank transfer — requires manual processing via wire/SWIFT.',
+        note: STRIPE_TRANSFER_CURRENCIES.includes(currency)
+          ? 'International bank transfer — Stripe gateway not configured; requires manual wire/SWIFT processing.'
+          : 'International bank transfer — requires manual processing via wire/SWIFT.',
       } : {}),
       updatedAt: new Date(),
     });
@@ -533,7 +750,7 @@ exports.handler = async function (event) {
           userUid:    userData.uid || null,
           to:         userData.email || null,
           title:      'Bank Withdrawal Initiated',
-          body:       method === 'flutterwave'
+          body:       (method === 'flutterwave' || method === 'stripe')
             ? `Your withdrawal of ${formattedAmount} has been sent to your bank account.`
             : `Your withdrawal of ${formattedAmount} has been received and is being processed by our team.`,
           url:        `${platformUrl}/dashboard-withdraw.html`,

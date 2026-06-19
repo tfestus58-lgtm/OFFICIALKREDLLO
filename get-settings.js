@@ -12,6 +12,8 @@ const DEFAULTS = {
   withdrawalFeePercentPro:      0.5,
   earlyPayoutFeePercent:        2.0,
   holdingPeriodDays:            7,
+  productSaleHoldingDays:       0,
+  affiliateHoldingDays:         0,
   minWithdrawalUsd:             10,
   affiliateWithdrawFeePercent:  2.0,
   minAffiliateWithdrawalUsd:    5,
@@ -27,6 +29,9 @@ const DEFAULTS = {
   twitterUrl:                '',
   linkedinUrl:               '',
   instagramUrl:              '',
+  supportEmail:              'support@kreddlo.com',
+  privacyEmail:              'privacy@kreddlo.com',
+  legalEmail:                'legal@kreddlo.com',
 };
 
 /**

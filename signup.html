@@ -240,7 +240,7 @@
   <script type="module">
     import { initializeApp }                           from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getAuth, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
     const firebaseConfig = {
       apiKey:            "AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk",
@@ -254,7 +254,7 @@
     const app  = initializeApp(firebaseConfig);
     window.db   = getFirestore(app);
     window.auth = getAuth(app);
-    window._fbReady = { setDoc, doc, serverTimestamp, createUserWithEmailAndPassword };
+    window._fbReady = { setDoc, doc, serverTimestamp, createUserWithEmailAndPassword, deleteUser };
   </script>
 </head>
 
@@ -267,10 +267,7 @@
     <div class="blob" style="width:300px;height:300px;background:radial-gradient(circle,rgba(61,189,122,0.07) 0%,transparent 70%);top:40%;left:60%;"></div>
 
     <!-- Logo -->
-    <a href="index.html" class="relative z-10 mb-8 flex-shrink-0 mt-2">
-      <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="130"
-           onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-    </a>
+    <a href="index.html" class="relative z-10 mb-8 flex-shrink-0 mt-2" style="font-size:24px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
 
     <!-- Card -->
     <div class="glass relative z-10 px-6 py-8 sm:px-8 sm:py-10">
@@ -475,6 +472,7 @@
         'auth/weak-password':         'Password is too weak. Use at least 8 characters.',
         'auth/network-request-failed':'Network error. Check your connection and try again.',
         'auth/too-many-requests':     'Too many attempts. Please wait a moment and try again.',
+        'permission-denied':          'We could not finish setting up your account. Please try again.',
       };
       return map[code] || 'Something went wrong. Please try again.';
     }
@@ -526,7 +524,7 @@
         return;
       }
 
-      const { createUserWithEmailAndPassword, setDoc, doc, serverTimestamp } = window._fbReady;
+      const { createUserWithEmailAndPassword, setDoc, doc, serverTimestamp, deleteUser } = window._fbReady;
 
       setLoading(true);
 
@@ -535,8 +533,9 @@
         const credential = await createUserWithEmailAndPassword(window.auth, email, password);
         const uid        = credential.user.uid;
 
-        /* Write user document to Firestore */
-        await setDoc(doc(window.db, 'users', uid), {
+        /* Write user document to Firestore — retry once before giving up,
+           since this can transiently fail right after account creation */
+        const profileData = {
           name,
           email,
           role:            currentRole,
@@ -545,7 +544,28 @@
           profileComplete: false,
           emailVerified:   false,
           createdAt:       serverTimestamp(),
-        });
+        };
+
+        try {
+          await setDoc(doc(window.db, 'users', uid), profileData);
+        } catch (profileErr) {
+          console.warn('Profile write failed, retrying once:', profileErr.message);
+          await new Promise(r => setTimeout(r, 800));
+          try {
+            await setDoc(doc(window.db, 'users', uid), profileData);
+          } catch (retryErr) {
+            // Profile still couldn't be written — the auth account would be
+            // orphaned (exists with no profile, blocking re-signup with this
+            // email). Clean it up so the user can simply try again.
+            console.error('Profile write failed after retry:', retryErr.message);
+            try {
+              await deleteUser(credential.user);
+            } catch (cleanupErr) {
+              console.error('Could not clean up orphaned auth account:', cleanupErr.message);
+            }
+            throw retryErr;
+          }
+        }
 
         /* Send verification email via Brevo (6-digit code flow) */
         try {
@@ -567,6 +587,7 @@
 
       } catch (err) {
         setLoading(false);
+        console.error('Signup failed:', err.code || '(no code)', err.message);
         showError(firebaseMsg(err.code));
       }
     });

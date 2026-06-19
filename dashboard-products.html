@@ -427,7 +427,7 @@ header > div:last-child {
 /* Ensure scrollable body has enough bottom clearance so last items
    (e.g. affiliate toggle) aren't hidden under the sticky footer */
 .cp-body {
-  padding-bottom: max(28px, env(safe-area-inset-bottom, 28px)) !important;
+  padding-bottom: max(96px, calc(env(safe-area-inset-bottom, 0px) + 96px)) !important;
 }
 @media (min-width: 600px) {
   .cp-overlay { align-items: center !important; padding: 20px !important; }
@@ -436,7 +436,7 @@ header > div:last-child {
     border-radius: 24px !important;
     max-height: 90dvh !important;
   }
-  .cp-body { padding-bottom: 32px !important; }
+  .cp-body { padding-bottom: 80px !important; }
 }
 
 /* 13. QUICK CARDS — equal width, responsive */
@@ -718,6 +718,7 @@ const NAV = [
   { label:'Dashboard',     href:'/dashboard.html',          icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',      href:'/dashboard-earnings.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',      href:'/dashboard-projects.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Invoices',     href:'/dashboard-invoices.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
   { label:'Store',         href:'/store.html',              icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'/dashboard-products.html', icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>' },
   { label:'Purchases',     href:'/buyer-purchases.html',    icon:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
@@ -839,6 +840,17 @@ window.closeCreateModal = function() {
 document.getElementById('cp-overlay').addEventListener('click', function(e) {
   if (e.target === this) closeCreateModal();
 });
+
+// Affiliate toggle — bound directly (inline onclick was unreliable on some mobile browsers
+// inside the animated/transformed bottom sheet)
+(function bindAffiliateToggle() {
+  const affToggleBtn = document.getElementById('cp-affiliate-toggle');
+  if (!affToggleBtn) return;
+  affToggleBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    cpToggleAffiliate();
+  });
+})();
 
 // Re-apply Stripe gating whenever the currency dropdown changes
 document.getElementById('cp-currency').addEventListener('change', function() {
@@ -2782,7 +2794,7 @@ onAuthStateChanged(auth, async user => {
               <label class="cp-label" style="margin:0 0 2px;display:block;">Enable Affiliate Promotion</label>
               <p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.48);margin:0;line-height:1.45;">Allow affiliates to earn a commission when they refer buyers to this product.</p>
             </div>
-            <button class="toggle" id="cp-affiliate-toggle" role="switch" aria-checked="false" onclick="cpToggleAffiliate()" type="button" style="flex-shrink:0;">
+            <button class="toggle" id="cp-affiliate-toggle" role="switch" aria-checked="false" type="button" style="flex-shrink:0;">
               <div class="knob"></div>
             </button>
           </div>

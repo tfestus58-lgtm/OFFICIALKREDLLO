@@ -542,14 +542,34 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       return { finalSellerAmount: sellerAmount };
     }
 
-    // 5. Atomically increment the affiliate's balance in their user doc
-    await db.collection('users').doc(affiliateRef).update({
-      affiliateBalance:      FieldValue.increment(commissionAmount),
-      affiliateTotalEarned:  FieldValue.increment(commissionAmount),
-      updatedAt:             FieldValue.serverTimestamp(),
-    });
+    // 5. Atomically increment the affiliate's balance in their user doc,
+    //    subject to the admin-configured affiliate holding period (Item 9).
+    //    Funds are routed through the affiliate-earnings record rather than
+    //    hitting affiliateBalance directly when holding days > 0, so
+    //    affiliate-withdraw.js — which already gates on affiliateBalance —
+    //    automatically rejects anything still inside the holding window.
+    const settings    = await getSettings(db);
+    const holdingDays = Number(settings.affiliateHoldingDays) || 0;
+    const now         = new Date();
+    const clearsAt    = new Date(now.getTime() + holdingDays * 24 * 60 * 60 * 1000);
+    const isCleared    = holdingDays <= 0; // 0 days = instant, same as legacy behaviour
+
+    const affiliateUserUpdate = {
+      affiliateTotalEarned: FieldValue.increment(commissionAmount),
+      updatedAt:            FieldValue.serverTimestamp(),
+    };
+    if (isCleared) {
+      affiliateUserUpdate.affiliateBalance = FieldValue.increment(commissionAmount);
+    } else {
+      affiliateUserUpdate.affiliatePendingBalance = FieldValue.increment(commissionAmount);
+    }
+    await db.collection('users').doc(affiliateRef).update(affiliateUserUpdate);
 
     // 6. Write a record to the affiliate-earnings collection
+    //    NOTE: `status` ('pending'/'paid') tracks WITHDRAWAL status (unchanged
+    //    meaning). `cleared` / `clearsAt` are new fields tracking the holding
+    //    period — scheduled-clear-earnings.js flips `cleared` to true once
+    //    clearsAt has passed and moves the amount to affiliateBalance.
     await db.collection('affiliate-earnings').add({
       affiliateUid:       affiliateRef,
       sellerUid:          order.sellerUid      || null,
@@ -561,7 +581,10 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       currency:           confirmedCurrency,
       confirmedAmount,
       gateway,
+      paymentMethod:      'fiat',
       status:             'pending',  // becomes 'paid' when affiliate withdraws
+      cleared:            isCleared,
+      clearsAt:           clearsAt,
       createdAt:          FieldValue.serverTimestamp(),
     });
 

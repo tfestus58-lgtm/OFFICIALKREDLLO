@@ -1185,6 +1185,29 @@ input[type=range]::-moz-range-thumb {
           </div>
         </div>
 
+        <!-- Contact Emails -->
+        <div class="mt-6" style="margin-top:24px;">
+          <p class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3" style="font-size:12px;font-weight:700;color:rgba(13,33,69,0.45);letter-spacing:1.2px;text-transform:uppercase;margin:0 0 12px 0;">Contact Emails</p>
+          <p style="font-size:12px;font-weight:500;color:rgba(13,33,69,0.50);margin:0 0 12px;line-height:1.5;">These addresses are shown across the site (support links, withdrawal banners, privacy and terms pages). Changing them here updates the live site — no code deploy needed.</p>
+          <div class="space-y-3" style="display:grid;gap:12px;">
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">Support Email</label>
+              <input id="supportEmail" type="email" placeholder="support@kreddlo.com"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">Privacy Email</label>
+              <input id="privacyEmail" type="email" placeholder="privacy@kreddlo.com"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+            <div>
+              <label class="lbl" style="display:block;margin-bottom:8px;">Legal Email</label>
+              <input id="legalEmail" type="email" placeholder="legal@kreddlo.com"
+                     class="input-field" style="width:100%;box-sizing:border-box;"/>
+            </div>
+          </div>
+        </div>
+
         <div style="height:1px;background:#e2e8f0;margin:24px 0;"></div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
@@ -1268,7 +1291,7 @@ function showSection(id) {
     updateNotifRecipientCount();
   }
   if (id === 'products') {
-    if (_adminProducts.length === 0) loadAdminProducts();
+    if (!_productsLoaded) { _productsLoaded = true; loadAdminProducts(); }
   }
 }
 
@@ -1797,44 +1820,71 @@ async function sendAdminNotification() {
     : 'Broadcast this notification to ' + recipients.length.toLocaleString('en-US') + ' user' + (recipients.length === 1 ? '' : 's') + '?';
   if (!confirm(confirmMsg)) return;
 
-  if (!window.firestore || !window.db) {
-    showToast('Database not available — check console');
-    return;
-  }
-
   notifSending = true;
   var sendBtn = document.getElementById('notif-send-btn');
   sendBtn.disabled = true;
-  sendBtn.textContent = 'Sending...';
 
-  var _f = window.firestore;
+  var notifUrl = url || (window.location.origin + '/dashboard.html');
+  var total    = recipients.length;
+  var sent     = 0;
+  var failed   = 0;
 
-  try {
-    // Batched Firestore writes for the in-app feed entry, chunked to stay
-    // under Firestore's 500-operation-per-batch limit. This is the single
-    // source of truth for all targets (single user or broadcast) — no
-    // duplicate writes, and every doc carries type:'admin' consistently.
-    var CHUNK = 450;
-    var totalWritten = 0;
-    for (var i = 0; i < recipients.length; i += CHUNK) {
-      var chunk = recipients.slice(i, i + CHUNK);
-      var batch = _f.writeBatch(window.db);
-      chunk.forEach(function(uid) {
-        var docRef = _f.doc(_f.collection(window.db, 'users', uid, 'notifications'));
-        batch.set(docRef, {
+  // Send via server-side function (bypasses Firestore security rules,
+  // handles FCM push + in-app write in one call).
+  // Concurrency capped at 5 parallel requests to avoid overwhelming the function.
+  var CONCURRENCY = 5;
+
+  function updateBtn() {
+    sendBtn.textContent = 'Sending ' + sent + '/' + total + '...';
+  }
+  updateBtn();
+
+  async function sendOne(uid) {
+    try {
+      var idToken = window.auth && window.auth.currentUser
+        ? await window.auth.currentUser.getIdToken()
+        : '';
+      var res = await fetch('/.netlify/functions/send-smart-notification', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
+        body: JSON.stringify({
+          userUid:   uid,
           title:     title,
           body:      body,
-          type:      'admin',
-          url:       url || null,
-          read:      false,
-          createdAt: _f.serverTimestamp(),
-        });
+          url:       notifUrl,
+          emailMode: 'never',
+          // templateId intentionally omitted — emailMode:'never' so no email is sent
+        }),
       });
-      await batch.commit();
-      totalWritten += chunk.length;
+      if (!res.ok) {
+        var err = await res.json().catch(function() { return {}; });
+        console.warn('send-smart-notification failed for uid ' + uid + ':', err);
+        failed++;
+      } else {
+        sent++;
+      }
+    } catch (err) {
+      console.warn('send-smart-notification fetch error for uid ' + uid + ':', err.message);
+      failed++;
+    }
+    updateBtn();
+  }
+
+  try {
+    // Process recipients in batches of CONCURRENCY
+    for (var i = 0; i < recipients.length; i += CONCURRENCY) {
+      var chunk = recipients.slice(i, i + CONCURRENCY);
+      await Promise.all(chunk.map(function(uid) { return sendOne(uid); }));
     }
 
-    showToast('Notification sent to ' + totalWritten.toLocaleString('en-US') + ' user' + (totalWritten === 1 ? '' : 's'));
+    if (failed === 0) {
+      showToast('Notification sent to ' + sent.toLocaleString('en-US') + ' user' + (sent === 1 ? '' : 's'));
+    } else {
+      showToast('Sent to ' + sent + ', failed for ' + failed + ' — check console');
+    }
 
     // Reset form
     document.getElementById('notif-title').value = '';
@@ -2491,6 +2541,9 @@ function loadSettings() {
     var twEl = document.getElementById('twitterUrl');  if (twEl) twEl.value  = d.twitterUrl  || '';
     var liEl = document.getElementById('linkedinUrl'); if (liEl) liEl.value  = d.linkedinUrl || '';
     var igEl = document.getElementById('instagramUrl');if (igEl) igEl.value  = d.instagramUrl|| '';
+    var supEl = document.getElementById('supportEmail'); if (supEl) supEl.value = d.supportEmail || '';
+    var privEl = document.getElementById('privacyEmail'); if (privEl) privEl.value = d.privacyEmail || '';
+    var legEl = document.getElementById('legalEmail'); if (legEl) legEl.value = d.legalEmail || '';
   }).catch(function(err) {
     console.warn('loadSettings error:', err);
   });
@@ -2528,6 +2581,26 @@ function saveSettings() {
   payload.twitterUrl  = (document.getElementById('twitterUrl')  || {}).value ? document.getElementById('twitterUrl').value.trim()  : '';
   payload.linkedinUrl = (document.getElementById('linkedinUrl') || {}).value ? document.getElementById('linkedinUrl').value.trim() : '';
   payload.instagramUrl= (document.getElementById('instagramUrl')|| {}).value ? document.getElementById('instagramUrl').value.trim(): '';
+
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var emailFields = [
+    { id: 'supportEmail', key: 'supportEmail', label: 'Support Email' },
+    { id: 'privacyEmail', key: 'privacyEmail', label: 'Privacy Email' },
+    { id: 'legalEmail',   key: 'legalEmail',   label: 'Legal Email'   }
+  ];
+  for (var i = 0; i < emailFields.length; i++) {
+    var ef = emailFields[i];
+    var efEl = document.getElementById(ef.id);
+    if (!efEl) continue;
+    var efVal = efEl.value.trim();
+    if (efVal && !EMAIL_RE.test(efVal)) {
+      efEl.style.borderColor = '#c81e1e';
+      showToast(ef.label + ' is not a valid email address');
+      return;
+    }
+    efEl.style.borderColor = '#e2e8f0';
+    payload[ef.key] = efVal;
+  }
 
   function finish(ok) {
     btn.innerHTML = originalText;
@@ -3123,6 +3196,7 @@ function flagAffiliateDispute() {
 /* ============ ADMIN PRODUCTS ============ */
 var _adminProducts = [];
 var _adminProductFilter = 'all';
+var _productsLoaded = false;
 
 function setProductFilter(filter, btn) {
   _adminProductFilter = filter;
@@ -3242,7 +3316,7 @@ async function loadAdminProducts() {
     _adminProducts = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
     renderAdminProducts();
   } catch (err) {
-    console.error('[admin products] load error:', err);
+    console.error('[admin products] load error:', err && err.code, err && err.message, err);
     var loadingEl2 = document.getElementById('admin-products-loading');
     if (loadingEl2) loadingEl2.innerHTML = '<p style="color:#c81e1e;font-size:14px;font-weight:500;">Failed to load products. Please refresh.</p>';
   }

@@ -603,7 +603,7 @@ header > div:last-child {
         <!-- Payouts frozen banner -->
         <div id="payouts-frozen-banner" style="display:none;align-items:center;gap:12px;background:rgba(99,60,180,0.08);border:1.5px solid rgba(99,60,180,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#633cb4" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/></svg>
-  <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
+  <span style="font-size:13px;font-weight:600;color:#633cb4;">Withdrawals temporarily paused by platform. Please <a href="mailto:support@kreddlo.com" id="support-mailto-link" style="color:#2d8a5e;text-decoration:underline;">contact support</a> for assistance.</span>
 </div>
 
         <!-- Error message -->
@@ -652,10 +652,11 @@ header > div:last-child {
           </div>
 
           <!-- Bank Dropdown (dynamic from Flutterwave) -->
-          <div style="margin-bottom:16px;">
+          <!-- Bank search section (FLW currencies only) — hidden for Stripe currencies by B3b -->
+          <div id="bank-search-section" style="margin-bottom:16px;">
             <label for="input-bank-search" class="lbl" style="display:block;margin-bottom:8px;">Bank</label>
             <div style="position:relative;">
-              <input type="text" id="input-bank-search" class="inp" placeholder="Search for your bank…" oninput="filterBankList()" autocomplete="off" style="padding-right:36px;">
+              <input type="text" id="input-bank-search" class="inp" placeholder="Search for your bank…" oninput="filterBankList()" onfocus="onBankSearchFocus()" autocomplete="off" style="padding-right:36px;">
               <svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.45)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
             <div id="bank-dropdown-list" style="display:none;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(13,33,69,0.10);max-height:200px;overflow-y:auto;margin-top:4px;z-index:100;position:relative;"></div>
@@ -666,10 +667,22 @@ header > div:last-child {
             <div id="bank-list-loading" style="display:none;font-size:12px;color:rgba(13,33,69,0.5);margin-top:6px;align-items:center;gap:6px;">
               <div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Loading banks…
             </div>
+            <div id="bank-info-message" style="display:none;margin-top:8px;padding:10px 14px;background:rgba(13,33,69,0.04);border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:500;color:rgba(13,33,69,0.65);line-height:1.5;"></div>
+          </div>
+
+          <!-- Stripe international bank fields — shown for USD/EUR/GBP etc. by B3c–B3e -->
+          <div id="stripe-fields-section" style="display:none;margin-bottom:16px;"></div>
+
+          <!-- B3g: Stripe info pill — shown for Stripe currencies -->
+          <div id="stripe-info-pill" style="display:none;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(99,102,241,0.07);border:1.5px solid rgba(99,102,241,0.22);border-radius:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span style="font-size:12px;font-weight:500;color:#5254a3;line-height:1.4;">Processed via Stripe &mdash; secure international bank transfer</span>
+            </div>
           </div>
 
           <!-- Bank Account Number -->
-          <div style="margin-bottom:16px;">
+          <div id="account-number-wrap" style="margin-bottom:16px;">
             <label for="input-account-number" class="lbl" style="display:block;margin-bottom:8px;">Account Number</label>
             <input type="text" id="input-account-number" class="inp" placeholder="Enter your account number" inputmode="numeric" onblur="resolveBankAccount()">
           </div>
@@ -1047,12 +1060,23 @@ function selectWithdrawalCurrency(currency) {
   var disp = document.getElementById('bank-selected-display');
   if (disp) disp.style.display = 'none';
   var search = document.getElementById('input-bank-search');
-  if (search) search.value = '';
+  if (search) { search.value = ''; search.style.display = ''; }
+  var searchWrap = search ? search.parentElement : null;
+  if (searchWrap) searchWrap.style.display = '';
   var list = document.getElementById('bank-dropdown-list');
   if (list) list.style.display = 'none';
   var accName = document.getElementById('input-account-name');
   if (accName) accName.value = '';
+  // Reset info message
+  var infoMsg = document.getElementById('bank-info-message');
+  if (infoMsg) { infoMsg.style.display = 'none'; infoMsg.innerHTML = ''; }
   renderWithdrawalCurrencySelector();
+  // B3c: Stripe currencies hide the bank-search input, so there's no focus
+  // event left to lazily trigger fetchBankList() like the FLW flow uses —
+  // fetch eagerly here so the correct fields render on switch.
+  if (STRIPE_CURRENCIES.includes(currency)) {
+    fetchBankList();
+  }
 }
 
 function updateBankFormForCurrency() {
@@ -1127,12 +1151,198 @@ let selectedBankCode = '';
 let selectedBankName = '';
 let bankListFetched  = false;
 
+// ── B3a: Stripe international currency support ──
+// ── B3b: Show/hide logic for bank-search-section vs stripe-fields-section ──
+function showBankSearchSection() {
+  var bs = document.getElementById('bank-search-section');
+  var sf = document.getElementById('stripe-fields-section');
+  if (bs) bs.style.display = '';       // restore default (block)
+  if (sf) sf.style.display = 'none';
+}
+
+function hideBankSearchSection() {
+  var bs = document.getElementById('bank-search-section');
+  if (bs) bs.style.display = 'none';
+}
+
+function showStripeFieldsSection() {
+  var sf = document.getElementById('stripe-fields-section');
+  if (sf) sf.style.display = '';       // restore default (block) — content set by B3c–B3e
+}
+
+function hideStripeFieldsSection() {
+  var sf = document.getElementById('stripe-fields-section');
+  if (sf) { sf.style.display = 'none'; sf.innerHTML = ''; }
+  _restoreAccountNumberField(); // ensure generic Account Number field is visible for FLW currencies
+}
+
+// ── B3g: Stripe info pill show/hide ──
+function showStripeInfoPill() {
+  var pill = document.getElementById('stripe-info-pill');
+  if (pill) pill.style.display = '';
+}
+
+function hideStripeInfoPill() {
+  var pill = document.getElementById('stripe-info-pill');
+  if (pill) pill.style.display = 'none';
+}
+
+// ── B3c / B3d / B3e: Render Stripe field markup based on stripeFields descriptor type ──
+// B3c: 'routing_account' (USD) — Routing Number; generic Account Number field stays visible.
+// B3d: 'iban'            (EUR) — single IBAN field; hides generic account-number field.
+// B3e: 'sort_account'    (GBP) — Sort Code + Account Number; hides generic account-number field.
+function renderStripeFields(fields) {
+  var sf  = document.getElementById('stripe-fields-section');
+  var anw = document.getElementById('account-number-wrap');
+  if (!sf || !fields) return;
+
+  if (fields.type === 'routing_account') {
+    // USD: inject Routing Number; keep generic Account Number field
+    if (anw) anw.style.display = '';
+    sf.innerHTML =
+      '<div style="margin-bottom:16px;">' +
+        '<label for="input-stripe-routing" class="lbl" style="display:block;margin-bottom:8px;">Routing Number</label>' +
+        '<input type="text" id="input-stripe-routing" class="inp" placeholder="9-digit routing number" inputmode="numeric" maxlength="9" autocomplete="off" onblur="resolveBankAccount()">' +
+      '</div>';
+
+  } else if (fields.type === 'iban') {
+    // EUR: single IBAN field replaces generic Account Number
+    if (anw) anw.style.display = 'none';
+    sf.innerHTML =
+      '<div style="margin-bottom:16px;">' +
+        '<label for="input-stripe-iban" class="lbl" style="display:block;margin-bottom:8px;">IBAN</label>' +
+        '<input type="text" id="input-stripe-iban" class="inp"' +
+          ' placeholder="e.g. DE89 3704 0044 0532 0130 00"' +
+          ' inputmode="text" maxlength="34" autocomplete="off"' +
+          ' style="text-transform:uppercase;letter-spacing:0.5px;"' +
+          ' oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\')"' +
+          ' onblur="resolveBankAccount()">' +
+        '<p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:6px 0 0;">Enter your IBAN without spaces — up to 34 characters.</p>' +
+      '</div>';
+
+  } else if (fields.type === 'sort_account') {
+    // GBP: Sort Code + Account Number — both injected here; hide generic Account Number field
+    if (anw) anw.style.display = 'none';
+    sf.innerHTML =
+      '<div style="margin-bottom:16px;">' +
+        '<label for="input-stripe-sort-code" class="lbl" style="display:block;margin-bottom:8px;">Sort Code</label>' +
+        '<input type="text" id="input-stripe-sort-code" class="inp"' +
+          ' placeholder="e.g. 20-00-00"' +
+          ' inputmode="numeric" maxlength="8" autocomplete="off"' +
+          ' oninput="formatSortCode(this)" onblur="resolveBankAccount()">' +
+        '<p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:6px 0 0;">6-digit sort code, e.g. 20-00-00</p>' +
+      '</div>' +
+      '<div style="margin-bottom:16px;">' +
+        '<label for="input-stripe-account-number" class="lbl" style="display:block;margin-bottom:8px;">Account Number</label>' +
+        '<input type="text" id="input-stripe-account-number" class="inp"' +
+          ' placeholder="8-digit account number"' +
+          ' inputmode="numeric" maxlength="8" autocomplete="off"' +
+          ' oninput="this.value=this.value.replace(/\\D/g,\'\')" onblur="resolveBankAccount()">' +
+      '</div>';
+
+  } else {
+    if (anw) anw.style.display = '';
+    sf.innerHTML = '';
+  }
+}
+
+function _restoreAccountNumberField() {
+  var anw = document.getElementById('account-number-wrap');
+  if (anw) anw.style.display = '';
+}
+
+// B3e: Auto-format Sort Code input as NN-NN-NN
+function formatSortCode(el) {
+  var digits = el.value.replace(/\D/g, '').slice(0, 6);
+  var parts  = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 6));
+  el.value = parts.join('-');
+}
+// ──────────────────────────────────────────────────────────
+// Currencies handled by Stripe — no FLW bank list; backend returns stripeFields descriptor instead.
+const STRIPE_CURRENCIES = ['USD','EUR','GBP','CAD','AUD','NZD','CHF','DKK','NOK','SEK'];
+let currentStripeFields = null; // populated when a Stripe currency is active; null for FLW currencies
+
 async function fetchBankList() {
   if (bankListFetched) return;
   const cur = selectedWithdrawalCurrency || 'NGN';
-  // Only Flutterwave-supported currencies use dynamic list
+  // Only Flutterwave-supported currencies use dynamic bank list
   const SUPPORTED = ['NGN','GHS','KES','UGX','TZS','RWF','ZAR','XOF','XAF','MWK','ZMW'];
-  if (!SUPPORTED.includes(cur)) return;
+
+  var searchWrap  = document.getElementById('input-bank-search') ? document.getElementById('input-bank-search').parentElement : null;
+  var searchInput = document.getElementById('input-bank-search');
+  var infoMsg     = document.getElementById('bank-info-message');
+
+  // ── B3a: Stripe currency — call get-bank-list to fetch stripeFields descriptor ──
+  if (STRIPE_CURRENCIES.includes(cur)) {
+    // Reset any prior Stripe state
+    currentStripeFields = null;
+    hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
+    hideStripeInfoPill(); // B3g — reset pill until new data confirms Stripe
+
+    // B3b: hide the FLW bank search section; Stripe fields shown by B3c–B3e
+    hideBankSearchSection();
+    if (infoMsg) infoMsg.style.display = 'none';
+
+    const loadingEl = document.getElementById('bank-list-loading');
+    if (loadingEl) { loadingEl.style.display = 'flex'; }
+
+    try {
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const res   = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(cur), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data  = await res.json();
+
+      if (data.stripeFields) {
+        // Store the descriptor so subsequent steps (B3c–B3g) can read it
+        currentStripeFields = data.stripeFields;
+        bankListFetched = true;
+        console.log('[fetchBankList] Stripe currency detected:', cur, currentStripeFields);
+        // B3c: render the field markup for this currency's stripeFields type
+        renderStripeFields(currentStripeFields);
+        showStripeFieldsSection();
+        showStripeInfoPill(); // B3g
+      } else {
+        console.warn('[fetchBankList] No stripeFields returned for Stripe currency:', cur);
+        hideStripeFieldsSection();
+        hideStripeInfoPill(); // B3g
+      }
+    } catch (e) {
+      console.error('[fetchBankList] Stripe fetch error:', e);
+    } finally {
+      if (loadingEl) { loadingEl.style.display = 'none'; }
+    }
+    return;
+  }
+
+  // ── Non-Stripe, non-FLW currency (e.g. future additions) ──
+  if (!SUPPORTED.includes(cur)) {
+    currentStripeFields = null;
+    hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
+    hideStripeInfoPill(); // B3g
+    // Hide the bank search dropdown — not applicable for this currency
+    if (searchWrap)  searchWrap.style.display  = 'none';
+    if (searchInput) searchInput.style.display  = 'none';
+    // Show an informative message so users know what to do
+    if (infoMsg) {
+      var currencyLabel = cur;
+      infoMsg.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" style="flex-shrink:0;margin-right:6px;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+        'For <strong>' + currencyLabel + '</strong> withdrawals, enter your account number below and we\'ll process it manually. Bank search is not required.';
+      infoMsg.style.display = 'flex';
+      infoMsg.style.alignItems = 'flex-start';
+    }
+    return;
+  }
+
+  // ── FLW currency — restore bank search section in case a Stripe currency was previously selected ──
+  currentStripeFields = null;
+  hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
+  hideStripeInfoPill(); // B3g
+  showBankSearchSection();
+  if (infoMsg) infoMsg.style.display = 'none';
 
   const loadingEl = document.getElementById('bank-list-loading');
   if (loadingEl) { loadingEl.style.display = 'flex'; }
@@ -1169,6 +1379,7 @@ function renderBankDropdown(banks) {
       'onmouseover="this.style.background=\'#f5f9ff\'" onmouseout="this.style.background=\'#fff\'">' +
       b.name + '</div>';
   }).join('');
+  list.style.display = 'block';
 }
 
 function filterBankList() {
@@ -1185,6 +1396,19 @@ function filterBankList() {
   const filtered = allBanks.filter(function(b) { return b.name.toLowerCase().includes(q); });
   renderBankDropdown(filtered);
   list.style.display = 'block';
+}
+
+function onBankSearchFocus() {
+  // If banks already loaded and input is empty, re-open the full dropdown
+  if (bankListFetched) {
+    var q = (document.getElementById('input-bank-search').value || '').trim();
+    if (!q) {
+      renderBankDropdown(allBanks);
+    }
+  } else {
+    // Not yet fetched — trigger the fetch (which will render on completion)
+    fetchBankList();
+  }
 }
 
 function selectBank(code, name) {
@@ -1220,7 +1444,15 @@ function clearBankSelection() {
   if (search) { search.value = ''; search.focus(); }
 }
 
+// stripeAccountToken is captured from a successful Stripe resolve so it can
+// be reused later by the payout submission step. Not yet wired into submit
+// (out of scope for B3f) — kept here so that step doesn't need to repeat work.
+let stripeAccountToken = null;
+
 async function resolveBankAccount() {
+  // ── B3f: Stripe currencies use a different field set / no bank code ──
+  if (currentStripeFields) return resolveBankAccountStripe();
+
   var accNum  = (document.getElementById('input-account-number').value || '').trim();
   var accName = document.getElementById('input-account-name');
   var spinner = document.getElementById('account-name-spinner');
@@ -1239,7 +1471,8 @@ async function resolveBankAccount() {
   try {
     const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
     const res   = await fetch('/.netlify/functions/resolve-bank-account?bankCode=' +
-      encodeURIComponent(selectedBankCode) + '&accountNumber=' + encodeURIComponent(accNum), {
+      encodeURIComponent(selectedBankCode) + '&accountNumber=' + encodeURIComponent(accNum) +
+      '&currency=' + encodeURIComponent(selectedWithdrawalCurrency || 'NGN'), {
       headers: { 'Authorization': 'Bearer ' + token }
     });
     const data = await res.json();
@@ -1254,6 +1487,78 @@ async function resolveBankAccount() {
     }
   } catch (e) {
     console.error('[resolveBankAccount]', e);
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+  }
+}
+
+// ── B3f: Resolve via Stripe for USD / EUR / GBP (and other Stripe currencies) ──
+// Builds the query string from whichever field group is currently rendered
+// (routing_account / iban / sort_account), matching resolve-bank-account.js.
+async function resolveBankAccountStripe() {
+  var accName = document.getElementById('input-account-name');
+  var spinner = document.getElementById('account-name-spinner');
+  var check   = document.getElementById('account-name-check');
+  var errEl   = document.getElementById('bank-error');
+
+  // Clear previous
+  if (accName) { accName.value = ''; accName.placeholder = 'Auto-filled after account number entry'; }
+  if (check)   check.style.display = 'none';
+  if (errEl)   { errEl.style.display = 'none'; }
+  stripeAccountToken = null;
+
+  if (!currentStripeFields) return;
+
+  var qs = '&currency=' + encodeURIComponent(selectedWithdrawalCurrency || '');
+  var type = currentStripeFields.type;
+
+  if (type === 'routing_account') {
+    // USD: Routing Number (Stripe field) + generic Account Number field
+    var routing = (document.getElementById('input-stripe-routing') || {}).value || '';
+    var acct    = (document.getElementById('input-account-number') || {}).value || '';
+    routing = routing.trim(); acct = acct.trim();
+    if (!routing || acct.length < 4) return;
+    qs += '&routingNumber=' + encodeURIComponent(routing) + '&accountNumber=' + encodeURIComponent(acct);
+
+  } else if (type === 'iban') {
+    // EUR (and other IBAN currencies): single IBAN field
+    var iban = (document.getElementById('input-stripe-iban') || {}).value || '';
+    iban = iban.trim();
+    if (iban.length < 8) return;
+    qs += '&iban=' + encodeURIComponent(iban);
+
+  } else if (type === 'sort_account') {
+    // GBP: Sort Code + Account Number, both Stripe-rendered fields
+    var sortCode = (document.getElementById('input-stripe-sort-code') || {}).value || '';
+    var sAcct    = (document.getElementById('input-stripe-account-number') || {}).value || '';
+    sortCode = sortCode.trim(); sAcct = sAcct.trim();
+    if (sortCode.replace(/-/g, '').length < 6 || sAcct.length < 6) return;
+    qs += '&sortCode=' + encodeURIComponent(sortCode) + '&accountNumber=' + encodeURIComponent(sAcct);
+
+  } else {
+    return; // unknown field type — nothing to resolve yet
+  }
+
+  if (spinner) spinner.style.display = 'block';
+
+  try {
+    const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+    const res   = await fetch('/.netlify/functions/resolve-bank-account?' + qs.replace(/^&/, ''), {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (data.accountName) {
+      if (accName) { accName.value = data.accountName; }
+      if (check)   { check.style.display = 'block'; }
+      stripeAccountToken = data.stripeAccountToken || null;
+    } else {
+      if (errEl) {
+        errEl.textContent = data.error || 'Could not verify account. Check the details and try again.';
+        errEl.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.error('[resolveBankAccountStripe]', e);
   } finally {
     if (spinner) spinner.style.display = 'none';
   }
@@ -1299,16 +1604,67 @@ function calcBankFees() {
 }
 
 // ======= BANK WITHDRAW (real Netlify Function) =======
+
+// ── B5: Single source of truth for gathering bank/account identification ──
+// Used by both handleBankWithdraw() (validation) and _executeBankWithdraw()
+// (submission) so the two can never drift out of sync. Reads whichever
+// fields are actually visible for the current currency:
+//   - FLW currencies        → selectedBankName/Code + generic account number
+//   - USD (routing_account) → Stripe routing number + generic account number
+//   - EUR (iban)            → Stripe IBAN only
+//   - GBP (sort_account)    → Stripe sort code + Stripe account number
+function _collectBankWithdrawFields() {
+  var isStripeFlow = !!currentStripeFields;
+  var stripeType   = isStripeFlow ? currentStripeFields.type : null;
+
+  // Read-only field; for FLW this holds the resolved account holder name,
+  // for Stripe currencies it holds the bank name Stripe resolved from the
+  // routing/sort/IBAN details (see resolveBankAccountStripe()).
+  var accountName = ((document.getElementById('input-account-name') || {}).value || '').trim();
+
+  var routingNumber = '', sortCode = '', iban = '', accountNumber = '';
+  var bankName = '', bankCode = '';
+
+  if (isStripeFlow) {
+    // No FLW bank-list selection applies to Stripe currencies.
+    bankName = accountName;
+    bankCode = '';
+
+    if (stripeType === 'routing_account') {
+      routingNumber = ((document.getElementById('input-stripe-routing') || {}).value || '').trim();
+      accountNumber = ((document.getElementById('input-account-number') || {}).value || '').trim();
+    } else if (stripeType === 'iban') {
+      iban = ((document.getElementById('input-stripe-iban') || {}).value || '').trim();
+    } else if (stripeType === 'sort_account') {
+      sortCode      = ((document.getElementById('input-stripe-sort-code') || {}).value || '').trim();
+      accountNumber = ((document.getElementById('input-stripe-account-number') || {}).value || '').trim();
+    }
+  } else {
+    bankName      = selectedBankName;
+    bankCode      = selectedBankCode;
+    accountNumber = ((document.getElementById('input-account-number') || {}).value || '').trim();
+  }
+
+  return {
+    isStripeFlow:  isStripeFlow,
+    stripeType:    stripeType,
+    accountName:   accountName,
+    bankName:      bankName,
+    bankCode:      bankCode,
+    accountNumber: accountNumber,
+    routingNumber: routingNumber,
+    sortCode:      sortCode,
+    iban:          iban,
+  };
+}
+
 // Triggered by the bank Withdraw button — validates fields then launches OTP flow
 async function handleBankWithdraw() {
-  var amt           = parseFloat(document.getElementById('input-bank-amount').value);
-  var accountName   = document.getElementById('input-account-name').value.trim();
-  var accountNumber = document.getElementById('input-account-number').value.trim();
-  var bankName      = selectedBankName;
-  var bankCode      = selectedBankCode;
-  var errEl         = document.getElementById('bank-error');
-  var cur           = selectedWithdrawalCurrency || 'USD';
-  var curBalance    = Number(balancesMap[cur] || 0);
+  var amt        = parseFloat(document.getElementById('input-bank-amount').value);
+  var fields     = _collectBankWithdrawFields();
+  var errEl      = document.getElementById('bank-error');
+  var cur        = selectedWithdrawalCurrency || 'USD';
+  var curBalance = Number(balancesMap[cur] || 0);
   errEl.style.display = 'none';
 
   if (!kycVerified) {
@@ -1326,20 +1682,64 @@ async function handleBankWithdraw() {
     errEl.style.display = 'block';
     return;
   }
-  if (!bankCode || !bankName) {
-    errEl.textContent = 'Please select your bank from the list.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!accountNumber) {
-    errEl.textContent = 'Please enter your bank account number.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!accountName) {
-    errEl.textContent = 'Account name could not be verified. Check your bank and account number.';
-    errEl.style.display = 'block';
-    return;
+
+  if (fields.isStripeFlow) {
+    // ── International (Stripe) currency — validate whichever fields apply ──
+    if (fields.stripeType === 'routing_account') {
+      if (!fields.routingNumber) {
+        errEl.textContent = 'Please enter your routing number.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (!fields.accountNumber) {
+        errEl.textContent = 'Please enter your bank account number.';
+        errEl.style.display = 'block';
+        return;
+      }
+    } else if (fields.stripeType === 'iban') {
+      if (!fields.iban) {
+        errEl.textContent = 'Please enter your IBAN.';
+        errEl.style.display = 'block';
+        return;
+      }
+    } else if (fields.stripeType === 'sort_account') {
+      if (!fields.sortCode) {
+        errEl.textContent = 'Please enter your sort code.';
+        errEl.style.display = 'block';
+        return;
+      }
+      if (!fields.accountNumber) {
+        errEl.textContent = 'Please enter your bank account number.';
+        errEl.style.display = 'block';
+        return;
+      }
+    } else {
+      errEl.textContent = 'Please enter your bank details.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!fields.accountName) {
+      errEl.textContent = 'Bank could not be verified. Check your details and try again.';
+      errEl.style.display = 'block';
+      return;
+    }
+  } else {
+    // ── FLW (bank-list) currency — unchanged validation ──
+    if (!fields.bankCode || !fields.bankName) {
+      errEl.textContent = 'Please select your bank from the list.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!fields.accountNumber) {
+      errEl.textContent = 'Please enter your bank account number.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!fields.accountName) {
+      errEl.textContent = 'Account name could not be verified. Check your bank and account number.';
+      errEl.style.display = 'block';
+      return;
+    }
   }
 
   // All fields valid — launch OTP step
@@ -1348,14 +1748,11 @@ async function handleBankWithdraw() {
 
 // Called after OTP is verified — executes the actual bank payout
 async function _executeBankWithdraw() {
-  var amt           = parseFloat(document.getElementById('input-bank-amount').value);
-  var accountName   = document.getElementById('input-account-name').value.trim();
-  var accountNumber = document.getElementById('input-account-number').value.trim();
-  var bankName      = selectedBankName;
-  var bankCode      = selectedBankCode;
-  var saveDetails   = document.getElementById('save-bank-details').checked;
-  var errEl         = document.getElementById('bank-error');
-  var cur           = selectedWithdrawalCurrency || 'USD';
+  var amt         = parseFloat(document.getElementById('input-bank-amount').value);
+  var fields      = _collectBankWithdrawFields();
+  var saveDetails = document.getElementById('save-bank-details').checked;
+  var errEl       = document.getElementById('bank-error');
+  var cur         = selectedWithdrawalCurrency || 'USD';
   errEl.style.display = 'none';
 
   var platFee = amt * (PLATFORM_FEE_PCT / 100);
@@ -1374,10 +1771,16 @@ async function _executeBankWithdraw() {
         uid:                currentUid,
         amount:             amt,
         withdrawalCurrency: cur,
-        accountName:        accountName,
-        accountNumber:      accountNumber,
-        bankName:           bankName,
-        bankCode:           bankCode,
+        accountName:        fields.accountName,
+        accountNumber:      fields.accountNumber,
+        bankName:           fields.bankName,
+        bankCode:           fields.bankCode,
+        // B5: Stripe-specific identifiers for international currencies.
+        // Empty strings for FLW currencies — the backend only reads these
+        // when withdrawalCurrency is Stripe-routed, so they're harmless here.
+        routingNumber:      fields.routingNumber,
+        sortCode:           fields.sortCode,
+        iban:               fields.iban,
         saveDetails:        saveDetails,
         fees: { platformFee: platFee },
       }),
@@ -1399,6 +1802,17 @@ async function _executeBankWithdraw() {
       document.getElementById('save-bank-details').checked = false;
       // Reset dynamic bank selection
       clearBankSelection();
+      // B5: also clear any Stripe-specific inputs so stale routing/IBAN/sort
+      // code values don't carry over into the next withdrawal attempt
+      var stripeRouting = document.getElementById('input-stripe-routing');
+      var stripeIban     = document.getElementById('input-stripe-iban');
+      var stripeSort      = document.getElementById('input-stripe-sort-code');
+      var stripeAcctNum   = document.getElementById('input-stripe-account-number');
+      if (stripeRouting) stripeRouting.value = '';
+      if (stripeIban)     stripeIban.value     = '';
+      if (stripeSort)      stripeSort.value      = '';
+      if (stripeAcctNum)   stripeAcctNum.value   = '';
+      stripeAccountToken = null;
       var chk = document.getElementById('account-name-check');
       if (chk) chk.style.display = 'none';
       calcBankFees();
@@ -1420,6 +1834,7 @@ const NAV_LINKS = [
   { label:'Dashboard',     href:'dashboard.html',           icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',      href:'dashboard-earnings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',      href:'dashboard-projects.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
+  { label:'Invoices',      href:'dashboard-invoices.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
   { label:'Store',         href:'store.html',               icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'dashboard-products.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
   { label:'Purchases',     href:'buyer-purchases.html',     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
@@ -2152,6 +2567,21 @@ if ('serviceWorker' in navigator) {
       if (typeof window._boot === 'function') window._boot(user, affiliateEnabled);
     }).catch(function() { window.location.href = '/login.html'; });
   });
+</script>
+
+<script type="module">
+  // Load support email from Firestore config (falls back to the static address already in the link)
+  (async () => {
+    try {
+      if (!window.db) return;
+      const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const snap = await getDoc(doc(window.db, 'config', 'platform'));
+      const email = snap.exists() && snap.data().supportEmail ? snap.data().supportEmail : '';
+      if (!email) return;
+      const link = document.getElementById('support-mailto-link');
+      if (link) { link.href = 'mailto:' + email; }
+    } catch (e) { /* silent fail — static fallback email stays in place */ }
+  })();
 </script>
 </body>
 </html>
