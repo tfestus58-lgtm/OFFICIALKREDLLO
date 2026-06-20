@@ -682,11 +682,31 @@ window.copyPayLink = function(invoiceId) {
   }
 };
 
+window.markInvoiceDelivered = async function(invoiceId) {
+  if (!confirm('Mark this invoice as delivered? The client will be emailed a confirmation link to release payment.')) return;
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/.netlify/functions/submit-invoice-delivery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify({ invoiceId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to submit delivery.');
+    showToast('Invoice marked as delivered. Client has been notified.');
+    await loadInvoices();
+  } catch (err) {
+    showToast(err.message || 'Could not mark as delivered. Please try again.');
+  }
+};
+
 // ── Status badge ──────────────────────────────────────────────────────────────
 function statusBadge(status) {
-  if (status === 'paid')   return '<span class="badge badge-green">Paid</span>';
-  if (status === 'sent')   return '<span class="badge badge-amber">Sent</span>';
-  if (status === 'void')   return '<span class="badge badge-red">Void</span>';
+  if (status === 'paid' || status === 'completed') return '<span class="badge badge-green">Paid</span>';
+  if (status === 'escrow')    return '<span class="badge badge-amber" style="background:#fff3e0;color:#e65100;">In Escrow</span>';
+  if (status === 'delivered') return '<span class="badge badge-amber">Awaiting Confirmation</span>';
+  if (status === 'sent')      return '<span class="badge badge-amber">Sent</span>';
+  if (status === 'void')      return '<span class="badge badge-red">Void</span>';
   return '<span class="badge badge-gray">Draft</span>';
 }
 
@@ -707,9 +727,9 @@ async function loadInvoices() {
   // Stats
   var outstanding = 0, paid = 0, drafts = 0;
   _invoices.forEach(function(inv) {
-    if (inv.status === 'paid') paid += (inv.total || 0);
+    if (inv.status === 'paid' || inv.status === 'completed') paid += (inv.total || 0);
     else if (inv.status === 'draft') drafts += 1;
-    else if (inv.status === 'sent') outstanding += (inv.total || 0);
+    else if (inv.status === 'sent' || inv.status === 'escrow' || inv.status === 'delivered') outstanding += (inv.total || 0);
   });
   document.getElementById('stat-outstanding').textContent = fmt(outstanding, _settingsCurrency());
   document.getElementById('stat-paid').textContent        = fmt(paid, _settingsCurrency());
@@ -732,7 +752,11 @@ async function loadInvoices() {
       a += '<button class="icon-btn" title="Copy pay link" onclick="copyPayLink(\'' + inv.id + '\')" style="display:inline-flex;margin-right:6px;">' +
            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0d2145" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
     }
-    if (inv.status !== 'paid' && inv.status !== 'void') {
+    if (inv.status === 'escrow') {
+      a += '<button class="btn-deliver-invoice" title="Mark as Delivered" onclick="markInvoiceDelivered(\'' + inv.id + '\')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:#2d8a5e;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px;">' +
+           '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Mark Delivered</button>';
+    }
+    if (inv.status !== 'paid' && inv.status !== 'completed' && inv.status !== 'void' && inv.status !== 'delivered') {
       a += '<button class="icon-btn" title="Void" onclick="openVoidModal(\'' + inv.id + '\')" style="display:inline-flex;">' +
            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c81e1e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>';
     }

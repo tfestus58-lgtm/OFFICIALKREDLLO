@@ -6,6 +6,11 @@
  * Mirrors create-product-order.js's payment-creation pattern, but reads from
  * the `invoices` collection instead of `products`.
  *
+ * After payment is confirmed (via webhook), funds are held in escrow.
+ * The freelancer must mark the invoice as delivered; then the buyer confirms
+ * (or the scheduled function auto-releases after the admin-configured escrow
+ * window starting from deliveredAt).
+ *
  * Expected POST body (JSON):
  *   {
  *     invoiceId:     string  — Firestore invoices document ID
@@ -225,7 +230,7 @@ exports.handler = async (event) => {
     }
     const invoice = invoiceSnap.data();
 
-    if (invoice.status === 'paid') {
+    if (['paid', 'escrow', 'delivered', 'completed'].includes(invoice.status)) {
       return respond(400, { error: 'This invoice has already been paid.' });
     }
     if (invoice.status === 'void' || invoice.status === 'cancelled') {

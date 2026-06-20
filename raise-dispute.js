@@ -2,14 +2,16 @@
  * Netlify Function: raise-dispute.js
  * Path: netlify/functions/raise-dispute.js
  *
- * Called when a buyer raises a dispute on a project.
- * - Verifies the caller is the project's buyer
+ * Called when a buyer or freelancer raises a dispute on a project.
+ * - Verifies the caller is the project's buyer (raisedByRole 'buyer', default)
+ *   or the project's freelancer (raisedByRole 'freelancer')
  * - Guards against duplicate disputes
  * - Updates the project: status → disputed, escrowStatus → disputed
  * - Sends notifications to both parties
  *
  * POST body:
- *   { projectId: string, raisedBy: string, raisedByRole: 'buyer', description: string }
+ *   (project) { projectId: string, raisedBy: string, raisedByRole: 'buyer'|'freelancer', description: string }
+ *   (invoice) { type: 'invoice', invoiceId: string, raisedBy: string, description: string, clientEmail: string }
  *
  * Environment variables required:
  *   FIREBASE_SERVICE_ACCOUNT  — full service account JSON
@@ -52,7 +54,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
 
@@ -90,11 +95,8 @@ exports.handler = async (event) => {
     return respond(400, { error: 'Invalid JSON body.' });
   }
 
-  const { projectId, raisedBy, raisedByRole, description } = payload;
+  const { type, projectId, invoiceId, raisedBy, raisedByRole, description, clientEmail } = payload;
 
-  if (!projectId || typeof projectId !== 'string') {
-    return respond(400, { error: 'projectId is required.' });
-  }
   if (!raisedBy || typeof raisedBy !== 'string') {
     return respond(400, { error: 'raisedBy is required.' });
   }
@@ -109,6 +111,122 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error('Firebase Admin init failed:', err.message);
     return respond(500, { error: 'Database not available.' });
+  }
+
+  const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+
+  /* ══════════════════════════════════════════════════════════════
+     INVOICE DISPUTE PATH
+     type === 'invoice': look up the invoices collection, verify
+     the caller via clientEmail (buyer side only for invoices).
+  ══════════════════════════════════════════════════════════════ */
+  if (type === 'invoice') {
+    if (!invoiceId || typeof invoiceId !== 'string') {
+      return respond(400, { error: 'invoiceId is required for invoice disputes.' });
+    }
+    if (!clientEmail || typeof clientEmail !== 'string') {
+      return respond(400, { error: 'clientEmail is required for invoice disputes.' });
+    }
+
+    /* ── Fetch invoice ── */
+    let invoiceSnap;
+    try {
+      invoiceSnap = await db.collection('invoices').doc(invoiceId).get();
+    } catch (err) {
+      console.error(`Firestore read failed for invoice ${invoiceId}:`, err.message);
+      return respond(500, { error: 'Database read failed.' });
+    }
+
+    if (!invoiceSnap.exists) {
+      return respond(404, { error: 'Invoice not found.' });
+    }
+
+    const invoice = invoiceSnap.data();
+
+    /* ── Verify buyer via clientEmail ── */
+    const storedClientEmail = (invoice.clientEmail || '').trim().toLowerCase();
+    const suppliedEmail     = clientEmail.trim().toLowerCase();
+    if (!storedClientEmail || storedClientEmail !== suppliedEmail) {
+      return respond(403, { error: 'You are not authorised to raise a dispute on this invoice.' });
+    }
+
+    /* ── Guard: duplicate dispute ── */
+    if (invoice.status === 'disputed') {
+      return respond(409, { error: 'A dispute has already been raised on this invoice.' });
+    }
+
+    /* ── Guard: can only dispute invoices in escrow or delivered ── */
+    if (!['escrow', 'delivered'].includes(invoice.status)) {
+      return respond(400, { error: `Cannot raise a dispute on an invoice with status "${invoice.status}".` });
+    }
+
+    const sellerUid    = invoice.sellerUid || invoice.uid || null;
+    const invoiceTitle = invoice.invoiceNumber || invoice.title || invoiceId;
+
+    /* ── Mark invoice as disputed ── */
+    try {
+      await db.collection('invoices').doc(invoiceId).update({
+        status:         'disputed',
+        escrowStatus:   'disputed',
+        disputeReason:  description.trim(),
+        disputedBy:     raisedBy,
+        disputedByRole: 'buyer',
+        disputedAt:     FieldValue.serverTimestamp(),
+        updatedAt:      FieldValue.serverTimestamp(),
+      });
+      console.log(`Dispute raised on invoice ${invoiceId} by ${raisedBy}.`);
+    } catch (err) {
+      console.error(`Firestore update failed for invoice ${invoiceId}:`, err.message);
+      return respond(500, { error: 'Failed to update invoice status.' });
+    }
+
+    /* ── Fetch seller details for notification ── */
+    let sellerEmail = null;
+    let sellerName  = 'Freelancer';
+    if (sellerUid) {
+      try {
+        const sellerSnap = await db.collection('users').doc(sellerUid).get();
+        if (sellerSnap.exists) {
+          sellerEmail = sellerSnap.data().email || null;
+          sellerName  = sellerSnap.data().name || sellerSnap.data().displayName || 'Freelancer';
+        }
+      } catch (err) {
+        console.warn('Could not fetch seller details for notification:', err.message);
+      }
+    }
+
+    const buyerDisplayName = invoice.clientName || invoice.payerName || 'Client';
+
+    /* ── Notify seller ── */
+    if (sellerUid) {
+      await callFunction('send-smart-notification', {
+        userUid:    sellerUid,
+        to:         sellerEmail || null,
+        title:      'Dispute Raised',
+        body:       `A dispute has been raised on invoice ${invoiceTitle}. Kreddlo support will review shortly.`,
+        url:        `${platformUrl}/dashboard-invoices.html`,
+        templateId: 'dispute-raised',
+        emailMode:  sellerEmail ? 'always' : 'never',
+        emailData: {
+          name:          sellerName,
+          projectTitle:  invoiceTitle,
+          raisedByName:  buyerDisplayName,
+          disputeId:     invoiceId,
+        },
+      });
+    }
+
+    return respond(200, {
+      success: true,
+      message: 'Dispute submitted. The Kreddlo team will be in touch.',
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PROJECT DISPUTE PATH (original logic)
+  ══════════════════════════════════════════════════════════════ */
+  if (!projectId || typeof projectId !== 'string') {
+    return respond(400, { error: 'projectId is required.' });
   }
 
   /* ── Fetch project ── */
@@ -126,8 +244,15 @@ exports.handler = async (event) => {
 
   const project = projectSnap.data();
 
-  /* ── Verify caller is the project buyer ── */
-  if (project.buyerUid !== raisedBy) {
+  /* ── Verify caller is the project buyer OR the project freelancer ──
+     raisedByRole defaults to 'buyer' for backward compatibility with
+     existing callers that only ever sent buyer-side disputes. */
+  const role = raisedByRole === 'freelancer' ? 'freelancer' : 'buyer';
+  const isAuthorised = role === 'freelancer'
+    ? !!project.freelancerUid && project.freelancerUid === raisedBy
+    : project.buyerUid === raisedBy;
+
+  if (!isAuthorised) {
     return respond(403, { error: 'You are not authorised to raise a dispute on this project.' });
   }
 
@@ -185,37 +310,43 @@ exports.handler = async (event) => {
     console.warn('Could not fetch user details for notifications:', err.message);
   }
 
-  const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   const projectUrl  = `${platformUrl}/buyer-projects.html?projectId=${encodeURIComponent(projectId)}`;
+  const raiserName  = role === 'freelancer' ? freelancerName : buyerName;
 
-  /* ── Notify the buyer: dispute received ── */
+  /* ── Notify the buyer ── */
   await callFunction('send-smart-notification', {
     userUid:    buyerUid,
-    title:      'Dispute Submitted',
-    body:       `Your dispute for "${projectTitle}" has been received. The Kreddlo team will be in touch.`,
+    title:      role === 'buyer' ? 'Dispute Submitted' : 'Dispute Raised',
+    body:       role === 'buyer'
+      ? `Your dispute for "${projectTitle}" has been received. The Kreddlo team will be in touch.`
+      : `A dispute has been raised on "${projectTitle}". Kreddlo support will review shortly.`,
     url:        projectUrl,
     templateId: 'dispute-raised',
     emailMode:  buyerEmail ? 'always' : 'never',
     emailData: {
       name:         buyerName,
       projectTitle,
-      description:  description.trim(),
+      raisedByName: raiserName,
+      disputeId:    projectId,
     },
   });
 
-  /* ── Notify the freelancer: dispute raised ── */
+  /* ── Notify the freelancer ── */
   if (freelancerUid) {
     await callFunction('send-smart-notification', {
       userUid:    freelancerUid,
-      title:      'Dispute Raised',
-      body:       `A dispute has been raised on "${projectTitle}". Kreddlo support will review shortly.`,
+      title:      role === 'freelancer' ? 'Dispute Submitted' : 'Dispute Raised',
+      body:       role === 'freelancer'
+        ? `Your dispute for "${projectTitle}" has been received. The Kreddlo team will be in touch.`
+        : `A dispute has been raised on "${projectTitle}". Kreddlo support will review shortly.`,
       url:        `${platformUrl}/dashboard-projects.html?projectId=${encodeURIComponent(projectId)}`,
-      templateId: 'dispute-raised-freelancer',
+      templateId: 'dispute-raised',
       emailMode:  freelancerEmail ? 'always' : 'never',
       emailData: {
         name:         freelancerName,
         projectTitle,
-        buyerName,
+        raisedByName: raiserName,
+        disputeId:    projectId,
       },
     });
   }

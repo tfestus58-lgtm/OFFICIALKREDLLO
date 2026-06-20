@@ -38,6 +38,7 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    window.app  = app;
     window.db   = getFirestore(app);
     window.auth = getAuth(app);
     window._fsReviews = { collection, query, where, orderBy, limit, getDocs };
@@ -458,7 +459,7 @@
     <!-- Logo -->
     <a href="index.html" style="text-decoration:none;flex-shrink:0;">
       <span style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;font-family:'Plus Jakarta Sans',sans-serif;">
-        Kreddl<span style="color:#2d8a5e;">o</span>
+        Kreddl<span style="color:#3dbd7a;">o</span>
       </span>
     </a>
 
@@ -654,7 +655,7 @@
     <!-- Stack on mobile, row on md+ -->
     <div style="display:grid;grid-template-columns:1fr;gap:28px;margin-bottom:28px;">
       <div>
-        <div style="font-size:20px;font-weight:800;color:#0d2145;margin-bottom:10px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+        <div style="font-size:20px;font-weight:800;color:#0d2145;margin-bottom:10px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
         <p style="font-size:13px;font-weight:400;color:rgba(13,33,69,0.50);line-height:1.7;max-width:300px;">The complete freelance operating system for verified professionals worldwide.</p>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -1553,39 +1554,221 @@
     }
   };
 
-  window.submitSignature = function() {
+  // Holds the projectId once create-project succeeds
+  let _createdProjectId = null;
+
+  window.submitSignature = async function() {
     document.getElementById('err-sign').style.display = 'none';
-    if(activeSigOpt==='a') {
-      if(!sigPad || sigPad.isEmpty()) {
+
+    // Validate signature
+    let sigBase64 = '';
+    if (activeSigOpt === 'a') {
+      if (!sigPad || sigPad.isEmpty()) {
         document.getElementById('err-sign').textContent = 'Please draw your signature above.';
         document.getElementById('err-sign').style.display = 'block';
         return;
       }
+      // Strip the data:image/png;base64, prefix — backend wants raw base64
+      const dataUrl = sigPad.toDataURL('image/png');
+      sigBase64 = dataUrl.split(',')[1] || '';
     } else {
-      if(!uploadedSig) {
+      if (!uploadedSig) {
         document.getElementById('err-sign').textContent = 'Please upload a photo of your signature.';
         document.getElementById('err-sign').style.display = 'block';
         return;
       }
+      sigBase64 = uploadedSig.split(',')[1] || uploadedSig;
     }
-    // Demo: show success
-    document.getElementById('step3-form').style.display = 'none';
-    document.getElementById('step3-success').style.display = 'block';
-    updatePaymentTotal();
+
+    // Disable the sign button and show spinner
+    const signBtn = document.getElementById('btn-sign');
+    const origLabel = signBtn ? signBtn.innerHTML : '';
+    if (signBtn) {
+      signBtn.disabled = true;
+      signBtn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></span> Creating project…';
+    }
+
+    // Require the buyer to be logged in
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    const user = getAuth(window.app).currentUser;
+    if (!user) {
+      document.getElementById('err-sign').textContent = 'You must be logged in to hire a freelancer.';
+      document.getElementById('err-sign').style.display = 'block';
+      if (signBtn) { signBtn.disabled = false; signBtn.innerHTML = origLabel; }
+      return;
+    }
+
+    let idToken;
+    try {
+      idToken = await user.getIdToken();
+    } catch (tokenErr) {
+      document.getElementById('err-sign').textContent = 'Session expired. Please refresh and try again.';
+      document.getElementById('err-sign').style.display = 'block';
+      if (signBtn) { signBtn.disabled = false; signBtn.innerHTML = origLabel; }
+      return;
+    }
+
+    try {
+      const protect = document.getElementById('protection-toggle')
+        ? document.getElementById('protection-toggle').checked
+        : false;
+
+      const res = await fetch('/.netlify/functions/create-project', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
+        body: JSON.stringify({
+          freelancerUid:  window._profileUid      || '',
+          title:          projectData.title        || '',
+          description:    projectData.desc         || '',
+          budget:         projectData.budget       || 0,
+          deadline:       projectData.deadline     || '',
+          buyerSignature: sigBase64,
+          withProtection: protect,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        document.getElementById('err-sign').textContent = data.error || 'Could not create project. Please try again.';
+        document.getElementById('err-sign').style.display = 'block';
+        if (signBtn) { signBtn.disabled = false; signBtn.innerHTML = origLabel; }
+        return;
+      }
+
+      _createdProjectId = data.projectId;
+
+      // Show success state and advance to payment step
+      document.getElementById('step3-form').style.display = 'none';
+      document.getElementById('step3-success').style.display = 'block';
+      updatePaymentTotal();
+
+    } catch (err) {
+      console.error('[profile] create-project error:', err);
+      document.getElementById('err-sign').textContent = 'Network error. Please check your connection and try again.';
+      document.getElementById('err-sign').style.display = 'block';
+      if (signBtn) { signBtn.disabled = false; signBtn.innerHTML = origLabel; }
+    }
   };
 
-  // ── Payment submit (demo) ─────────────────────────────────────────────
-  window.submitPayment = function() {
+  // ── Payment submit — calls real payment function with the created projectId ──
+  window.submitPayment = async function() {
+    if (!_createdProjectId) {
+      showToast('Project ID missing. Please go back and sign again.');
+      return;
+    }
+
     const btn = document.getElementById('btn-pay');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spin" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;"></span> Processing...`;
-    // Demo: simulate redirect after 2s
-    setTimeout(() => {
-      closeHireModal();
-      showToast('Payment demo complete. In production this redirects to NOWPayments.');
-      btn.disabled = false;
-      btn.innerHTML = 'Pay and Fund Escrow';
-    }, 2000);
+    const origLabel = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;"></span> Processing…';
+    }
+
+    // Require the buyer to be logged in
+    const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    const user = getAuth(window.app).currentUser;
+    if (!user) {
+      showToast('Please log in to complete payment.');
+      if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+      return;
+    }
+
+    let idToken;
+    try {
+      idToken = await user.getIdToken();
+    } catch {
+      showToast('Session expired. Please refresh and try again.');
+      if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+      return;
+    }
+
+    const buyerEmail = user.email || '';
+    const buyerName  = user.displayName || 'Client';
+    const title      = projectData.title || 'Project';
+    const desc       = projectData.desc  || title;
+
+    try {
+      // Try NOWPayments (crypto) first — the payment chips in step 4 hint at this
+      const res = await fetch('/.netlify/functions/create-crypto-payment', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
+        body: JSON.stringify({
+          orderId:      _createdProjectId,
+          description:  desc,
+          buyerEmail,
+          projectTitle: title,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      // If crypto is unavailable, fall back to Stripe
+      const stripeRes = await fetch('/.netlify/functions/create-stripe-payment', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
+        body: JSON.stringify({
+          orderId:      _createdProjectId,
+          description:  desc,
+          buyerEmail,
+          projectTitle: title,
+        }),
+      });
+
+      const stripeData = await stripeRes.json();
+
+      if (stripeRes.ok && stripeData.checkoutUrl) {
+        window.location.href = stripeData.checkoutUrl;
+        return;
+      }
+
+      // Both failed — try Flutterwave as last resort
+      const fwRes = await fetch('/.netlify/functions/create-flutterwave-payment', {
+        method:  'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + idToken,
+        },
+        body: JSON.stringify({
+          orderId:      _createdProjectId,
+          description:  desc,
+          buyerEmail,
+          buyerName,
+          projectTitle: title,
+        }),
+      });
+
+      const fwData = await fwRes.json();
+
+      if (fwRes.ok && fwData.checkoutUrl) {
+        window.location.href = fwData.checkoutUrl;
+        return;
+      }
+
+      // All gateways failed
+      const errMsg = (stripeData && stripeData.error) || (fwData && fwData.error) || 'Payment unavailable. Please try again later.';
+      showToast(errMsg);
+      if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+
+    } catch (err) {
+      console.error('[profile] submitPayment error:', err);
+      showToast('Network error. Please check your connection and try again.');
+      if (btn) { btn.disabled = false; btn.innerHTML = origLabel; }
+    }
   };
 
   // ── Footer responsive grid ─────────────────────────────────────────────

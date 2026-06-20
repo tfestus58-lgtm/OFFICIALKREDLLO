@@ -152,6 +152,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8f9fb;color:#0d2145
   .search-wrap{width:auto!important;max-width:240px!important}
   .proj-card{padding:24px!important}
 }
+.spin{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 
 <!-- Firebase SDK -->
@@ -381,7 +383,7 @@ header > div:last-child {
 
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
   </div>
@@ -488,7 +490,7 @@ header > div:last-child {
       <input type="file" id="dispute-file" accept="image/*,application/pdf" style="display:none;" onchange="onFileSelected()"/>
     </div>
 
-    <button class="btn-primary" style="width:100%;" onclick="submitDispute()">Submit Dispute</button>
+    <button class="btn-primary" id="dispute-submit-btn" style="width:100%;" onclick="submitDispute()">Submit Dispute</button>
   </div>
 </div>
 
@@ -842,20 +844,31 @@ async function submitDelivery() {
       }
     }
 
-    // 2. Update Firestore project document
-    if (window.db && window._fs) {
-      var fsDoc = window._fs.doc;
-      var updateDoc = window._fs.updateDoc;
-      var serverTimestamp = window._fs.serverTimestamp;
+    // 2. Submit the delivery via the backend (updates Firestore server-side
+    //    and reliably notifies the buyer — see netlify/functions/submit-delivery.js)
+    var idToken = (window.auth && window.auth.currentUser)
+      ? await window.auth.currentUser.getIdToken()
+      : '';
 
-      var projectRef = fsDoc(window.db, 'projects', projectId);
-      await updateDoc(projectRef, {
-        status:        'delivered',
+    var res = await fetch('/.netlify/functions/submit-delivery', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': 'Bearer ' + idToken,
+      },
+      body: JSON.stringify({
+        projectId:     projectId,
+        freelancerUid: DEMO_USER.uid,
         deliveryNote:  message,
         deliveryFiles: downloadURLs,
         deliveryLinks: link,
-        deliveredAt:   serverTimestamp(),
-      });
+      }),
+    });
+
+    var result = await res.json().catch(function() { return {}; });
+
+    if (!res.ok) {
+      throw new Error(result.error || 'Could not submit delivery. Please try again.');
     }
 
     // 3. Update local demo data so card re-renders immediately
@@ -867,44 +880,13 @@ async function submitDelivery() {
       p.deliveryLinks = link;
     }
 
-    // 4. Notify the buyer via send-smart-notification (non-fatal)
-    try {
-      var buyerUid      = (p && p.buyerUid)      || null;
-      var projectTitle  = (p && p.title)          || 'Your project';
-      var freelancerName = DEMO_USER.name          || 'Your freelancer';
-
-      if (buyerUid) {
-        await fetch('/.netlify/functions/send-smart-notification', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userUid:    buyerUid,
-            title:      'Work Delivered',
-            body:       '"' + projectTitle + '" has been marked as delivered. Please review and approve.',
-            url:        '/buyer-projects.html',
-            templateId: 'work-delivered',
-            emailMode:  'always',
-            emailData: {
-              name:           p.buyerName || '',
-              projectTitle:   projectTitle,
-              freelancerName: freelancerName,
-              deliveryNote:   message,
-            },
-          }),
-        });
-      }
-    } catch (notifErr) {
-      // Non-fatal — Firestore update already succeeded
-      console.warn('[submitDelivery] Notification failed:', notifErr.message);
-    }
-
     closeDeliveryModal();
     renderProjects();
-    showToast('Delivery submitted! The client has been notified.');
+    showToast(result.message || 'Delivery submitted! The client has been notified.');
 
   } catch (err) {
     console.error('[submitDelivery]', err);
-    showToast('Something went wrong. Please try again.');
+    showToast(err && err.message ? err.message : 'Something went wrong. Please try again.');
     btn.disabled = false;
     btn.textContent = 'Submit Delivery';
     btn.style.opacity = '';
@@ -919,32 +901,49 @@ function onFileSelected() {
     document.getElementById('file-drop').classList.add('has-file');
   }
 }
-function submitDispute() {
+async function submitDispute() {
   var text = document.getElementById('dispute-text').value.trim();
   if (!text) { showToast('Please describe the issue before submitting'); return; }
   if (!activeDisputeProjectId) { closeDisputeModal(); return; }
 
-  // Mark project as disputed in Firestore + local array
-  var p = PROJECTS.find(function(x){ return x.id === activeDisputeProjectId; });
-  if (p) {
-    p.status = 'disputed';
-    p.escrowStatus = 'disputed';
-  }
+  var btn = document.getElementById('dispute-submit-btn');
+  var original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Submitting...';
 
-  if (window.db && window._fs) {
-    var fsDoc = window._fs.doc;
-    var updateDoc = window._fs.updateDoc;
-    updateDoc(fsDoc(window.db, 'projects', activeDisputeProjectId), {
-      status: 'disputed',
-      escrowStatus: 'disputed',
-      disputeReason: text,
-      disputedAt: window._fs.serverTimestamp(),
-    }).catch(function(err) { console.warn('[submitDispute] Firestore error:', err.message); });
-  }
+  var _idToken = (window.auth && window.auth.currentUser)
+    ? await window.auth.currentUser.getIdToken()
+    : '';
 
-  closeDisputeModal();
-  renderProjects();
-  showToast('Dispute submitted. The Kreddlo team will be in touch.');
+  fetch('/.netlify/functions/raise-dispute', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _idToken },
+    body: JSON.stringify({
+      projectId:    activeDisputeProjectId,
+      raisedBy:     DEMO_USER.uid,
+      raisedByRole: 'freelancer',
+      description:  text
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success || data.message) {
+      var p = PROJECTS.find(function(x){ return x.id === activeDisputeProjectId; });
+      if (p) { p.status = 'disputed'; p.escrowStatus = 'disputed'; }
+      closeDisputeModal();
+      renderProjects();
+      showToast('Dispute submitted. The Kreddlo team will be in touch.');
+    } else {
+      showToast(data.error || 'Dispute submission failed. Try again.');
+    }
+  })
+  .catch(function() {
+    showToast('Network error. Check your connection and try again.');
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  });
 }
 
 // ============ STEP 18A: PULL TO REFRESH ============
@@ -1215,3 +1214,6 @@ if ('serviceWorker' in navigator) {
       if (typeof window._boot === 'function') window._boot(user, affiliateEnabled);
     }).catch(function() { window.location.href = '/login.html'; });
   });
+</script>
+</body>
+</html>

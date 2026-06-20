@@ -2,19 +2,32 @@
  * Netlify Function: approve-delivery.js
  * Path: netlify/functions/approve-delivery.js
  *
- * Called when a buyer approves a delivered project.
- * - Verifies the caller is the project's buyer
- * - Updates the project: status → completed, escrowStatus → releasing
+ * Called when a buyer approves a delivered project, OR automatically by
+ * scheduled-subscriptions.js after 72 hours of inactivity.
+ *
+ * - Verifies the caller is the project's buyer (JWT path) OR a trusted
+ *   internal function (x-internal-secret path, used by the scheduler)
+ * - Updates the project: status → completed, escrowStatus → released
  * - Credits the net amount to the freelancer's availableBalance
- * - Sends push notification to the freelancer
- * - Triggers emails to both parties via send-email
+ * - Notifies the freelancer (push + in-app + email) that payment is on its way
+ *   (the buyer is already notified separately, at delivery-submission time,
+ *   by netlify/functions/submit-delivery.js — not duplicated here)
  *
  * POST body:
  *   { projectId: string, buyerUid: string }
  *
+ * Auth paths (either one must pass):
+ *   1. Firebase ID token in Authorization header — buyer approving manually.
+ *      The token uid must match the project's buyerUid.
+ *   2. x-internal-secret header matching INTERNAL_FUNCTION_SECRET — trusted
+ *      server-to-server call (e.g. scheduled auto-approval after 72 h).
+ *      buyerUid must still be supplied in the body; it is validated against
+ *      the project document before any write is performed.
+ *
  * Environment variables required:
- *   FIREBASE_SERVICE_ACCOUNT  — full service account JSON
- *   PLATFORM_URL              — live domain e.g. https://kreddlo.com
+ *   FIREBASE_SERVICE_ACCOUNT    — full service account JSON
+ *   PLATFORM_URL                — live domain e.g. https://kreddlo.com
+ *   INTERNAL_FUNCTION_SECRET    — shared secret for server-to-server calls
  */
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
@@ -53,7 +66,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
 
@@ -77,11 +93,20 @@ exports.handler = async (event) => {
     return respond(405, { error: 'Method not allowed.' });
   }
 
-  /* ── Verify caller identity ── */
-  const callerUid = await verifyCaller(event);
-  if (!callerUid) {
-    return respond(401, { error: 'Unauthorized. Please log in again.' });
-  }
+  /* ── Verify caller identity (two accepted paths) ── */
+  //
+  // Path 1 — Internal server-to-server call (e.g. scheduled-subscriptions.js
+  //   auto-approving after 72 h). Identified by the x-internal-secret header.
+  //   buyerUid must be supplied in the body; it is validated against the
+  //   project document before any write is performed.
+  //
+  // Path 2 — Authenticated buyer calling from the browser. A Firebase ID token
+  //   in the Authorization header is verified and its uid used directly.
+  //   Any buyerUid in the body must match the verified token uid.
+  //
+  const incomingSecret  = event.headers['x-internal-secret'] || event.headers['X-Internal-Secret'] || '';
+  const expectedSecret  = process.env.INTERNAL_FUNCTION_SECRET || '';
+  const isTrustedInternal = !!expectedSecret && incomingSecret === expectedSecret;
 
   /* ── Parse body ── */
   let payload;
@@ -93,11 +118,26 @@ exports.handler = async (event) => {
 
   const { projectId, buyerUid: bodyBuyerUid } = payload;
 
-  // Use verified uid; if client also sent buyerUid and it mismatches, reject
-  if (bodyBuyerUid && bodyBuyerUid !== callerUid) {
-    return respond(403, { error: 'Caller identity mismatch.' });
+  let buyerUid;
+
+  if (isTrustedInternal) {
+    // Internal path: trust the buyerUid from the body; validate against Firestore below.
+    if (!bodyBuyerUid || typeof bodyBuyerUid !== 'string') {
+      return respond(400, { error: 'buyerUid is required for internal calls.' });
+    }
+    buyerUid = bodyBuyerUid;
+  } else {
+    // Browser path: verify the Firebase ID token.
+    const callerUid = await verifyCaller(event);
+    if (!callerUid) {
+      return respond(401, { error: 'Unauthorized. Please log in again.' });
+    }
+    // If client also sent buyerUid in body, it must match the verified token.
+    if (bodyBuyerUid && bodyBuyerUid !== callerUid) {
+      return respond(403, { error: 'Caller identity mismatch.' });
+    }
+    buyerUid = callerUid;
   }
-  const buyerUid = callerUid;
 
   if (!projectId || typeof projectId !== 'string') {
     return respond(400, { error: 'projectId is required.' });
@@ -160,7 +200,7 @@ exports.handler = async (event) => {
   try {
     await db.collection('projects').doc(projectId).update({
       status:       'completed',
-      escrowStatus: 'releasing',
+      escrowStatus: 'released',
       completedAt:  FieldValue.serverTimestamp(),
       updatedAt:    FieldValue.serverTimestamp(),
     });
@@ -223,22 +263,6 @@ exports.handler = async (event) => {
       projectTitle,
       amount:       amountFormatted,
       buyerName,
-    },
-  });
-
-  /* ── Notify the buyer: work delivered ── */
-  await callFunction('send-smart-notification', {
-    userUid:      buyerUid,
-    title:        'Work Delivered',
-    body:         `"${projectTitle}" has been marked as delivered. Please review and approve.`,
-    url:          projectUrl,
-    templateId:   'work-delivered',
-    emailMode:    buyerEmail ? 'delayed' : 'never',
-    delayMinutes: 15,
-    emailData: {
-      name:           buyerName,
-      projectTitle,
-      freelancerName,
     },
   });
 

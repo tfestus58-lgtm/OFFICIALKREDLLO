@@ -51,7 +51,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
 
@@ -155,7 +158,7 @@ exports.handler = async (event) => {
         body:         `You have a new sale on "${product.title}". The buyer is waiting for delivery.`,
         url:          `${platformUrl}/dashboard.html`,
         templateId:   'product-sale',
-        emailMode:    'always',
+        emailMode:    'never',
         emailData: {
           name:         sellerName,
           buyerName:    order.buyerName,
@@ -244,7 +247,7 @@ exports.handler = async (event) => {
       title:        'Review request scheduled',
       body:         `A review request will be sent to ${order.buyerEmail} in 48 hours.`,
       templateId:   'review-request',
-      emailMode:    'delayed',
+      emailMode:    'never',
       delayMinutes: 2880,
       emailTo:      order.buyerEmail,
       emailToName:  order.buyerName,
@@ -263,7 +266,7 @@ exports.handler = async (event) => {
       body:       `${order.buyerName} purchased "${product.title}" for ${amountFormatted}.`,
       url:        `${platformUrl}/dashboard.html`,
       templateId: 'product-sale',
-      emailMode:  'always',
+      emailMode:  'never',
       emailData: {
         name:         sellerName,
         buyerName:    order.buyerName,

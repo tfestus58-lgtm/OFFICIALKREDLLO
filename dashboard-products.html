@@ -516,7 +516,7 @@ header > div:last-child {
 
 <!-- ══ LOADING OVERLAY ══ -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
   </div>
@@ -1609,6 +1609,23 @@ async function cpSubmit() {
       affiliateCommissionPercent: data.affiliateEnabled ? (data.affiliateCommissionPercent ?? null) : null,
       updatedAt:    serverTimestamp(),
     };
+
+    // Bake the seller's real name (and photo) onto the product doc itself so
+    // the product/payment page always shows the correct name immediately,
+    // regardless of whether a later live lookup against the users collection
+    // succeeds or is blocked by Firestore rules.
+    try {
+      const sellerSnap = await getDoc(doc(db, 'users', _currentUser.uid));
+      if (sellerSnap.exists()) {
+        const sellerData = sellerSnap.data();
+        payload.sellerName = sellerData.displayName || sellerData.name || _currentUser.displayName || 'Kreddlo Seller';
+        if (sellerData.photoURL) payload.sellerPhoto = sellerData.photoURL;
+      } else if (_currentUser.displayName) {
+        payload.sellerName = _currentUser.displayName;
+      }
+    } catch (sellerErr) {
+      console.warn('[dashboard-products] Could not fetch seller profile for sellerName:', sellerErr);
+    }
 
     if (coverUrl) {
       payload.coverUrl      = coverUrl;

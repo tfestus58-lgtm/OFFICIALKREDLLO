@@ -55,7 +55,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':      'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
     if (!res.ok) {

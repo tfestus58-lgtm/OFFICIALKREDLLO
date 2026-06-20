@@ -745,7 +745,10 @@ exports.handler = async function (event) {
 
       await fetch(`${platformUrl}/.netlify/functions/send-smart-notification`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':     'application/json',
+          'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+        },
         body:    JSON.stringify({
           userUid:    userData.uid || null,
           to:         userData.email || null,

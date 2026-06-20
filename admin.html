@@ -439,7 +439,7 @@ input[type=range]::-moz-range-thumb {
 
 <!-- ELEMENT 1: Loading Overlay -->
 <div id="loading-overlay">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;">Kredd<span style="color:#2d8a5e;">lo</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div class="load-bar"><div class="load-bar-inner"></div></div>
 </div>
 
@@ -451,14 +451,14 @@ input[type=range]::-moz-range-thumb {
   <button onclick="closeMobileMenu()" style="position:absolute;top:24px;right:22px;width:34px;height:34px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
   </button>
-  <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:32px;">Kredd<span style="color:#3dbd7a;">lo</span></div>
+  <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:32px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <nav id="mobile-nav" style="display:flex;flex-direction:column;gap:4px;"></nav>
   <button onclick="handleLogout()" style="margin-top:20px;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:12px 16px;color:rgba(255,255,255,0.60);font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .15s;">Sign out</button>
 </div>
 
 <!-- ELEMENT 4: Desktop Sidebar -->
 <div id="sidebar">
-  <a href="admin.html" style="font-size:20px;font-weight:800;color:#fff;margin-bottom:44px;text-decoration:none;">Kredd<span style="color:#3dbd7a;">lo</span></a>
+  <a href="admin.html" style="font-size:20px;font-weight:800;color:#fff;margin-bottom:44px;text-decoration:none;">Kreddl<span style="color:#3dbd7a;">o</span></a>
   <nav id="desktop-nav" style="display:flex;flex-direction:column;gap:4px;flex:1;"></nav>
   <button onclick="handleLogout()" style="margin-top:auto;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:11px;padding:12px 16px;color:rgba(255,255,255,0.60);font-size:13px;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:background .15s;">Sign out</button>
 </div>
@@ -1481,7 +1481,7 @@ function openUserModal(uid) {
   if (!u) return;
 
   var moneyLabel = u.role === 'freelancer' ? 'Total Earnings' : 'Total Spent';
-  var moneyValue = u.role === 'freelancer' ? u.totalEarnings : u.totalSpent;
+  var moneyValue = u.role === 'freelancer' ? u.totalEarned : u.totalSpent;  // field written by approve-delivery.js / deliver-product.js
   var suspendLabel = u.suspended ? 'Unsuspend User' : 'Suspend User';
   var freezeLabel  = u.payoutsFrozen ? 'Unfreeze Payouts' : 'Freeze Payouts';
   var freezeBtnStyle = u.payoutsFrozen
@@ -2688,7 +2688,7 @@ function loadUsers() {
           role: u.role || 'freelancer',
           kycStatus: u.kycStatus || 'not_started',
           joined: joined,
-          totalEarnings: u.totalEarnings || 0,
+          totalEarned: u.totalEarned || 0,  // field written by approve-delivery.js / deliver-product.js
           totalSpent: u.totalSpent || 0,
           projectCount: u.projectCount || 0,
           suspended: !!u.suspended,
@@ -2751,24 +2751,27 @@ function loadContracts() {
   var rowsEl = document.getElementById('contracts-rows');
   rowsEl.innerHTML = '<div style="padding:20px;"><div class="sk" style="height:16px;width:60%;margin-bottom:12px;"></div><div class="sk" style="height:16px;width:80%;"></div></div>';
 
+  // Fix 4e: Query the 'contracts' collection directly (sign-contract.js and
+  // download-contract.js write exclusively here — freelancerSigned/buyerSigned
+  // flags are never written onto 'projects' docs). No uid filter so admin sees all.
   _f.getDocs(_f.query(
-    _f.collection(window.db, 'projects'),
-    _f.where('freelancerSigned', '==', true),
-    _f.where('buyerSigned', '==', true),
-    _f.orderBy('signedAt', 'desc')
+    _f.collection(window.db, 'contracts'),
+    _f.orderBy('createdAt', 'desc')
   ))
     .then(function(snap) {
       CONTRACTS = [];
       snap.forEach(function(d) {
         var p = d.data();
-        var date = p.signedAt && p.signedAt.toDate
-          ? p.signedAt.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        // Use createdAt as the primary date; fall back to signedAt if present
+        var dateTs = p.createdAt || p.signedAt || null;
+        var date = dateTs && dateTs.toDate
+          ? dateTs.toDate().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
           : '';
         CONTRACTS.push({
           id: d.id,
-          project: p.projectTitle || p.title || 'Untitled',
-          buyer: p.buyerName || 'Unknown',
-          freelancer: p.freelancerName || 'Unknown',
+          project: p.title || p.projectTitle || 'Untitled',
+          buyer: p.buyerName || p.buyerEmail || 'Unknown',
+          freelancer: p.freelancerName || p.freelancerEmail || 'Unknown',
           dateSigned: date,
           amount: p.amount || 0,
           pdfUrl: p.contractPdfUrl || '#'
@@ -3305,20 +3308,48 @@ function renderAdminProducts() {
   }
 }
 
+/*
+ * FIRESTORE SECURITY RULES REQUIRED FOR ADMIN PRODUCTS:
+ * In Firebase Console → Firestore → Rules, ensure this rule exists:
+ *
+ *   match /products/{productId} {
+ *     allow read, write: if request.auth != null
+ *       && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+ *     allow read: if true; // keep this if products are publicly browsable
+ *   }
+ *
+ * If you see "[admin products] load error: permission-denied" in the browser
+ * console, the rules above are not yet deployed. Deploy them and retry.
+ */
 async function loadAdminProducts() {
   var loadingEl = document.getElementById('admin-products-loading');
-  if (loadingEl) loadingEl.style.display = 'block';
+  if (loadingEl) { loadingEl.style.display = 'block'; loadingEl.innerHTML = '<p style="color:#6b7280;font-size:14px;">Loading products…</p>'; }
 
   try {
     var db = window.db;
     var f  = window.firestore;
+    if (!db || !f) throw new Error('Firestore not initialised yet');
     var snap = await f.getDocs(f.query(f.collection(db, 'products'), f.limit(200)));
     _adminProducts = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    if (loadingEl) loadingEl.style.display = 'none';
     renderAdminProducts();
+    console.log('[admin products] loaded', _adminProducts.length, 'products');
   } catch (err) {
     console.error('[admin products] load error:', err && err.code, err && err.message, err);
+    /* Reset flag so admin can retry without page refresh */
+    _productsLoaded = false;
     var loadingEl2 = document.getElementById('admin-products-loading');
-    if (loadingEl2) loadingEl2.innerHTML = '<p style="color:#c81e1e;font-size:14px;font-weight:500;">Failed to load products. Please refresh.</p>';
+    if (loadingEl2) {
+      var isPermission = err && err.code === 'permission-denied';
+      loadingEl2.innerHTML =
+        '<p style="color:#c81e1e;font-size:14px;font-weight:500;margin-bottom:10px;">' +
+        (isPermission
+          ? 'Permission denied. Check your Firestore security rules allow admin reads on the products collection.'
+          : 'Failed to load products. Check your connection and try again.') +
+        '</p>' +
+        '<button onclick="_productsLoaded=false;loadAdminProducts();" ' +
+        'style="padding:8px 20px;background:#0d2145;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Retry</button>';
+    }
   }
 }
 

@@ -202,7 +202,7 @@ body { overflow-x: hidden !important; }
 
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:56px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
   </div>
@@ -370,7 +370,7 @@ const NAV_LINKS = {
     { label:'Dashboard',     href:'dashboard.html',          icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
     { label:'Earnings',      href:'dashboard-earnings.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
     { label:'Projects',      href:'dashboard-projects.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
-    { label:'Invoices',      href:'dashboard-invoices.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+    { label:'Invoices',      href:'/dashboard-invoices.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
     { label:'Store',         href:'store.html',              icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
     { label:'Products',      href:'dashboard-products.html', icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
     { label:'Purchases',     href:'buyer-purchases.html',    icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
@@ -553,42 +553,49 @@ window._boot = function(user, role, affiliateEnabled, db, firestoreModules) {
   window._currentUid = user.uid;
   buildNav(role || 'freelancer', affiliateEnabled === true);
 
-  const { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch } = firestoreModules;
+  const { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch, onSnapshot } = firestoreModules;
   const uid = user.uid;
 
-  // Show skeleton, load real notifications
+  // Show skeleton, then keep notifications live for the rest of the session
   const skeleton = document.getElementById('notif-skeleton');
 
-  getDocs(query(
-    collection(db, 'users', uid, 'notifications'),
-    orderBy('createdAt', 'desc'),
-    limit(50)
-  ))
-  .then(function(snap) {
-    notifications = [];
-    snap.forEach(function(d) {
-      var data = d.data();
-      var ts = data.createdAt && data.createdAt.toDate
-        ? data.createdAt.toDate().getTime()
-        : (typeof data.createdAt === 'number' ? data.createdAt : Date.now());
-      notifications.push({
-        id: d.id,
-        title: data.title || '',
-        body: data.body || '',
-        type: data.type || 'account',
-        read: data.read === true,
-        url: data.url || '',
-        createdAt: ts
+  if (window._notifUnsubscribe) { window._notifUnsubscribe(); }
+  window._notifUnsubscribe = onSnapshot(
+    query(
+      collection(db, 'users', uid, 'notifications'),
+      orderBy('createdAt', 'desc'),
+      limit(50)
+    ),
+    function(snap) {
+      notifications = [];
+      snap.forEach(function(d) {
+        var data = d.data();
+        var ts = data.createdAt && data.createdAt.toDate
+          ? data.createdAt.toDate().getTime()
+          : (typeof data.createdAt === 'number' ? data.createdAt : Date.now());
+        notifications.push({
+          id: d.id,
+          title: data.title || '',
+          body: data.body || '',
+          type: data.type || 'account',
+          read: data.read === true,
+          url: data.url || '',
+          createdAt: ts
+        });
       });
-    });
-    if (skeleton) skeleton.style.display = 'none';
-    renderNotifications();
-  })
-  .catch(function(err) {
-    console.warn('Failed to load notifications:', err);
-    if (skeleton) skeleton.style.display = 'none';
-    notifications = [];
-    renderNotifications();
+      if (skeleton) skeleton.style.display = 'none';
+      renderNotifications();
+    },
+    function(err) {
+      console.warn('Failed to load notifications:', err);
+      if (skeleton) skeleton.style.display = 'none';
+      notifications = [];
+      renderNotifications();
+    }
+  );
+
+  window.addEventListener('beforeunload', function() {
+    if (window._notifUnsubscribe) { window._notifUnsubscribe(); }
   });
 
   // Override handleNotifClick to also write to Firestore
@@ -646,7 +653,7 @@ if ('serviceWorker' in navigator) {
 <script type="module">
   import { initializeApp }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getFirestore, collection, query, orderBy, limit, getDocs, updateDoc, doc, getDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { getFirestore, collection, query, orderBy, limit, getDocs, updateDoc, doc, getDoc, writeBatch, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
   const FIREBASE_CONFIG = {
     apiKey:            'AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk',
     authDomain:        'kreddlo.firebaseapp.com',
@@ -665,7 +672,7 @@ if ('serviceWorker' in navigator) {
     getDoc(doc(db, 'users', user.uid)).then(function(snap) {
       var role = snap.exists() ? (snap.data().role || 'freelancer') : 'freelancer';
       var affiliateEnabled = snap.exists() ? (snap.data().affiliateEnabled === true) : false;
-      if (typeof window._boot === 'function') window._boot(user, role, affiliateEnabled, db, { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch });
+      if (typeof window._boot === 'function') window._boot(user, role, affiliateEnabled, db, { collection, query, orderBy, limit, getDocs, updateDoc, doc, writeBatch, onSnapshot });
     });
   });
 </script>

@@ -165,6 +165,105 @@ exports.handler = async (event) => {
     console.error('scheduled-clear-earnings: affiliate-earnings query failed (may need composite index on affiliate-earnings.cleared + affiliate-earnings.clearsAt — check logs for a Firebase auto-create link):', err.message);
   }
 
+  /* ════════════════════════════════════════════════════════════
+     3. AUTO-MARK INVOICE AS DELIVERED (48hr window)
+     Any invoice in `escrow` status with deliverBy <= now gets
+     auto-marked as `delivered` so the escrow countdown starts.
+  ════════════════════════════════════════════════════════════ */
+  try {
+    const escrowSnap = await db.collection('invoices')
+      .where('status', '==', 'escrow')
+      .where('deliverBy', '<=', now)
+      .get();
+
+    if (!escrowSnap.empty) {
+      console.log(`scheduled-clear-earnings: auto-marking ${escrowSnap.size} invoice(s) as delivered.`);
+      for (const docSnap of escrowSnap.docs) {
+        try {
+          await docSnap.ref.update({
+            status:      'delivered',
+            deliveredAt: now,
+            autoDelivered: true,
+            updatedAt:   now,
+          });
+          console.log(`Auto-marked invoice ${docSnap.id} as delivered.`);
+        } catch (err) {
+          console.error(`Failed to auto-mark invoice ${docSnap.id} as delivered:`, err.message);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('scheduled-clear-earnings: invoice auto-deliver query failed (may need composite index on invoices.status + invoices.deliverBy):', err.message);
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     4. AUTO-RELEASE INVOICE ESCROW (admin-configured escrow days)
+     Any invoice in `delivered` status with deliveredAt older than
+     holdingPeriodDays gets funds released to the seller's availableBalance.
+  ════════════════════════════════════════════════════════════ */
+  try {
+    const settings = await db.collection('config').doc('platform').get();
+    const escrowDays = (settings.exists && settings.data().holdingPeriodDays != null)
+      ? Number(settings.data().holdingPeriodDays)
+      : 7;
+
+    const cutoff = new Date(now.getTime() - escrowDays * 24 * 60 * 60 * 1000);
+
+    const deliveredSnap = await db.collection('invoices')
+      .where('status', '==', 'delivered')
+      .where('deliveredAt', '<=', cutoff)
+      .get();
+
+    if (!deliveredSnap.empty) {
+      console.log(`scheduled-clear-earnings: auto-releasing escrow for ${deliveredSnap.size} delivered invoice(s).`);
+      for (const docSnap of deliveredSnap.docs) {
+        const inv = docSnap.data();
+        const sellerUid    = inv.uid;
+        const sellerAmount = Number(inv.escrowSellerAmount || 0);
+        const currency     = (inv.currency || 'USD').toUpperCase();
+
+        try {
+          if (sellerUid && sellerAmount > 0) {
+            await db.collection('users').doc(sellerUid).update({
+              escrowBalance:             FieldValue.increment(-sellerAmount),
+              availableBalance:          FieldValue.increment(sellerAmount),
+              [`balances.${currency}`]:  FieldValue.increment(sellerAmount),
+              totalEarned:               FieldValue.increment(sellerAmount),
+              updatedAt:                 FieldValue.serverTimestamp(),
+            });
+          }
+
+          await docSnap.ref.update({
+            status:          'completed',
+            completedAt:     FieldValue.serverTimestamp(),
+            autoReleased:    true,
+            updatedAt:       FieldValue.serverTimestamp(),
+          });
+
+          /* ── Update escrow-holds record ── */
+          try {
+            const holdQuery = await db.collection('escrow-holds')
+              .where('invoiceId', '==', docSnap.id)
+              .where('status', '==', 'held')
+              .limit(1)
+              .get();
+            if (!holdQuery.empty) {
+              await holdQuery.docs[0].ref.update({ status: 'released', releasedAt: FieldValue.serverTimestamp() });
+            }
+          } catch (_) {}
+
+          console.log(`Auto-released escrow for invoice ${docSnap.id}, seller ${sellerUid}, amount ${sellerAmount} ${currency}.`);
+          results.invoiceEscrowReleased = (results.invoiceEscrowReleased || 0) + 1;
+        } catch (err) {
+          console.error(`Failed to auto-release escrow for invoice ${docSnap.id}:`, err.message);
+          results.invoiceEscrowFailed = (results.invoiceEscrowFailed || 0) + 1;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('scheduled-clear-earnings: invoice escrow-release query failed (may need composite index on invoices.status + invoices.deliveredAt):', err.message);
+  }
+
   console.log('scheduled-clear-earnings: complete —', JSON.stringify(results));
 
   return respond(200, results);

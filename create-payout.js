@@ -394,7 +394,7 @@ exports.handler = async function (event) {
        */
       await payoutRef.update({ status: 'failed', errorMsg: nowErr.message, updatedAt: new Date() });
       await userRef.update({
-        availableBalance: reservedBalance, // restore original balance
+        availableBalance: require('firebase-admin').firestore.FieldValue.increment(amtUsd), // add back exactly what was deducted — safe against concurrent balance changes
         totalWithdrawn:   require('firebase-admin').firestore.FieldValue.increment(-amtUsd),
         updatedAt:        new Date(),
       });
@@ -426,7 +426,10 @@ exports.handler = async function (event) {
       const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
       await fetch(`${platformUrl}/.netlify/functions/send-smart-notification`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':     'application/json',
+          'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+        },
         body:    JSON.stringify({
           userUid:    userData.uid || null,
           to:         userData.email || null,

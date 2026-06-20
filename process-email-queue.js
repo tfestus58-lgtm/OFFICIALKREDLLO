@@ -7,10 +7,14 @@
  *
  * Logic per queued document:
  *   1. Check if sendAfter timestamp has passed. (Firestore query handles this.)
- *   2. Fetch the corresponding in-app notification document.
- *   3. If the user has already READ the notification — skip the email.
+ *   2. Resolve the recipient email — uses the `email` field stored on the
+ *      queue doc, falling back to a Firestore lookup by userUid for older
+ *      queue docs written before that field existed. If no email can be
+ *      resolved, mark sent=true, skippedReason='no-recipient-email'.
+ *   3. Fetch the corresponding in-app notification document.
+ *   4. If the user has already READ the notification — skip the email.
  *      Mark queue doc as sent with skippedReason = 'read-by-user'.
- *   4. If not read — send the email via send-email function.
+ *   5. If not read — send the email via send-email function.
  *      Mark queue doc sent=true, update notification emailSent=true.
  *
  * Firestore email-queue document schema:
@@ -19,6 +23,8 @@
  *     notifDocId: string | null
  *     templateId: string
  *     emailData:  object
+ *     email:      string         — recipient email address
+ *     toName:     string | null  — recipient display name
  *     sendAfter:  number (Unix ms timestamp)
  *     sent:       boolean
  *     createdAt:  Timestamp
@@ -27,6 +33,8 @@
  * Environment variables required:
  *   FIREBASE_SERVICE_ACCOUNT  — full service account JSON
  *   PLATFORM_URL              — live domain e.g. https://kreddlo.com
+ *   INTERNAL_FUNCTION_SECRET  — shared secret sent as x-internal-secret when
+ *                               calling send-email (server-to-server call)
  */
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
@@ -63,7 +71,10 @@ async function callFunction(name, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${name}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':      'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
     return res;
@@ -116,8 +127,41 @@ exports.handler = async () => {
   for (const queueDoc of snapshot.docs) {
     const queueData = queueDoc.data();
     const { userUid, notifDocId, templateId, emailData } = queueData;
+    let   { email: recipientEmail, toName: recipientName } = queueData;
 
     const queueRef = db.collection('email-queue').doc(queueDoc.id);
+
+    /* ── Backward compat: older queue docs (written before this fix) don't
+       have an `email` field stored. Look the user up as a fallback. ── */
+    if (!recipientEmail && userUid) {
+      try {
+        const userSnap = await db.collection('users').doc(userUid).get();
+        if (userSnap.exists) {
+          recipientEmail = userSnap.data().email || null;
+          recipientName  = userSnap.data().name  || null;
+        }
+      } catch (err) {
+        console.warn(`Could not look up email for uid ${userUid}:`, err.message);
+      }
+    }
+
+    /* ── Skip cleanly if we still have no recipient email — this item can
+       never succeed, so don't let it loop in the queue indefinitely. ── */
+    if (!recipientEmail) {
+      try {
+        await queueRef.update({
+          sent:          true,
+          skippedReason: 'no-recipient-email',
+          processedAt:   new Date().toISOString(),
+        });
+        console.warn(`Skipped email for uid ${userUid} (no recipient email found), queueDocId ${queueDoc.id}.`);
+        skipped++;
+      } catch (err) {
+        console.error(`Failed to mark queue doc ${queueDoc.id} as skipped:`, err.message);
+        errors++;
+      }
+      continue;
+    }
 
     /* ── Check if notification was already read ── */
     let notificationRead = false;
@@ -158,8 +202,10 @@ exports.handler = async () => {
     /* ── Send the email ── */
     try {
       const res = await callFunction('send-email', {
+        to:     recipientEmail,
+        toName: recipientName || undefined,
         templateId,
-        data: emailData || {},
+        data:   emailData || {},
       });
 
       if (res && res.ok) {

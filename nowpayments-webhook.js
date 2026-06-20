@@ -310,24 +310,62 @@ async function handleFundedPayment(data) {
 
       const invoiceId = invOrder.invoiceId || null;
       const sellerUid = invOrder.sellerUid || null;
+      const clientEmail = (invOrder.clientEmail || '').trim().toLowerCase();
+      const clientName  = invOrder.clientName || invOrder.payerName || 'A client';
 
+      /* ── Place funds in escrow (not paid directly to seller) ── */
       if (invoiceId) {
         try {
+          // 48-hour window: deliverBy marks when auto-mark-delivered fires
+          const deliverBy = new Date(Date.now() + 48 * 60 * 60 * 1000);
           await db.collection('invoices').doc(invoiceId).update({
-            status:    'paid',
-            paidAt:    FieldValue.serverTimestamp(),
-            paidOrder: order_id,
-            updatedAt: FieldValue.serverTimestamp(),
+            status:              'escrow',
+            escrowHeldAt:        FieldValue.serverTimestamp(),
+            escrowSellerAmount:  invSellerAmount,
+            paidAt:              FieldValue.serverTimestamp(),
+            paidOrder:           order_id,
+            deliverBy:           deliverBy,
+            updatedAt:           FieldValue.serverTimestamp(),
           });
-          console.log(`Invoice ${invoiceId} marked as paid.`);
+          console.log(`Invoice ${invoiceId} placed in escrow.`);
         } catch (err) {
-          console.error(`Could not mark invoice ${invoiceId} as paid:`, err.message);
+          console.error(`Could not place invoice ${invoiceId} in escrow:`, err.message);
         }
       }
 
       if (sellerUid) {
-        let freelancerEmail = null;
-        let freelancerName  = 'Freelancer';
+        /* ── Add to seller's escrowBalance ── */
+        try {
+          await db.collection('users').doc(sellerUid).update({
+            escrowBalance: FieldValue.increment(invSellerAmount),
+            updatedAt:     FieldValue.serverTimestamp(),
+          });
+        } catch (err) {
+          console.error(`Could not update escrowBalance for seller ${sellerUid}:`, err.message);
+        }
+
+        /* ── Write escrow-holds record ── */
+        try {
+          await db.collection('escrow-holds').add({
+            invoiceId,
+            orderId:     order_id,
+            sellerId:    sellerUid,
+            buyerEmail:  clientEmail,
+            amount:      invSellerAmount,
+            currency:    invConfirmedCurrency,
+            status:      'held',
+            createdAt:   FieldValue.serverTimestamp(),
+          });
+        } catch (err) {
+          console.error(`Could not write escrow-holds for invoice ${invoiceId}:`, err.message);
+        }
+      }
+
+      /* ── Fetch user details for notifications ── */
+      let freelancerEmail = null;
+      let freelancerName  = 'Freelancer';
+      let invoiceNumber   = '';
+      if (sellerUid) {
         try {
           const userSnap = await db.collection('users').doc(sellerUid).get();
           if (userSnap.exists) {
@@ -335,38 +373,52 @@ async function handleFundedPayment(data) {
             freelancerName  = userSnap.data().name || userSnap.data().displayName || 'Freelancer';
           }
         } catch (_) {}
+      }
+      if (invoiceId) {
+        try {
+          const invSnap = await db.collection('invoices').doc(invoiceId).get();
+          if (invSnap.exists) invoiceNumber = invSnap.data().invoiceNumber || '';
+        } catch (_) {}
+      }
 
-        let invoiceNumber = '';
-        if (invoiceId) {
-          try {
-            const invSnap = await db.collection('invoices').doc(invoiceId).get();
-            if (invSnap.exists) invoiceNumber = invSnap.data().invoiceNumber || '';
-          } catch (_) {}
-        }
+      const platformUrl   = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
+      const invoiceAmount = new Intl.NumberFormat('en', { style: 'currency', currency: invConfirmedCurrency }).format(invConfirmedAmount);
 
-        const platformUrl   = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
-        const clientName    = invOrder.clientName || invOrder.payerName || 'A client';
-        const invoiceAmount = new Intl.NumberFormat('en', { style: 'currency', currency: invConfirmedCurrency }).format(invConfirmedAmount);
-
+      /* ── Notify seller: payment in escrow ── */
+      if (sellerUid) {
         await callFunction('send-smart-notification', {
           userUid:    sellerUid,
           to:         freelancerEmail || null,
-          title:      'Invoice Paid',
-          body:       `${clientName} has paid your invoice for ${invoiceAmount}.`,
+          title:      'Payment Held in Escrow',
+          body:       `Payment received for invoice ${invoiceNumber || invoiceId}. Deliver your work and mark complete to release funds.`,
           url:        `${platformUrl}/dashboard-invoices.html`,
-          templateId: 'invoice-paid',
+          templateId: 'invoice-escrow-held-seller',
           emailMode:  'always',
           data: {
             name:          freelancerName,
-            clientName,
+            invoiceNumber: invoiceNumber || invoiceId,
             amount:        invoiceAmount,
-            invoiceNumber,
             dashboardUrl:  `${platformUrl}/dashboard-invoices.html`,
           },
         });
       }
 
-      console.log(`NOWPayments invoice order ${order_id} handled successfully.`);
+      /* ── Email buyer: payment secured in escrow ── */
+      if (clientEmail) {
+        await callFunction('send-email', {
+          to:     clientEmail,
+          toName: clientName,
+          type:   'invoice-escrow-held-buyer',
+          data: {
+            name:           clientName,
+            freelancerName,
+            invoiceNumber:  invoiceNumber || invoiceId,
+            amount:         invoiceAmount,
+          },
+        });
+      }
+
+      console.log(`NOWPayments invoice order ${order_id} handled successfully — funds in escrow.`);
       return;
     }
 
@@ -653,6 +705,21 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       createdAt:          FieldValue.serverTimestamp(),
     });
 
+    // Increment the conversions counter on the affiliate-links record
+    // (non-fatal — a missed count should never block commission crediting)
+    if (order.productId) {
+      try {
+        await db.collection('affiliate-links').doc(`${affiliateRef}_${order.productId}`).set({
+          affiliateUid: affiliateRef,
+          productId:    order.productId,
+          conversions:  FieldValue.increment(1),
+          updatedAt:    FieldValue.serverTimestamp(),
+        }, { merge: true });
+      } catch (err) {
+        console.warn(`[affiliate-links] conversions increment failed for order ${orderId}:`, err.message);
+      }
+    }
+
     await db.collection('product-orders').doc(orderId).update({
       affiliateCommissionPaid:    true,
       affiliateCommissionAmount:  commissionAmount,
@@ -736,7 +803,10 @@ async function callFunction(name, payload) {
   try {
     await fetch(`${platformUrl}/.netlify/functions/${name}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
   } catch (err) {

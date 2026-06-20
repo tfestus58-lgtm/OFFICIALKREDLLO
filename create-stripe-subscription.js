@@ -110,7 +110,14 @@ exports.handler = async (event) => {
     return respond(405, { error: 'Method not allowed.' });
   }
 
-  /* ── 2. Parse and validate request body ── */
+  /* ── 2. Verify internal caller — this function is never called directly by the browser ── */
+  const incomingSecret = event.headers['x-internal-secret'] || event.headers['X-Internal-Secret'] || '';
+  const expectedSecret = process.env.INTERNAL_FUNCTION_SECRET || '';
+  if (!expectedSecret || incomingSecret !== expectedSecret) {
+    return respond(401, { error: 'Unauthorized.' });
+  }
+
+  /* ── 3. Parse and validate request body ── */
   let body;
   try {
     body = JSON.parse(event.body || '{}');
@@ -144,7 +151,7 @@ exports.handler = async (event) => {
     return respond(400, { error: 'projectTitle is required.' });
   }
 
-  /* ── 3. Pull environment variables ── */
+  /* ── 4. Pull environment variables ── */
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   if (!platformUrl) {
     console.error('[create-stripe-subscription] PLATFORM_URL is not set.');
@@ -159,7 +166,7 @@ exports.handler = async (event) => {
 
   try {
 
-    /* ── 4. Init Firebase and check platform settings ── */
+    /* ── 5. Init Firebase and check platform settings ── */
     const db       = getDb();
     const settings = await getSettings(db);
 
@@ -167,7 +174,7 @@ exports.handler = async (event) => {
       return respond(403, { error: 'Stripe payments are not currently enabled.' });
     }
 
-    /* ── 5. Verify the subscriptions doc still exists and is still pending ── */
+    /* ── 6. Verify the subscriptions doc still exists and is still pending ── */
     /*
      * create-subscription.js writes subscriptions/{subscriptionId} before
      * calling us, so we can trust the amount there rather than blindly trusting
@@ -186,7 +193,7 @@ exports.handler = async (event) => {
       return respond(400, { error: 'Subscription has no valid price set.' });
     }
 
-    /* ── 6. Build the Checkout Session payload ── */
+    /* ── 7. Build the Checkout Session payload ── */
     /*
      * mode: 'payment' — single one-time payment that unlocks the Pro plan
      * for the chosen billing period. Recurring billing is handled by our
@@ -230,7 +237,7 @@ exports.handler = async (event) => {
       sessionParams['customer_email'] = buyerEmail.trim().toLowerCase();
     }
 
-    /* ── 7. Call the Stripe API ── */
+    /* ── 8. Call the Stripe API ── */
     let stripeRes;
     try {
       stripeRes = await fetch(STRIPE_CHECKOUT_URL, {
@@ -246,7 +253,7 @@ exports.handler = async (event) => {
       return respond(502, { error: 'Could not reach the payment service. Please try again.' });
     }
 
-    /* ── 8. Handle the Stripe response ── */
+    /* ── 9. Handle the Stripe response ── */
     let stripeData;
     try {
       stripeData = await stripeRes.json();
@@ -277,7 +284,7 @@ exports.handler = async (event) => {
       `uid: ${uid}, amount: $${amount} USD, sessionId: ${sessionId}`
     );
 
-    /* ── 9. Return success ── */
+    /* ── 10. Return success ── */
     return respond(200, { checkoutUrl, sessionId });
 
   } catch (err) {

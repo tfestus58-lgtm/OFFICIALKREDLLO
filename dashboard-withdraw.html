@@ -364,7 +364,7 @@ header > div:last-child {
 
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;">
     <div id="loader-bar" style="width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);animation:loaderSlide 1.1s ease-in-out infinite;"></div>
   </div>
@@ -1013,6 +1013,12 @@ function renderBalances() {
 
   // ---- Bank form caps (selected currency) ----
   updateBankFormForCurrency();
+
+  // ---- Eagerly fetch bank list/Stripe fields if bank form is visible ----
+  var formBank = document.getElementById('form-bank');
+  if (formBank && formBank.style.display !== 'none' && !bankListFetched) {
+    fetchBankList();
+  }
 }
 
 function renderWithdrawalCurrencySelector() {
@@ -1052,31 +1058,39 @@ function renderWithdrawalCurrencySelector() {
 
 function selectWithdrawalCurrency(currency) {
   selectedWithdrawalCurrency = currency;
-  // Reset dynamic bank list so it re-fetches for the new currency's country
+
+  // Reset all bank state so fetchBankList starts fresh for the new currency
   bankListFetched  = false;
+  currentStripeFields = null;
   allBanks         = [];
   selectedBankCode = '';
   selectedBankName = '';
-  var disp = document.getElementById('bank-selected-display');
-  if (disp) disp.style.display = 'none';
-  var search = document.getElementById('input-bank-search');
-  if (search) { search.value = ''; search.style.display = ''; }
-  var searchWrap = search ? search.parentElement : null;
-  if (searchWrap) searchWrap.style.display = '';
-  var list = document.getElementById('bank-dropdown-list');
-  if (list) list.style.display = 'none';
+
+  // Reset UI to clean state before fetch
+  var disp    = document.getElementById('bank-selected-display');
+  var search  = document.getElementById('input-bank-search');
+  var list    = document.getElementById('bank-dropdown-list');
   var accName = document.getElementById('input-account-name');
-  if (accName) accName.value = '';
-  // Reset info message
+  var accChk  = document.getElementById('account-name-check');
   var infoMsg = document.getElementById('bank-info-message');
+  var errEl   = document.getElementById('bank-error');
+  var sfs     = document.getElementById('stripe-fields-section');
+  var anw     = document.getElementById('account-number-wrap');
+
+  if (disp)    disp.style.display    = 'none';
+  if (search)  { search.value = ''; }
+  if (list)    list.style.display    = 'none';
+  if (accName) accName.value         = '';
+  if (accChk)  accChk.style.display  = 'none';
   if (infoMsg) { infoMsg.style.display = 'none'; infoMsg.innerHTML = ''; }
+  if (errEl)   errEl.style.display   = 'none';
+  if (sfs)     { sfs.style.display   = 'none'; sfs.innerHTML = ''; }
+  if (anw)     anw.style.display     = '';  // will be corrected by fetchBankList
+
   renderWithdrawalCurrencySelector();
-  // B3c: Stripe currencies hide the bank-search input, so there's no focus
-  // event left to lazily trigger fetchBankList() like the FLW flow uses —
-  // fetch eagerly here so the correct fields render on switch.
-  if (STRIPE_CURRENCIES.includes(currency)) {
-    fetchBankList();
-  }
+
+  // Always eagerly fetch so correct fields appear immediately on currency switch
+  fetchBankList();
 }
 
 function updateBankFormForCurrency() {
@@ -1141,7 +1155,7 @@ function activateBalanceCard(type) {
     if (formBank)   formBank.style.display   = 'block';
     if (label) label.textContent = 'Withdraw Fiat Balance';
     fetchBankExchangeRate(); // fetch live rates for local currency display
-    fetchBankList();         // fetch dynamic bank list from Flutterwave
+    fetchBankList();          // fetch bank list / Stripe fields for current currency
   }
 }
 
@@ -1276,86 +1290,91 @@ const STRIPE_CURRENCIES = ['USD','EUR','GBP','CAD','AUD','NZD','CHF','DKK','NOK'
 let currentStripeFields = null; // populated when a Stripe currency is active; null for FLW currencies
 
 async function fetchBankList() {
-  if (bankListFetched) return;
+  // Always re-fetch when called — callers are responsible for resetting bankListFetched
+  // before calling (e.g. selectWithdrawalCurrency does this).
   const cur = selectedWithdrawalCurrency || 'NGN';
-  // Only Flutterwave-supported currencies use dynamic bank list
-  const SUPPORTED = ['NGN','GHS','KES','UGX','TZS','RWF','ZAR','XOF','XAF','MWK','ZMW'];
 
-  var searchWrap  = document.getElementById('input-bank-search') ? document.getElementById('input-bank-search').parentElement : null;
-  var searchInput = document.getElementById('input-bank-search');
-  var infoMsg     = document.getElementById('bank-info-message');
+  var bss      = document.getElementById('bank-search-section');   // FLW search box
+  var sfs      = document.getElementById('stripe-fields-section'); // Stripe fields
+  var pill     = document.getElementById('stripe-info-pill');
+  var anw      = document.getElementById('account-number-wrap');   // generic acct# field
+  var infoMsg  = document.getElementById('bank-info-message');
+  var loadingEl= document.getElementById('bank-list-loading');
 
-  // ── B3a: Stripe currency — call get-bank-list to fetch stripeFields descriptor ──
+  // ── STRIPE CURRENCY ────────────────────────────────────────────────────────
   if (STRIPE_CURRENCIES.includes(cur)) {
-    // Reset any prior Stripe state
-    currentStripeFields = null;
-    hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
-    hideStripeInfoPill(); // B3g — reset pill until new data confirms Stripe
-
-    // B3b: hide the FLW bank search section; Stripe fields shown by B3c–B3e
-    hideBankSearchSection();
+    // Hide FLW bank-search; show loading; clear prior Stripe state
+    if (bss)  bss.style.display  = 'none';
+    if (sfs)  { sfs.style.display = 'none'; sfs.innerHTML = ''; }
+    if (pill) pill.style.display = 'none';
     if (infoMsg) infoMsg.style.display = 'none';
+    currentStripeFields = null;
 
-    const loadingEl = document.getElementById('bank-list-loading');
-    if (loadingEl) { loadingEl.style.display = 'flex'; }
+    if (loadingEl) loadingEl.style.display = 'flex';
 
     try {
       const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       const res   = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(cur), {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      const data  = await res.json();
+      const data = await res.json();
 
       if (data.stripeFields) {
-        // Store the descriptor so subsequent steps (B3c–B3g) can read it
         currentStripeFields = data.stripeFields;
         bankListFetched = true;
-        console.log('[fetchBankList] Stripe currency detected:', cur, currentStripeFields);
-        // B3c: render the field markup for this currency's stripeFields type
-        renderStripeFields(currentStripeFields);
-        showStripeFieldsSection();
-        showStripeInfoPill(); // B3g
+        renderStripeFields(currentStripeFields); // sets anw visibility too
+        if (sfs)  sfs.style.display  = '';
+        if (pill) pill.style.display = '';
       } else {
-        console.warn('[fetchBankList] No stripeFields returned for Stripe currency:', cur);
-        hideStripeFieldsSection();
-        hideStripeInfoPill(); // B3g
+        console.warn('[fetchBankList] No stripeFields for Stripe currency:', cur);
+        // Fallback: show generic account number field
+        if (anw) anw.style.display = '';
       }
     } catch (e) {
-      console.error('[fetchBankList] Stripe fetch error:', e);
+      console.error('[fetchBankList] Stripe error:', e);
+      if (anw) anw.style.display = '';
     } finally {
-      if (loadingEl) { loadingEl.style.display = 'none'; }
+      if (loadingEl) loadingEl.style.display = 'none';
     }
     return;
   }
 
-  // ── Non-Stripe, non-FLW currency (e.g. future additions) ──
-  if (!SUPPORTED.includes(cur)) {
-    currentStripeFields = null;
-    hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
-    hideStripeInfoPill(); // B3g
-    // Hide the bank search dropdown — not applicable for this currency
-    if (searchWrap)  searchWrap.style.display  = 'none';
-    if (searchInput) searchInput.style.display  = 'none';
-    // Show an informative message so users know what to do
+  // ── FLW-SUPPORTED CURRENCY ─────────────────────────────────────────────────
+  const FLW_SUPPORTED = ['NGN','GHS','KES','UGX','TZS','RWF','ZAR','XOF','XAF','MWK','ZMW'];
+
+  // Reset any Stripe state from a prior currency
+  currentStripeFields = null;
+  if (sfs)  { sfs.style.display = 'none'; sfs.innerHTML = ''; }
+  if (pill) pill.style.display = 'none';
+  if (anw)  anw.style.display  = '';   // show generic account number for FLW
+
+  if (!FLW_SUPPORTED.includes(cur)) {
+    // Unsupported currency — hide bank search, show info message
+    if (bss) bss.style.display = 'none';
     if (infoMsg) {
-      var currencyLabel = cur;
-      infoMsg.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" style="flex-shrink:0;margin-right:6px;vertical-align:middle;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
-        'For <strong>' + currencyLabel + '</strong> withdrawals, enter your account number below and we\'ll process it manually. Bank search is not required.';
-      infoMsg.style.display = 'flex';
+      infoMsg.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" ' +
+        'style="flex-shrink:0;margin-right:6px;vertical-align:middle;">' +
+        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/>' +
+        '<line x1="12" y1="8" x2="12.01" y2="8"/></svg>' +
+        'For <strong>' + cur + '</strong> withdrawals, enter your account number below and we\'ll process it manually.';
+      infoMsg.style.display    = 'flex';
       infoMsg.style.alignItems = 'flex-start';
     }
     return;
   }
 
-  // ── FLW currency — restore bank search section in case a Stripe currency was previously selected ──
-  currentStripeFields = null;
-  hideStripeFieldsSection(); // clear any fields rendered for a previously selected Stripe currency
-  hideStripeInfoPill(); // B3g
-  showBankSearchSection();
+  // FLW — show bank search section, fetch list
+  if (bss)     bss.style.display     = '';
   if (infoMsg) infoMsg.style.display = 'none';
 
-  const loadingEl = document.getElementById('bank-list-loading');
-  if (loadingEl) { loadingEl.style.display = 'flex'; }
+  // If already fetched for this currency, just re-render
+  if (bankListFetched && allBanks.length > 0) {
+    // Nothing to do — dropdown renders on focus via onBankSearchFocus
+    return;
+  }
+
+  if (loadingEl) loadingEl.style.display = 'flex';
 
   try {
     const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
@@ -1366,12 +1385,12 @@ async function fetchBankList() {
     if (data.banks && Array.isArray(data.banks)) {
       allBanks = data.banks;
       bankListFetched = true;
-      renderBankDropdown(allBanks);
+      // Don't auto-open dropdown; user triggers it via focus/typing
     }
   } catch (e) {
     console.error('[fetchBankList]', e);
   } finally {
-    if (loadingEl) { loadingEl.style.display = 'none'; }
+    if (loadingEl) loadingEl.style.display = 'none';
   }
 }
 
@@ -1393,11 +1412,14 @@ function renderBankDropdown(banks) {
 }
 
 function filterBankList() {
-  const q     = (document.getElementById('input-bank-search').value || '').toLowerCase().trim();
-  const list  = document.getElementById('bank-dropdown-list');
+  // No-op for Stripe currencies (search box is hidden)
+  if (STRIPE_CURRENCIES.includes(selectedWithdrawalCurrency)) return;
+
+  const q    = (document.getElementById('input-bank-search').value || '').toLowerCase().trim();
+  const list = document.getElementById('bank-dropdown-list');
   if (!list) return;
 
-  if (!bankListFetched) { fetchBankList(); return; }
+  if (!bankListFetched || allBanks.length === 0) { fetchBankList(); return; }
 
   if (!q) {
     list.style.display = 'none';
@@ -1409,14 +1431,17 @@ function filterBankList() {
 }
 
 function onBankSearchFocus() {
-  // If banks already loaded and input is empty, re-open the full dropdown
-  if (bankListFetched) {
+  // No-op for Stripe currencies (bank-search-section is hidden anyway)
+  if (STRIPE_CURRENCIES.includes(selectedWithdrawalCurrency)) return;
+
+  if (bankListFetched && allBanks.length > 0) {
+    // Banks already loaded — open/filter the dropdown
     var q = (document.getElementById('input-bank-search').value || '').trim();
     if (!q) {
       renderBankDropdown(allBanks);
     }
   } else {
-    // Not yet fetched — trigger the fetch (which will render on completion)
+    // Not yet fetched — trigger fetch (renders on completion)
     fetchBankList();
   }
 }
@@ -1845,7 +1870,7 @@ const NAV_LINKS = [
   { label:'Dashboard',     href:'dashboard.html',           icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
   { label:'Earnings',      href:'dashboard-earnings.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>' },
   { label:'Projects',      href:'dashboard-projects.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>' },
-  { label:'Invoices',      href:'dashboard-invoices.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+  { label:'Invoices',      href:'/dashboard-invoices.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
   { label:'Store',         href:'store.html',               icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },
   { label:'Products',      href:'dashboard-products.html',  icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },
   { label:'Purchases',     href:'buyer-purchases.html',     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' },

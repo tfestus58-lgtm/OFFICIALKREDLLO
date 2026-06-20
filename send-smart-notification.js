@@ -19,10 +19,27 @@
  *     delayMinutes: number        — delay in minutes for 'delayed' mode (default 15)
  *   }
  *
+ * AUTHENTICATION — two allowed caller types:
+ *   1. Trusted server-to-server callers (Netlify function → Netlify function,
+ *      e.g. payment webhooks, approve-delivery, sign-contract, scheduled jobs).
+ *      These send header  'x-internal-secret: <INTERNAL_FUNCTION_SECRET>'
+ *      instead of a user auth token, since there is no signed-in user behind
+ *      a webhook or scheduled job.
+ *   2. An authenticated admin calling from admin.html (broadcast/single-user
+ *      notification tool). These send a normal Firebase ID token in the
+ *      Authorization header, and the caller's `users/{uid}.role` must be
+ *      'admin'.
+ *   A request must satisfy ONE of the two — neither grants the other's access.
+ *
  * Environment variables required:
- *   FIREBASE_SERVICE_ACCOUNT  — full service account JSON (single-line string)
- *   FIREBASE_SERVER_KEY       — FCM server key (for Authorization header)
- *   PLATFORM_URL              — live domain e.g. https://kreddlo.com
+ *   FIREBASE_SERVICE_ACCOUNT   — full service account JSON (single-line string)
+ *   FIREBASE_SERVER_KEY        — FCM server key (for Authorization header)
+ *   PLATFORM_URL               — live domain e.g. https://kreddlo.com
+ *   INTERNAL_FUNCTION_SECRET   — shared secret used ONLY for server-to-server
+ *                                calls between Netlify functions. Never expose
+ *                                this to the browser/client. Set it in Netlify
+ *                                env vars and reuse the exact same value in
+ *                                every function that calls this one internally.
  */
 
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
@@ -155,7 +172,10 @@ async function callFunction(name, payload) {
   }
   const res = await fetch(`${platformUrl}/.netlify/functions/${name}`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type':      'application/json',
+      'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+    },
     body:    JSON.stringify(payload),
   });
   return res;
@@ -170,23 +190,42 @@ exports.handler = async (event) => {
     return respond(405, { error: 'Method not allowed.' });
   }
 
-  // Verify the caller is authenticated and has the admin role before
-  // allowing them to send a notification to another user.
-  const callerUid = await verifyCaller(event);
-  if (!callerUid) {
-    return respond(401, { error: 'Unauthorized.' });
-  }
+  // Two allowed caller types — see header comment:
+  //   1. Trusted internal server-to-server call (shared secret header)
+  //   2. Authenticated admin (Firebase ID token + role === 'admin')
+  const internalSecretHeader =
+    event.headers['x-internal-secret'] || event.headers['X-Internal-Secret'] || '';
+  const expectedInternalSecret = process.env.INTERNAL_FUNCTION_SECRET || '';
+  const isTrustedInternalCall =
+    !!expectedInternalSecret && internalSecretHeader === expectedInternalSecret;
 
   let db;
-  try {
-    db = getDb();
-    const callerSnap = await db.collection('users').doc(callerUid).get();
-    if (!callerSnap.exists || callerSnap.data().role !== 'admin') {
-      return respond(403, { error: 'Forbidden — admin role required.' });
+
+  if (isTrustedInternalCall) {
+    // Server-to-server call — already trusted, skip user/role checks.
+    try {
+      db = getDb();
+    } catch (err) {
+      console.error('getDb() failed for internal call:', err.message);
+      return respond(500, { error: 'Database initialization failed.' });
     }
-  } catch (err) {
-    console.error('Caller role check failed:', err.message);
-    return respond(500, { error: 'Could not verify caller permissions.' });
+  } else {
+    // Fall back to admin-token auth (used by admin.html).
+    const callerUid = await verifyCaller(event);
+    if (!callerUid) {
+      return respond(401, { error: 'Unauthorized.' });
+    }
+
+    try {
+      db = getDb();
+      const callerSnap = await db.collection('users').doc(callerUid).get();
+      if (!callerSnap.exists || callerSnap.data().role !== 'admin') {
+        return respond(403, { error: 'Forbidden — admin role required.' });
+      }
+    } catch (err) {
+      console.error('Caller role check failed:', err.message);
+      return respond(500, { error: 'Could not verify caller permissions.' });
+    }
   }
 
   let payload;
@@ -232,7 +271,7 @@ exports.handler = async (event) => {
     return respond(404, { error: 'User not found.' });
   }
 
-  const { fcmToken } = userSnap.data();
+  const { fcmToken, email: recipientEmail, name: recipientName } = userSnap.data();
 
   /* ── Step 2: Write in-app notification document ── */
   let notifDocId;
@@ -282,8 +321,17 @@ exports.handler = async (event) => {
   }
 
   if (emailMode === 'always') {
+    if (!recipientEmail) {
+      console.warn(`uid ${userUid} has no email on file — skipping immediate email send (template ${templateId}).`);
+      return respond(200, { received: true, notifDocId });
+    }
     try {
-      await callFunction('send-email', { templateId, data: emailData });
+      await callFunction('send-email', {
+        to:     recipientEmail,
+        toName: recipientName || undefined,
+        templateId,
+        data:   emailData,
+      });
       // Mark emailSent on the notification document
       if (notifDocId) {
         await db
@@ -299,12 +347,18 @@ exports.handler = async (event) => {
   }
 
   if (emailMode === 'delayed') {
+    if (!recipientEmail) {
+      console.warn(`uid ${userUid} has no email on file — skipping delayed email queue (template ${templateId}).`);
+      return respond(200, { received: true, notifDocId });
+    }
     try {
       await db.collection('email-queue').add({
         userUid,
         notifDocId:  notifDocId || null,
         templateId,
         emailData,
+        email:       recipientEmail,
+        toName:      recipientName || null,
         sendAfter:   Date.now() + delayMinutes * 60 * 1000,
         sent:        false,
         createdAt:   FieldValue.serverTimestamp(),

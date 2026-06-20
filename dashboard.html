@@ -404,7 +404,7 @@ header > div:last-child {
 
 <!-- LOADING OVERLAY — hidden by JS after boot -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:28px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;text-align:center;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:28px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;text-align:center;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:56px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
   </div>
@@ -1223,7 +1223,7 @@ async function loadDashboard(uid) {
     document.getElementById('stat-balance-trend').textContent =
       user.lastWithdrawalDate ? 'Last payout '+_relativeDate(user.lastWithdrawalDate) : 'No payouts yet';
 
-    var totalEarnings = Number(user.totalEarnings || 0);
+    var totalEarnings = Number(user.totalEarned || 0);  // field written by approve-delivery.js / deliver-product.js
     document.getElementById('stat-earnings').textContent       = fmt(totalEarnings);
     document.getElementById('stat-earnings-trend').textContent = totalEarnings > 0 ? 'All time earnings' : 'No earnings yet';
 
@@ -1262,7 +1262,8 @@ async function loadDashboard(uid) {
     // 4. Render projects list
     renderProjects(projects);
 
-    // 5. This Month summary
+    // 5. This Month summary — dedicated unlimited query so ALL projects this
+    //    month are counted, not just the 5 most recent shown in the list above.
     var now        = new Date();
     var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -1270,14 +1271,32 @@ async function loadDashboard(uid) {
     var monthWithdrawn = Number(user.thisMonthWithdrawn || 0);
     var monthEscrow    = 0;
 
-    projects.forEach(function(p) {
-      if (!p.createdAt) return;
-      var d = p.createdAt.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
-      if (d >= monthStart) {
-        if (p.status === 'completed') monthEarned  += Number(p.netAmount || 0);
+    try {
+      var monthProjQ = query(
+        collection(db, 'projects'),
+        where('freelancerUid', '==', uid),
+        where('createdAt', '>=', monthStart),
+        orderBy('createdAt', 'desc')
+      );
+      var monthProjSnap = await getDocs(monthProjQ);
+      monthProjSnap.forEach(function(d) {
+        var p = d.data();
+        if (p.status === 'completed') monthEarned += Number(p.netAmount || 0);
         if (p.escrowStatus === 'funded' && p.status !== 'completed') monthEscrow += Number(p.amount || 0);
-      }
-    });
+      });
+    } catch(monthErr) {
+      // Index may not exist yet — fall back to filtering the already-loaded
+      // projects array so the page still renders something rather than breaking.
+      console.warn('[dashboard] monthly project query failed, falling back to projects list:', monthErr.message);
+      projects.forEach(function(p) {
+        if (!p.createdAt) return;
+        var d = p.createdAt.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+        if (d >= monthStart) {
+          if (p.status === 'completed') monthEarned += Number(p.netAmount || 0);
+          if (p.escrowStatus === 'funded' && p.status !== 'completed') monthEscrow += Number(p.amount || 0);
+        }
+      });
+    }
 
     document.getElementById('month-earned').textContent    = fmt(monthEarned);
     document.getElementById('month-withdrawn').textContent = fmt(monthWithdrawn);
@@ -1287,11 +1306,15 @@ async function loadDashboard(uid) {
     var dailyRate   = daysInMonth > 0 ? monthEarned / daysInMonth : 0;
     document.getElementById('month-daily').textContent = '$'+dailyRate.toFixed(2)+' / day';
 
-    // 6. Unread notifications badge
+    // 6. Unread notifications badge — live, so new notifications light it up
+    //    immediately without needing a page refresh.
     try {
-      var notifQ    = query(collection(db, 'users', uid, 'notifications'), where('read', '==', false), limit(1));
-      var notifSnap = await getDocs(notifQ);
-      if (!notifSnap.empty) document.getElementById('bell-dot').style.display = 'block';
+      if (window._bellUnsubscribe) { window._bellUnsubscribe(); }
+      var notifQ = query(collection(db, 'users', uid, 'notifications'), where('read', '==', false), limit(1));
+      window._bellUnsubscribe = onSnapshot(notifQ, function(notifSnap) {
+        var bellDot = document.getElementById('bell-dot');
+        if (bellDot) bellDot.style.display = notifSnap.empty ? 'none' : 'block';
+      }, function() { /* non-fatal */ });
     } catch(e) { /* non-fatal */ }
 
   } catch(err) {

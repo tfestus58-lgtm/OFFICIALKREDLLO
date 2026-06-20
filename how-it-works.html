@@ -194,7 +194,7 @@
   <script type="module">
     import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-    import { getAuth }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+    import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
     import { getStorage }     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
     const firebaseConfig = {
       apiKey:"AIzaSyADHwnG1Im3IF5VetCilku1WeefjUR8Zkk", authDomain:"kreddlo.firebaseapp.com",
@@ -216,6 +216,32 @@
         });
       } catch (e) { /* silent fail */ }
     })();
+
+    // Swap navbar when user is signed in — without this, logged-in users
+    // were stuck seeing Log In / Get Started instead of their Dashboard.
+    onAuthStateChanged(window.auth, async (user) => {
+      if (!user) return;
+      let dashHref = '/dashboard.html';
+      try {
+        const snap = await getDoc(doc(window.db, 'users', user.uid));
+        if (snap.exists() && snap.data().role === 'buyer') dashHref = '/buyer-dashboard.html';
+      } catch (e) {}
+      const dashD = document.getElementById('nav-howitworks-dash-desktop');
+      const dashM = document.getElementById('nav-howitworks-dash-mobile');
+      if (dashD) dashD.href = dashHref;
+      if (dashM) dashM.href = dashHref;
+      const initial = (user.displayName || user.email || '?')[0].toUpperCase();
+      const avatarEl = document.getElementById('nav-howitworks-avatar');
+      if (avatarEl) avatarEl.textContent = initial;
+      const pubD = document.getElementById('nav-public-desktop');
+      const authD = document.getElementById('nav-auth-desktop');
+      if (pubD)  pubD.style.display  = 'none';
+      if (authD) authD.style.display = 'flex';
+      const pubM  = document.getElementById('nav-public-mobile');
+      const authM = document.getElementById('nav-auth-mobile');
+      if (pubM)  pubM.style.display  = 'none';
+      if (authM) authM.style.display = 'flex';
+    });
   </script>
 </head>
 
@@ -224,10 +250,7 @@
   <!-- ══ NAVBAR ══ -->
   <nav class="glass sticky top-0 z-50 mx-4 mt-3 rounded-2xl px-5 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-      <a href="index.html" class="flex-shrink-0">
-        <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120" height="36"
-             onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-      </a>
+      <a href="index.html" class="flex-shrink-0" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
       <div class="hidden md:flex items-center gap-8">
         <a href="index.html#features"     class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">Features</a>
         <a href="how-it-works.html"       class="text-navy font-600 text-sm">How It Works</a>
@@ -235,8 +258,14 @@
         <a href="pricing.html"            class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">Pricing</a>
       </div>
       <div class="hidden md:flex items-center gap-3">
-        <a href="login.html"  class="btn-secondary" style="padding:10px 22px;font-size:14px;">Log In</a>
-        <a href="signup.html" class="btn-green"     style="padding:10px 22px;font-size:14px;">Get Started</a>
+        <div id="nav-public-desktop" style="display:flex;gap:8px;align-items:center;">
+          <a href="login.html"  class="btn-secondary" style="padding:10px 22px;font-size:14px;">Log In</a>
+          <a href="signup.html" class="btn-green"     style="padding:10px 22px;font-size:14px;">Get Started</a>
+        </div>
+        <div id="nav-auth-desktop" style="display:none;align-items:center;gap:10px;">
+          <a id="nav-howitworks-dash-desktop" href="/dashboard.html" class="btn-secondary" style="padding:10px 22px;font-size:14px;font-weight:600;">Dashboard</a>
+          <div id="nav-howitworks-avatar" style="width:34px;height:34px;border-radius:50%;background:#2d8a5e;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;"></div>
+        </div>
       </div>
       <button id="hamburger" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Menu">
         <span class="block w-5 h-0.5 bg-navy rounded"></span>
@@ -249,9 +278,12 @@
       <a href="how-it-works.html"    class="text-navy font-600 text-sm">How It Works</a>
       <a href="browse.html"          class="text-navy font-500 text-sm">Browse</a>
       <a href="pricing.html"         class="text-navy font-500 text-sm">Pricing</a>
-      <div class="flex flex-col gap-3 pt-2 border-t border-border">
+      <div id="nav-public-mobile" class="flex flex-col gap-3 pt-2 border-t border-border">
         <a href="login.html"  class="btn-secondary text-center">Log In</a>
         <a href="signup.html" class="btn-green text-center">Get Started</a>
+      </div>
+      <div id="nav-auth-mobile" style="display:none;flex-direction:column;gap:10px;padding-top:8px;border-top:1px solid rgba(13,33,69,0.10);">
+        <a id="nav-howitworks-dash-mobile" href="/dashboard.html" class="btn-green text-center">Dashboard</a>
       </div>
     </div>
   </nav>
@@ -278,6 +310,7 @@
     <div class="glass inline-flex p-1.5 rounded-full gap-1">
       <button id="tab-freelancer" class="tab-btn active"   onclick="switchView('freelancer')">For Freelancers</button>
       <button id="tab-buyer"      class="tab-btn inactive" onclick="switchView('buyer')">For Buyers</button>
+      <button id="tab-affiliate"  class="tab-btn inactive" onclick="switchView('affiliate')">For Affiliates</button>
     </div>
   </div>
 
@@ -501,6 +534,77 @@
   </section>
 
   <!-- ══════════════════════════════════════
+       AFFILIATE STEPS
+  ══════════════════════════════════════ -->
+  <section id="view-affiliate" class="view-section px-5 pb-4">
+    <div class="max-w-4xl mx-auto">
+      <div class="timeline">
+
+        <!-- Step 1 -->
+        <div class="timeline-item">
+          <div class="step-circle">1</div>
+          <div class="step-card glass p-6">
+            <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 01</p>
+            <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Enable Affiliate Mode</h3>
+            <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              Turn on affiliate mode from your Settings. No separate application or approval wait, your account is ready to start earning commissions right away.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="timeline-item">
+          <div class="step-circle">2</div>
+          <div class="step-card glass p-6">
+            <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 02</p>
+            <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Browse Affiliate-Enabled Products</h3>
+            <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              Explore the marketplace for products that have commissions turned on by their sellers, ready for you to promote.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="timeline-item">
+          <div class="step-circle">3</div>
+          <div class="step-card glass p-6">
+            <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 03</p>
+            <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Generate and Share Your Link</h3>
+            <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              Every affiliate-enabled product gives you a unique referral link tied to your account. Share it anywhere, your audience, socials or a personal site.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="timeline-item">
+          <div class="step-circle">4</div>
+          <div class="step-card glass p-6">
+            <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 04</p>
+            <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Earn Commission Automatically</h3>
+            <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              When someone buys through your link, the commission is tracked and credited to your balance automatically. No manual reporting or invoicing required.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="timeline-item">
+          <div class="step-circle">5</div>
+          <div class="step-card glass p-6">
+            <p class="text-[11px] font-700 uppercase tracking-widest text-green/70 mb-1.5">Step 05</p>
+            <h3 class="text-[17px] font-700 text-navy mb-2 tracking-tight">Withdraw Your Earnings</h3>
+            <p class="text-[14px] text-navy/58 font-400 leading-relaxed">
+              Your affiliate earnings withdraw to the same payout wallet used everywhere else on the platform, so there's nothing new to set up.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════
        WHY KREDDLO IS DIFFERENT
   ══════════════════════════════════════ -->
   <section class="py-24 px-5">
@@ -642,10 +746,7 @@
     <div class="max-w-6xl mx-auto">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
         <div class="flex flex-col gap-4">
-          <a href="index.html">
-            <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120"
-                 onerror="this.outerHTML='<span style=\'font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-          </a>
+          <a href="index.html" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
           <p class="text-navy/50 text-[14px] leading-relaxed max-w-xs font-400">The complete freelance operating system for verified professionals in countries locked out of traditional payment networks.</p>
         </div>
         <div class="flex flex-col md:items-center gap-3">
@@ -692,7 +793,7 @@
     });
 
     function switchView(view) {
-      ['freelancer', 'buyer'].forEach(v => {
+      ['freelancer', 'buyer', 'affiliate'].forEach(v => {
         document.getElementById('tab-' + v).className    = 'tab-btn ' + (v === view ? 'active' : 'inactive');
         document.getElementById('view-' + v).className   = 'view-section px-5 pb-4 ' + (v === view ? 'active' : '');
       });

@@ -86,7 +86,14 @@ exports.handler = async (event) => {
     return respond(405, { error: 'Method not allowed.' });
   }
 
-  /* ── 2. Parse and validate request body ── */
+  /* ── 2. Verify internal caller — this function is never called directly by the browser ── */
+  const incomingSecret = event.headers['x-internal-secret'] || event.headers['X-Internal-Secret'] || '';
+  const expectedSecret = process.env.INTERNAL_FUNCTION_SECRET || '';
+  if (!expectedSecret || incomingSecret !== expectedSecret) {
+    return respond(401, { error: 'Unauthorized.' });
+  }
+
+  /* ── 3. Parse and validate request body ── */
   let body;
   try {
     body = JSON.parse(event.body || '{}');
@@ -119,7 +126,7 @@ exports.handler = async (event) => {
     return respond(400, { error: 'buyerEmail is required and must be a valid email address.' });
   }
 
-  /* ── 3. Pull environment variables ── */
+  /* ── 4. Pull environment variables ── */
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   if (!platformUrl) {
     console.error('[create-flutterwave-subscription] PLATFORM_URL is not set.');
@@ -134,7 +141,7 @@ exports.handler = async (event) => {
 
   try {
 
-    /* ── 4. Init Firebase and check platform settings ── */
+    /* ── 5. Init Firebase and check platform settings ── */
     const db       = getDb();
     const settings = await getSettings(db);
 
@@ -142,7 +149,7 @@ exports.handler = async (event) => {
       return respond(403, { error: 'Flutterwave payments are not currently enabled.' });
     }
 
-    /* ── 5. Verify subscriptions doc and read authoritative price ── */
+    /* ── 6. Verify subscriptions doc and read authoritative price ── */
     /*
      * create-subscription.js writes subscriptions/{subscriptionId} before
      * calling us. We read the price back from there so the amount is always
@@ -166,7 +173,7 @@ exports.handler = async (event) => {
      */
     const currency = (settings.platformCurrency || 'USD').toUpperCase();
 
-    /* ── 6. Build a unique transaction reference ── */
+    /* ── 7. Build a unique transaction reference ── */
     /*
      * Flutterwave requires a unique tx_ref per transaction.
      * Prefix with 'kredsub-' to distinguish subscription payments
@@ -174,7 +181,7 @@ exports.handler = async (event) => {
      */
     const paymentRef = `kredsub-${subscriptionId.trim()}-${Date.now()}`;
 
-    /* ── 7. Build the meta object — read back verbatim by flutterwave-webhook.js ── */
+    /* ── 8. Build the meta object — read back verbatim by flutterwave-webhook.js ── */
     const meta = {
       payment_purpose: 'pro_upgrade',
       subscriptionId:  subscriptionId.trim(),
@@ -190,7 +197,7 @@ exports.handler = async (event) => {
       }
     }
 
-    /* ── 8. Build the Flutterwave payment payload ── */
+    /* ── 9. Build the Flutterwave payment payload ── */
     const transactionPayload = {
       tx_ref:          paymentRef,
       amount:          amount,                // Flutterwave accepts decimal amount directly
@@ -209,7 +216,7 @@ exports.handler = async (event) => {
       meta,
     };
 
-    /* ── 9. Call the Flutterwave API ── */
+    /* ── 10. Call the Flutterwave API ── */
     let flwRes;
     try {
       flwRes = await fetch(FLW_PAYMENT_URL, {
@@ -225,7 +232,7 @@ exports.handler = async (event) => {
       return respond(502, { error: 'Could not reach the payment service. Please try again.' });
     }
 
-    /* ── 10. Handle the Flutterwave response ── */
+    /* ── 11. Handle the Flutterwave response ── */
     let flwData;
     try {
       flwData = await flwRes.json();
@@ -255,7 +262,7 @@ exports.handler = async (event) => {
       `uid: ${uid}, amount: ${amount} ${currency}, ref: ${paymentRef}`
     );
 
-    /* ── 11. Return success ── */
+    /* ── 12. Return success ── */
     return respond(200, { checkoutUrl, paymentRef });
 
   } catch (err) {

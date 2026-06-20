@@ -63,7 +63,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
 
@@ -210,7 +213,7 @@ exports.handler = async (event) => {
       title:        `New ${rating}★ review from ${reviewerName.trim()}`,
       body:         `"${comment.trim().substring(0, 100)}${comment.trim().length > 100 ? '…' : ''}"`,
       templateId:   'new-review',
-      emailMode:    'delayed',
+      emailMode:    'never',
       delayMinutes: 0,
       emailData: {
         name:         sellerName,

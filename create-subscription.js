@@ -40,6 +40,7 @@
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue }      = require('firebase-admin/firestore');
 const { getSettings }                   = require('./get-settings');
+const { verifyCaller }                  = require('./_verify-auth');
 
 /* ── Firebase Admin — lazy singleton ── */
 let _db = null;
@@ -58,13 +59,16 @@ function getDb() {
   return _db;
 }
 
-/* ── Call a sibling Netlify function ── */
+/* ── Call a sibling Netlify function (internal server-to-server) ── */
 async function callFunction(functionName, payload) {
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   if (!platformUrl) throw new Error('PLATFORM_URL is not set.');
   const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type':      'application/json',
+      'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+    },
     body:    JSON.stringify(payload),
   });
   let data;
@@ -101,6 +105,18 @@ exports.handler = async (event) => {
   }
   if (!['monthly', 'annual'].includes(billingPeriod)) {
     return respond(400, { error: 'billingPeriod must be "monthly" or "annual".' });
+  }
+
+  /* ── 3. Verify the caller is who they say they are ── */
+  // The Firebase ID token must be present and must belong to the uid in the body.
+  // This prevents one user from initiating a subscription charge against another
+  // user's uid by simply swapping the value in the request body.
+  const callerUid = await verifyCaller(event);
+  if (!callerUid) {
+    return respond(401, { error: 'Unauthorized. Please log in again.' });
+  }
+  if (callerUid !== uid.trim()) {
+    return respond(403, { error: 'Caller identity mismatch.' });
   }
 
   const platformUrl = (process.env.PLATFORM_URL || '').replace(/\/$/, '');

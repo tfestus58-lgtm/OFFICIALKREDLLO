@@ -175,3 +175,98 @@ logs the error and simply skips that half of the job on that run (non-fatal
 to the other one) — it will catch up automatically once the index finishes
 building, since `clearsAt` only ever moves further into the past for
 already-existing unfulfilled records.
+
+## Required Composite Index — Dashboard "This Month" Monthly Stats Query
+
+Used by: `dashboard.html` (section 5 — "This Month" earned/escrow calculation)
+
+| Field           | Collection | Order |
+|-----------------|------------|-------|
+| `freelancerUid` | projects   | ASC   |
+| `createdAt`     | projects   | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "projects",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "freelancerUid", "order": "ASCENDING" },
+    { "fieldPath": "createdAt",     "order": "ASCENDING" }
+  ]
+}
+```
+
+Note: if this index is missing or still building, `dashboard.html` automatically
+falls back to computing monthly totals from the 5 most-recently-loaded projects
+(the same behaviour as before this fix) so the page never breaks — it just logs a
+console warning. Create the index to get accurate totals once you have freelancers
+with more than 5 projects.
+
+---
+
+## Required Composite Index — Invoice Overdue / Auto-Dispute Query
+
+Used by: `netlify/functions/scheduled-clear-earnings.js` (invoice escrow auto-dispute on overdue delivery)
+
+| Field       | Collection | Order |
+|-------------|------------|-------|
+| `status`    | invoices   | ASC   |
+| `deliverBy` | invoices   | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "invoices",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "status",    "order": "ASCENDING" },
+    { "fieldPath": "deliverBy", "order": "ASCENDING" }
+  ]
+}
+```
+
+---
+
+## Required Composite Index — Invoice Auto-Release Query
+
+Used by: `netlify/functions/scheduled-clear-earnings.js` (invoice escrow auto-release after delivery)
+
+| Field         | Collection | Order |
+|---------------|------------|-------|
+| `status`      | invoices   | ASC   |
+| `deliveredAt` | invoices   | ASC   |
+
+**Query scope:** Collection
+
+```json
+{
+  "collectionGroup": "invoices",
+  "queryScope": "COLLECTION",
+  "fields": [
+    { "fieldPath": "status",      "order": "ASCENDING" },
+    { "fieldPath": "deliveredAt", "order": "ASCENDING" }
+  ]
+}
+```
+
+---
+
+## Firestore Security Rules — escrow-holds collection
+
+`escrow-holds` is written exclusively by the Admin SDK (server-side Netlify
+functions). No client should ever read or write it directly.
+
+Add this rule to your `firestore.rules` file (apply in Firebase Console or
+via `firebase deploy --only firestore:rules`):
+
+```
+match /escrow-holds/{docId} {
+  allow read, write: if false;
+}
+```
+
+Place it inside the existing `match /databases/{database}/documents { ... }`
+block alongside your other collection rules.

@@ -126,6 +126,7 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
 /* Withdrawal input */
 .wd-input{width:100%;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:18px;font-weight:700;color:#0d2145;outline:none;transition:border-color .2s,box-shadow .2s;background:rgba(255,255,255,0.9);-webkit-appearance:none}
 .wd-input:focus{border-color:#2d8a5e;box-shadow:0 0 0 3px rgba(45,138,94,0.11)}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -276,6 +277,7 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
                     <th style="text-align:right;">Conv.</th>
                     <th style="text-align:right;">Pending</th>
                     <th style="text-align:right;">Earned</th>
+                    <th style="text-align:right;">Link</th>
                   </tr>
                 </thead>
                 <tbody id="products-tbody"></tbody>
@@ -452,25 +454,41 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
 
       <!-- Bank entry form -->
       <div id="wd-bank-form">
-        <!-- Bank selector -->
-        <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Bank</label>
-          <div style="position:relative;">
-            <select id="wd-bank-select" onchange="onWdBankChange()" style="width:100%;padding:13px 38px 13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\") no-repeat right 14px center;-webkit-appearance:none;appearance:none;cursor:pointer;transition:border-color .2s;">
-              <option value="">Loading banks…</option>
-            </select>
+        <!-- Loading indicator -->
+        <div id="wd-bank-loading" style="display:none;font-size:12px;color:rgba(13,33,69,0.5);margin-bottom:12px;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="animation:spin 1s linear infinite;flex-shrink:0;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          Loading bank details…
+        </div>
+
+        <!-- FLW bank selector (shown for African currencies) -->
+        <div id="wd-flw-section">
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Bank</label>
+            <div style="position:relative;">
+              <select id="wd-bank-select" onchange="onWdBankChange()" style="width:100%;padding:13px 38px 13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;background:#fff url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230d2145' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\") no-repeat right 14px center;-webkit-appearance:none;appearance:none;cursor:pointer;transition:border-color .2s;">
+                <option value="">Select bank…</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Number</label>
+            <input id="wd-acct-number" type="tel" maxlength="10" placeholder="e.g. 0123456789" onblur="lookupAccountName()" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;transition:border-color .2s;background:#fff;" />
+          </div>
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Name <span id="wd-acct-lookup-spinner" style="display:none;font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);">Looking up…</span></label>
+            <input id="wd-acct-name" type="text" readonly placeholder="Auto-filled after lookup" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#0d2145;outline:none;background:rgba(13,33,69,0.03);cursor:default;" />
           </div>
         </div>
-        <!-- Account number -->
-        <div style="margin-bottom:12px;">
-          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Number</label>
-          <input id="wd-acct-number" type="tel" maxlength="10" placeholder="e.g. 0123456789" onblur="lookupAccountName()" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;transition:border-color .2s;background:#fff;" />
+
+        <!-- Stripe international fields (injected by renderAffiliateStripeFields) -->
+        <div id="wd-stripe-section" style="display:none;"></div>
+
+        <!-- Stripe info pill -->
+        <div id="wd-stripe-pill" style="display:none;background:#eef2ff;border:1px solid rgba(82,84,163,0.2);border-radius:12px;padding:10px 12px;margin-bottom:12px;flex-direction:row;gap:8px;align-items:flex-start;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5254a3" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+          <span style="font-size:12px;font-weight:500;color:#5254a3;line-height:1.4;">Processed via Stripe — secure international bank transfer</span>
         </div>
-        <!-- Account name (auto-filled) -->
-        <div style="margin-bottom:14px;">
-          <label style="display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;">Account Name <span id="wd-acct-lookup-spinner" style="display:none;font-size:11px;font-weight:500;color:rgba(13,33,69,0.45);">Looking up…</span></label>
-          <input id="wd-acct-name" type="text" readonly placeholder="Auto-filled after lookup" style="width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;color:#0d2145;outline:none;background:rgba(13,33,69,0.03);cursor:default;" />
-        </div>
+
         <!-- Save checkbox -->
         <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px;">
           <input type="checkbox" id="wd-save-bank" checked style="width:16px;height:16px;accent-color:#2d8a5e;cursor:pointer;flex-shrink:0;" />
@@ -479,7 +497,7 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
         <div id="wd-bank-lookup-error" style="display:none;font-size:12px;font-weight:600;color:#c81e1e;margin-bottom:10px;padding:10px 12px;background:#fde8e8;border-radius:10px;"></div>
       </div>
 
-      <div style="background:#e8f5ef;border:1px solid rgba(45,138,94,0.2);border-radius:12px;padding:12px 14px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start;">
+      <div id="wd-flw-info" style="background:#e8f5ef;border:1px solid rgba(45,138,94,0.2);border-radius:12px;padding:12px 14px;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2d8a5e" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
         <p style="font-size:12px;font-weight:500;color:#2d8a5e;margin:0;line-height:1.5;">Bank payout is processed via Flutterwave. Transfers typically arrive within 1–2 business days.</p>
       </div>
@@ -764,13 +782,29 @@ async function loadAffiliateDashboard(uid) {
 
     linksArr.forEach(function(lnk) {
       var pe = prodEarnings[lnk.productId] || { pending:0, total:0 };
+
+      // Reconstruct referral URL from stored refUrl, or build client-side fallback
+      var myUid  = window._myAffilUid || '';
+      var refUrl = lnk.refUrl || '';
+      if (!refUrl && lnk.productSlug && myUid) {
+        refUrl = window.location.origin + '/p.html?slug=' + encodeURIComponent(lnk.productSlug) + '&ref=' + encodeURIComponent(myUid);
+      } else if (!refUrl && myUid) {
+        refUrl = window.location.origin + '/p.html?id=' + encodeURIComponent(lnk.productId) + '&ref=' + encodeURIComponent(myUid);
+      }
+
+      var copyBtnId = 'copy-lnk-' + lnk._id;
+      var copyCell  = refUrl
+        ? '<td style="text-align:right;"><button id="' + copyBtnId + '" onclick="copyAffRowLink(' + JSON.stringify(refUrl) + ',' + JSON.stringify(copyBtnId) + ')" style="background:transparent;border:1px solid rgba(45,138,94,0.35);border-radius:50px;padding:4px 10px;font-size:11px;font-weight:600;color:#2d8a5e;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s,border-color .15s;">Copy</button></td>'
+        : '<td style="text-align:right;color:rgba(13,33,69,0.30);font-size:11px;">—</td>';
+
       var tr = document.createElement('tr');
       tr.innerHTML =
         '<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escHtml(lnk.productTitle || lnk.productId || '—') + '</td>' +
         '<td style="text-align:right;color:rgba(13,33,69,0.60);">' + (lnk.clicks || 0) + '</td>' +
         '<td style="text-align:right;color:rgba(13,33,69,0.60);">' + (lnk.conversions || 0) + '</td>' +
         '<td style="text-align:right;color:#856404;">' + fmt(pe.pending, cur) + '</td>' +
-        '<td style="text-align:right;color:#2d8a5e;font-weight:700;">' + fmt(pe.total, cur) + '</td>';
+        '<td style="text-align:right;color:#2d8a5e;font-weight:700;">' + fmt(pe.total, cur) + '</td>' +
+        copyCell;
       tbody.appendChild(tr);
     });
   }
@@ -953,11 +987,119 @@ window.editBankDetails = function() {
   if (_savedAcctName)   document.getElementById('wd-acct-name').value   = _savedAcctName;
 };
 
+// Stripe-supported currencies for affiliate international bank withdrawals
+const AFFILIATE_STRIPE_CURRENCIES = ['USD','EUR','GBP','CAD','AUD','NZD','CHF','DKK','NOK','SEK','SGD','HKD'];
+let _affiliateStripeFields = null; // current Stripe fields descriptor
+
+function renderAffiliateStripeFields(fields) {
+  var ss = document.getElementById('wd-stripe-section');
+  if (!ss || !fields) return;
+  var INP = 'width:100%;padding:13px 14px;border:1.5px solid #e2e8f0;border-radius:14px;font-family:\'Plus Jakarta Sans\',sans-serif;font-size:14px;font-weight:600;color:#0d2145;outline:none;background:#fff;';
+  var LBL = 'display:block;font-size:12px;font-weight:600;color:#0d2145;margin-bottom:6px;';
+  var WRAP = 'margin-bottom:12px;';
+  if (fields.type === 'iban') {
+    ss.innerHTML =
+      '<div style="' + WRAP + '">' +
+        '<label style="' + LBL + '">IBAN</label>' +
+        '<input type="text" id="wd-stripe-iban" class="inp" placeholder="e.g. DE89 3704 0044 0532 0130 00" maxlength="34" autocomplete="off" style="' + INP + 'text-transform:uppercase;letter-spacing:0.5px;" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\')">' +
+        '<p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:6px 0 0;">Enter your IBAN without spaces — up to 34 characters.</p>' +
+      '</div>';
+  } else if (fields.type === 'sort_account') {
+    ss.innerHTML =
+      '<div style="' + WRAP + '">' +
+        '<label style="' + LBL + '">Sort Code</label>' +
+        '<input type="text" id="wd-stripe-sort" placeholder="e.g. 20-00-00" maxlength="8" autocomplete="off" style="' + INP + '" oninput="affiliateFormatSortCode(this)">' +
+        '<p style="font-size:11px;font-weight:500;color:rgba(13,33,69,0.42);margin:6px 0 0;">6-digit sort code, e.g. 20-00-00</p>' +
+      '</div>' +
+      '<div style="' + WRAP + '">' +
+        '<label style="' + LBL + '">Account Number</label>' +
+        '<input type="text" id="wd-stripe-acct" placeholder="8-digit account number" maxlength="8" autocomplete="off" inputmode="numeric" style="' + INP + '" oninput="this.value=this.value.replace(/\\D/g,\'\')">' +
+      '</div>';
+  } else {
+    // routing_account (USD, CAD, AUD, NZD, SGD, HKD)
+    var routingCopy = {
+      USD: { label: 'Routing Number', placeholder: '9-digit routing number', maxlen: 9 },
+      CAD: { label: 'Institution & Transit Number', placeholder: 'e.g. 12345-678', maxlen: 9 },
+      AUD: { label: 'BSB Number', placeholder: '6-digit BSB number', maxlen: 6 },
+      NZD: { label: 'Bank Branch Number', placeholder: 'Bank & branch number', maxlen: 8 },
+      SGD: { label: 'Bank Code', placeholder: 'Bank & branch code', maxlen: 10 },
+      HKD: { label: 'Bank Code', placeholder: 'Bank & branch code', maxlen: 10 },
+    };
+    var rc = routingCopy[_wdCurrency] || routingCopy.USD;
+    ss.innerHTML =
+      '<div style="' + WRAP + '">' +
+        '<label style="' + LBL + '">' + rc.label + '</label>' +
+        '<input type="text" id="wd-stripe-routing" placeholder="' + rc.placeholder + '" inputmode="numeric" maxlength="' + rc.maxlen + '" autocomplete="off" style="' + INP + '">' +
+      '</div>' +
+      '<div style="' + WRAP + '">' +
+        '<label style="' + LBL + '">Account Number</label>' +
+        '<input type="text" id="wd-stripe-acct" placeholder="Your account number" inputmode="numeric" autocomplete="off" style="' + INP + '" oninput="this.value=this.value.replace(/\\D/g,\'\')">' +
+      '</div>';
+  }
+}
+
+function affiliateFormatSortCode(el) {
+  var digits = el.value.replace(/\D/g, '').slice(0, 6);
+  var parts = [];
+  if (digits.length > 0) parts.push(digits.slice(0, 2));
+  if (digits.length > 2) parts.push(digits.slice(2, 4));
+  if (digits.length > 4) parts.push(digits.slice(4, 6));
+  el.value = parts.join('-');
+}
+
 async function loadAffiliateBankList(currency) {
   currency = currency || _wdCurrency || 'NGN';
-  // Refetch if currency changed since the last successful load — banks are
-  // country-specific, so a cached NGN list must not be reused for KES, etc.
   if (_bankListLoaded && _bankListCurrency === currency) return;
+
+  var flwSection    = document.getElementById('wd-flw-section');
+  var stripeSection = document.getElementById('wd-stripe-section');
+  var stripePill    = document.getElementById('wd-stripe-pill');
+  var flwInfo       = document.getElementById('wd-flw-info');
+  var loadingEl     = document.getElementById('wd-bank-loading');
+
+  // Show loading
+  if (loadingEl) { loadingEl.style.display = 'flex'; }
+
+  // Stripe currency: hide FLW section, show Stripe fields
+  if (AFFILIATE_STRIPE_CURRENCIES.includes(currency)) {
+    if (flwSection)    flwSection.style.display    = 'none';
+    if (stripeSection) stripeSection.style.display = 'none';
+    if (stripePill)    stripePill.style.display    = 'none';
+    if (flwInfo)       flwInfo.style.display       = 'none';
+    _affiliateStripeFields = null;
+    _bankListLoaded = false;
+
+    try {
+      var idToken = await auth.currentUser.getIdToken();
+      var res = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(currency), {
+        headers: { 'Authorization': 'Bearer ' + idToken }
+      });
+      if (!res.ok) throw new Error('Failed');
+      var data = await res.json();
+      if (data.stripeFields) {
+        _affiliateStripeFields = data.stripeFields;
+        _bankListLoaded = true;
+        _bankListCurrency = currency;
+        renderAffiliateStripeFields(_affiliateStripeFields);
+        if (stripeSection) stripeSection.style.display = 'block';
+        if (stripePill)    { stripePill.style.display = 'flex'; }
+      }
+    } catch(e) {
+      if (stripeSection) stripeSection.innerHTML = '<p style="font-size:12px;color:#c81e1e;">Could not load bank fields. Please try again.</p>';
+      if (stripeSection) stripeSection.style.display = 'block';
+    } finally {
+      if (loadingEl) loadingEl.style.display = 'none';
+    }
+    return;
+  }
+
+  // FLW currency: show FLW section, hide Stripe
+  _affiliateStripeFields = null;
+  if (flwSection)    flwSection.style.display    = '';
+  if (stripeSection) { stripeSection.style.display = 'none'; stripeSection.innerHTML = ''; }
+  if (stripePill)    stripePill.style.display    = 'none';
+  if (flwInfo)       flwInfo.style.display       = 'flex';
+
   try {
     var idToken = await auth.currentUser.getIdToken();
     var res = await fetch('/.netlify/functions/get-bank-list?currency=' + encodeURIComponent(currency), {
@@ -974,12 +1116,13 @@ async function loadAffiliateBankList(currency) {
       _bankList.map(function(b) {
         return '<option value="' + escHtml(b.code) + '">' + escHtml(b.name) + '</option>';
       }).join('');
-    // Re-select saved bank if any
     if (_savedBankCode) sel.value = _savedBankCode;
   } catch(e) {
     _bankListLoaded = false;
     var sel = document.getElementById('wd-bank-select');
     if (sel) sel.innerHTML = '<option value="">Failed to load banks — try again</option>';
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
   }
 }
 
@@ -1067,38 +1210,68 @@ window.confirmWithdraw = async function() {
   } else {
     // Bank transfer — resolve from saved display or the form
     var savedVisible = document.getElementById('wd-bank-saved').style.display !== 'none';
-    var bankCode, bankName, acctNumber, acctName;
+    var isStripeCur  = AFFILIATE_STRIPE_CURRENCIES.includes(cur);
 
     if (savedVisible) {
-      bankCode   = _savedBankCode;
-      bankName   = _savedBankName;
-      acctNumber = _savedAcctNumber;
-      acctName   = _savedAcctName;
+      payload.bankCode      = _savedBankCode;
+      payload.bankName      = _savedBankName;
+      payload.accountNumber = _savedAcctNumber;
+      payload.accountName   = _savedAcctName;
+    } else if (isStripeCur && _affiliateStripeFields) {
+      // Stripe international currency — collect from Stripe fields
+      var sf = _affiliateStripeFields;
+      if (sf.type === 'iban') {
+        var iban = ((document.getElementById('wd-stripe-iban') || {}).value || '').trim();
+        if (iban.length < 8) {
+          errEl.textContent = 'Please enter a valid IBAN.';
+          errEl.style.display = 'block'; return;
+        }
+        payload.iban       = iban;
+        payload.stripeType = 'iban';
+      } else if (sf.type === 'sort_account') {
+        var sortCode = ((document.getElementById('wd-stripe-sort') || {}).value || '').replace(/\D/g, '');
+        var acctNum  = ((document.getElementById('wd-stripe-acct') || {}).value || '').trim();
+        if (sortCode.length < 6) { errEl.textContent = 'Please enter a valid 6-digit sort code.'; errEl.style.display = 'block'; return; }
+        if (!acctNum)            { errEl.textContent = 'Please enter your account number.';         errEl.style.display = 'block'; return; }
+        payload.sortCode      = sortCode;
+        payload.accountNumber = acctNum;
+        payload.stripeType    = 'sort_account';
+      } else {
+        // routing_account
+        var routing = ((document.getElementById('wd-stripe-routing') || {}).value || '').trim();
+        var acctNum = ((document.getElementById('wd-stripe-acct')    || {}).value || '').trim();
+        if (!routing) { errEl.textContent = 'Please enter your routing number.';  errEl.style.display = 'block'; return; }
+        if (!acctNum) { errEl.textContent = 'Please enter your account number.';  errEl.style.display = 'block'; return; }
+        payload.routingNumber = routing;
+        payload.accountNumber = acctNum;
+        payload.stripeType    = 'routing_account';
+      }
     } else {
-      bankCode   = document.getElementById('wd-bank-select').value;
-      var selEl  = document.getElementById('wd-bank-select');
-      bankName   = selEl.options[selEl.selectedIndex] ? selEl.options[selEl.selectedIndex].text : '';
-      acctNumber = (document.getElementById('wd-acct-number').value || '').trim();
-      acctName   = (document.getElementById('wd-acct-name').value   || '').trim();
-    }
+      // FLW bank
+      var bankCode   = document.getElementById('wd-bank-select').value;
+      var selEl      = document.getElementById('wd-bank-select');
+      var bankName   = selEl.options[selEl.selectedIndex] ? selEl.options[selEl.selectedIndex].text : '';
+      var acctNumber = (document.getElementById('wd-acct-number').value || '').trim();
+      var acctName   = (document.getElementById('wd-acct-name').value   || '').trim();
 
-    if (!bankCode) {
-      errEl.textContent = 'Please select a bank.';
-      errEl.style.display = 'block'; return;
-    }
-    if (!acctNumber || acctNumber.length < 10) {
-      errEl.textContent = 'Please enter a valid 10-digit account number.';
-      errEl.style.display = 'block'; return;
-    }
-    if (!acctName) {
-      errEl.textContent = 'Account name not verified. Enter account number and wait for lookup.';
-      errEl.style.display = 'block'; return;
-    }
+      if (!bankCode) {
+        errEl.textContent = 'Please select a bank.';
+        errEl.style.display = 'block'; return;
+      }
+      if (!acctNumber || acctNumber.length < 10) {
+        errEl.textContent = 'Please enter a valid 10-digit account number.';
+        errEl.style.display = 'block'; return;
+      }
+      if (!acctName) {
+        errEl.textContent = 'Account name not verified. Enter account number and wait for lookup.';
+        errEl.style.display = 'block'; return;
+      }
 
-    payload.bankCode      = bankCode;
-    payload.bankName      = bankName;
-    payload.accountNumber = acctNumber;
-    payload.accountName   = acctName;
+      payload.bankCode      = bankCode;
+      payload.bankName      = bankName;
+      payload.accountNumber = acctNumber;
+      payload.accountName   = acctName;
+    }
 
     // Save bank details if checkbox checked (and we're in form mode)
     if (!savedVisible && document.getElementById('wd-save-bank').checked) {
@@ -1161,6 +1334,37 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Copy affiliate link from the dashboard table ──────────────────────────────
+function copyAffRowLink(refUrl, btnId) {
+  if (!refUrl) return;
+  var btn = document.getElementById(btnId);
+  var origText = btn ? btn.textContent : 'Copy';
+
+  function onSuccess() {
+    if (btn) btn.textContent = 'Copied!';
+    showToast('Affiliate link copied!');
+    setTimeout(function() { if (btn) btn.textContent = origText; }, 2500);
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(refUrl).then(onSuccess).catch(function() {
+      _fallbackCopyText(refUrl, onSuccess);
+    });
+  } else {
+    _fallbackCopyText(refUrl, onSuccess);
+  }
+}
+
+function _fallbackCopyText(text, onSuccess) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); onSuccess(); } catch(e) { /* silent */ }
+  document.body.removeChild(ta);
+}
+
 // ── Auth guard + boot ─────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async function(user) {
   if (!user) {
@@ -1168,6 +1372,7 @@ onAuthStateChanged(auth, async function(user) {
     return;
   }
   _uid = user.uid;
+  window._myAffilUid = user.uid; // used by copyAffRowLink for client-side fallback
 
   // Fetch settings first
   await fetchSettings();

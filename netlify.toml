@@ -173,6 +173,11 @@
   status = 200
 
 [[redirects]]
+  from = "/dashboard-affiliate"
+  to   = "/dashboard-affiliate.html"
+  status = 200
+
+[[redirects]]
   from = "/buyer-purchases"
   to   = "/buyer-purchases.html"
   status = 200

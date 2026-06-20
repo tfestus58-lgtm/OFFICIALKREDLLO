@@ -8,12 +8,11 @@
  *     implementation — used by the affiliate bank withdrawal form
  *     (dashboard-affiliate.html) and the freelancer bank payout flow.
  *
- *  2. Stripe path (USD, EUR, GBP, CAD, AUD, NZD, CHF, DKK, NOK, SEK) —
+ *  2. Stripe path (USD, EUR, GBP, CAD, AUD, NZD, SGD, HKD, CHF, DKK, NOK, SEK) —
  *     creates a Stripe bank account token via POST /v1/tokens, which
  *     returns the resolved bank_name for the supplied account details.
  *     The exact fields required depend on the currency:
- *       USD / CAD            → routingNumber + accountNumber
- *       AUD / NZD            → bsbNumber + accountNumber
+ *       USD / CAD / AUD / NZD / SGD / HKD → routingNumber + accountNumber
  *       GBP                  → sortCode + accountNumber
  *       EUR / CHF / DKK / NOK / SEK → iban
  *
@@ -25,9 +24,8 @@
  *   accountNumber  — bank account number — required
  *
  *   — Stripe currencies —
- *   accountNumber  — required for routing/bsb/sort-code types
- *   routingNumber  — required for USD, CAD
- *   bsbNumber      — required for AUD, NZD
+ *   accountNumber  — required for routing/sort-code types
+ *   routingNumber  — required for USD, CAD, AUD, NZD, SGD, HKD
  *   sortCode       — required for GBP
  *   iban           — required for EUR, CHF, DKK, NOK, SEK
  *
@@ -51,8 +49,10 @@ const STRIPE_BASE = 'https://api.stripe.com/v1';
 const STRIPE_FIELD_MAP = {
   USD: { type: 'routing_account', country: 'US' },
   CAD: { type: 'routing_account', country: 'CA' },
-  AUD: { type: 'bsb_account',     country: 'AU' },
-  NZD: { type: 'bsb_account',     country: 'NZ' },
+  AUD: { type: 'routing_account', country: 'AU' },
+  NZD: { type: 'routing_account', country: 'NZ' },
+  SGD: { type: 'routing_account', country: 'SG' },
+  HKD: { type: 'routing_account', country: 'HK' },
   GBP: { type: 'sort_account',    country: 'GB' },
   EUR: { type: 'iban' },
   CHF: { type: 'iban' },
@@ -196,11 +196,6 @@ async function resolveViaStripe(currency, params, CORS) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Routing number is required.' }) };
       }
       bankAccount.routing_number = routingNumber;
-    } else if (shape.type === 'bsb_account') {
-      if (!bsbNumber) {
-        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'BSB / bank branch number is required.' }) };
-      }
-      bankAccount.routing_number = bsbNumber;
     } else if (shape.type === 'sort_account') {
       if (!sortCode) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Sort code is required.' }) };

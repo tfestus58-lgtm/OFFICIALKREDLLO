@@ -128,7 +128,10 @@ async function callFunction(name, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${name}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
     if (!res.ok) console.warn(`${name} returned ${res.status}: ${await res.text()}`);
@@ -269,7 +272,7 @@ exports.handler = async (event) => {
             body:       `"${contractTitle}" has been signed by both parties and is now active.`,
             url:        contractUrl,
             templateId: 'contract-active',
-            emailMode:  'always',
+            emailMode:  'never',
             emailData:  { contractTitle, name: party.other },
           });
         }
@@ -284,7 +287,7 @@ exports.handler = async (event) => {
             body:       `${signerName} has signed "${contractTitle}". Your signature is needed to activate it.`,
             url:        contractUrl,
             templateId: 'contract-sign-requested',
-            emailMode:  'always',
+            emailMode:  'never',
             emailData:  { contractTitle, signerName },
           });
         }

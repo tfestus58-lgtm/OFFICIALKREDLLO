@@ -522,7 +522,7 @@
     <!-- Close button -->
     <div class="flex items-center justify-between mb-10">
       <span style="font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">
-        Kredd<span style="color:#3dbd7a;">lo</span>
+        Kreddl<span style="color:#3dbd7a;">o</span>
       </span>
       <button onclick="closeMobileMenu()" aria-label="Close menu"
         style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.08);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
@@ -585,10 +585,7 @@
     <div class="glass" style="max-width:1200px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
 
       <!-- Logo -->
-      <a href="index.html" style="text-decoration:none;flex-shrink:0;">
-        <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="110" height="34"
-             onerror="this.outerHTML='<span style=\'font-size:21px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-      </a>
+      <a href="index.html" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;flex-shrink:0;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
 
       <!-- Desktop nav links -->
       <div style="display:none;align-items:center;gap:32px;" class="md-flex-row">
@@ -813,7 +810,7 @@
         <div>
           <a href="index.html" style="text-decoration:none;display:inline-block;margin-bottom:14px;">
             <span style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;">
-              Kredd<span style="color:#2d8a5e;">lo</span>
+              Kreddl<span style="color:#3dbd7a;">o</span>
             </span>
           </a>
           <p style="font-size:14px;font-weight:400;color:rgba(13,33,69,0.50);line-height:1.6;max-width:280px;">
@@ -1412,7 +1409,7 @@
       let avatarHTML;
       if (f.profilePhoto) {
         avatarHTML = `<img src="${escHtml(f.profilePhoto)}" alt="${escHtml(f.name || '')}" class="avatar" loading="lazy" decoding="async"
-          onerror="this.outerHTML='<div class=\\'avatar-placeholder\\'>${escHtml(initials)}</div>'" />`;
+          onerror="handleAvatarPlaceholder(this, ${JSON.stringify(initials)})" />`;
       } else {
         avatarHTML = `<div class="avatar-placeholder">${escHtml(initials)}</div>`;
       }
@@ -1498,6 +1495,24 @@
       return `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(13,33,69,0.22)" stroke-width="1.6" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>`;
     }
 
+    // Swaps a broken product cover image for the placeholder icon, using real DOM
+    // APIs instead of building HTML in a string (avoids fragile nested-quote escaping).
+    function handleCoverImgError(imgEl) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'prod-cover-placeholder';
+      placeholder.innerHTML = productCoverIcon();
+      imgEl.replaceWith(placeholder);
+    }
+
+    // Swaps a broken freelancer avatar image for an initials placeholder, using real
+    // DOM APIs instead of building HTML in a string (avoids fragile nested-quote escaping).
+    function handleAvatarPlaceholder(imgEl, initials) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'avatar-placeholder';
+      placeholder.textContent = initials;
+      imgEl.replaceWith(placeholder);
+    }
+
     /* ────────────────────────────────────
        RENDER PRODUCT CARDS
     ──────────────────────────────────── */
@@ -1575,7 +1590,7 @@
       const buyUrl = `p.html?slug=${encodeURIComponent(p.slug || p.id)}`;
 
       const coverHtml = p.coverUrl
-        ? `<img class="prod-cover" src="${escHtml(p.coverUrl)}" alt="${escHtml(p.title || '')}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'prod-cover-placeholder\\'>${productCoverIcon()}</div>'">`
+        ? `<img class="prod-cover" src="${escHtml(p.coverUrl)}" alt="${escHtml(p.title || '')}" loading="lazy" decoding="async" onerror="handleCoverImgError(this)">`
         : `<div class="prod-cover-placeholder">${productCoverIcon()}</div>`;
 
       const card = document.createElement('div');
@@ -1584,7 +1599,7 @@
       // Show affiliate button only if: product has affiliate enabled AND current user is an affiliate
       const showAffBtn = p.affiliateEnabled === true && window._myAffiliateEnabled === true;
       const affBtnHtml = showAffBtn
-        ? `<button class="btn-affiliate" onclick="getAffiliateLink(${escHtml(JSON.stringify(p.slug || p.id))},${escHtml(JSON.stringify(p.title || ''))},${p.affiliateCommissionPercent != null ? p.affiliateCommissionPercent : 'null'})" type="button">
+        ? `<button class="btn-affiliate" onclick="getAffiliateLink(${JSON.stringify(p.id)},${JSON.stringify(p.slug || p.id)},${JSON.stringify(p.title || '')},${p.affiliateCommissionPercent != null ? p.affiliateCommissionPercent : 'null'})" type="button">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             Get Affiliate Link${p.affiliateCommissionPercent != null ? ' · ' + p.affiliateCommissionPercent + '%' : ''}
           </button>`
@@ -1760,7 +1775,7 @@
 /* ── AFFILIATE LINK FUNCTIONS ── */
 var _affCurrentLink = '';
 
-function getAffiliateLink(productSlug, productTitle, commissionPct) {
+function getAffiliateLink(productId, productSlug, productTitle, commissionPct) {
   var uid = window._myUid;
   if (!uid) { showBrowseToast('Sign in to get your affiliate link'); return; }
   var link = window.location.origin + '/p.html?slug=' + encodeURIComponent(productSlug) + '&ref=' + encodeURIComponent(uid);
@@ -1776,6 +1791,29 @@ function getAffiliateLink(productSlug, productTitle, commissionPct) {
   if (copyBtn) { copyBtn.textContent = ''; copyBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Link'; }
 
   document.getElementById('aff-modal-bg').classList.add('open');
+
+  // Persist the affiliate-links record so dashboard-affiliate.html's
+  // "Promoted Products" table has something to read. Non-blocking —
+  // the link still works for the user even if this fails.
+  (async function() {
+    try {
+      var idToken = (window.auth && window.auth.currentUser)
+        ? await window.auth.currentUser.getIdToken()
+        : '';
+      if (!idToken) return;
+      await fetch('/.netlify/functions/track-affiliate-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+        body: JSON.stringify({
+          action:       'create',
+          affiliateUid: uid,
+          productId:    productId,
+          productTitle: productTitle,
+          productSlug:  productSlug,
+        })
+      });
+    } catch (e) { /* non-fatal */ }
+  })();
   document.body.style.overflow = 'hidden';
 }
 

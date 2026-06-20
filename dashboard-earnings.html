@@ -381,7 +381,7 @@ header > div:last-child {
 
 <!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="position:fixed;inset:0;z-index:9999;background:#f8f9fb;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:100dvh;padding:0 20px;overflow:hidden;">
-  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#2d8a5e;">o</span></div>
+  <div style="font-size:30px;font-weight:800;color:#0d2145;letter-spacing:-0.8px;">Kreddl<span style="color:#3dbd7a;">o</span></div>
   <div style="width:44px;height:3px;border-radius:2px;overflow:hidden;background:#e8eaf0;position:relative;">
     <div id="loader-bar" style="position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(to right,#2d8a5e,#3dbd7a);"></div>
   </div>
@@ -526,6 +526,32 @@ header > div:last-child {
         </div>
       </div>
 
+      <!-- SECTION C5: Payments received ledger -->
+      <div class="fu fu-3b glass" style="overflow:hidden;margin-bottom:26px;">
+        <div style="padding:24px 24px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <h3 style="font-size:16px;font-weight:700;color:#0d2145;margin:0;">Payments Received</h3>
+          <span id="payments-count" style="font-size:12px;font-weight:600;color:rgba(13,33,69,0.42);"></span>
+        </div>
+        <div style="height:1px;background:#e2e8f0;"></div>
+
+        <!-- Desktop table -->
+        <table class="payout-table payout-desktop" style="display:none;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="payments-table-body"></tbody>
+        </table>
+
+        <!-- Mobile cards -->
+        <div id="payments-cards" class="payout-mobile"></div>
+      </div>
+
       <!-- SECTION D: Payout history -->
       <div class="fu fu-4 glass" style="overflow:hidden;margin-bottom:26px;">
         <div style="padding:24px 24px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -592,11 +618,26 @@ function daysAgo(n) {
 }
 var DEMO_PROJECTS = []; // filled from Firestore: projects (completed) + product-orders (paid)
 var DEMO_PAYOUTS  = []; // filled from Firestore: payouts collection
+var DEMO_PAYMENTS = []; // filled from Firestore: all incoming payments ledger
 
 var STATUS = {
   completed: { label:'Completed', cls:'badge-green' },
   pending:   { label:'Pending',   cls:'badge-amber' },
   failed:    { label:'Failed',    cls:'badge-red'   }
+};
+
+var PAYMENT_STATUS = {
+  escrow:   { label:'In Escrow', cls:'badge-amber' },
+  pending:  { label:'Pending',   cls:'badge-amber' },
+  settled:  { label:'Settled',   cls:'badge-green' },
+  disputed: { label:'Disputed',  cls:'badge-red'   },
+  refunded: { label:'Refunded',  cls:'badge-grey'  }
+};
+
+var PAYMENT_TYPE_LABEL = {
+  project: 'Project',
+  product: 'Product',
+  invoice: 'Invoice'
 };
 
 var currentPeriod = '30d';
@@ -910,6 +951,60 @@ function renderChart(period) {
     '12m': 'Last 12 months, grouped by month'
   };
   document.getElementById('chart-subtitle').textContent = subtitleMap[period];
+}
+
+// ============ PAYMENTS LEDGER ============
+function renderPaymentsLedger() {
+  var tbody = document.getElementById('payments-table-body');
+  var cards = document.getElementById('payments-cards');
+  var countEl = document.getElementById('payments-count');
+  if (!tbody || !cards) return;
+
+  if (!DEMO_PAYMENTS.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px 20px;color:rgba(13,33,69,0.45);font-size:14px;">No payments received yet</td></tr>';
+    cards.innerHTML = '<p style="text-align:center;padding:32px 20px;color:rgba(13,33,69,0.45);font-size:14px;">No payments received yet</p>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  if (countEl) countEl.textContent = DEMO_PAYMENTS.length + (DEMO_PAYMENTS.length === 1 ? ' payment' : ' payments');
+
+  function typeIcon(type) {
+    if (type === 'invoice') return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+    if (type === 'product') return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>';
+    return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
+  }
+
+  tbody.innerHTML = DEMO_PAYMENTS.map(function(p) {
+    var s = PAYMENT_STATUS[p.status] || PAYMENT_STATUS.pending;
+    var typeLabel = PAYMENT_TYPE_LABEL[p.type] || p.type;
+    var dateStr = p.date.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    var amtStr  = fmtCurrency(p.amount, p.currency);
+    return '<tr>'
+      + '<td style="font-size:13px;color:rgba(13,33,69,0.55);">' + dateStr + '</td>'
+      + '<td><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:rgba(13,33,69,0.6);">' + typeIcon(p.type) + typeLabel + '</span></td>'
+      + '<td style="font-size:13px;color:rgba(13,33,69,0.70);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.description || '—') + '</td>'
+      + '<td style="font-weight:700;color:#0d2145;">' + amtStr + '</td>'
+      + '<td><span class="badge ' + s.cls + '">' + s.label + '</span></td>'
+      + '</tr>';
+  }).join('');
+
+  cards.innerHTML = DEMO_PAYMENTS.map(function(p) {
+    var s = PAYMENT_STATUS[p.status] || PAYMENT_STATUS.pending;
+    var typeLabel = PAYMENT_TYPE_LABEL[p.type] || p.type;
+    var dateStr = p.date.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    var amtStr  = fmtCurrency(p.amount, p.currency);
+    return '<div class="payout-card">'
+      + '<div class="payout-row1">'
+        + '<span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:rgba(13,33,69,0.55);">' + typeIcon(p.type) + typeLabel + ' &middot; ' + dateStr + '</span>'
+        + '<span style="font-size:15px;font-weight:700;color:#0d2145;">' + amtStr + '</span>'
+      + '</div>'
+      + '<div class="payout-row2">'
+        + '<span style="font-size:12px;color:rgba(13,33,69,0.50);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (p.description || '—') + '</span>'
+        + '<span class="badge ' + s.cls + '">' + s.label + '</span>'
+      + '</div>'
+    + '</div>';
+  }).join('');
 }
 
 // ============ PAYOUT TABLE ============
@@ -1267,6 +1362,128 @@ async function loadEarningsData(uid) {
     // Merge both into DEMO_PROJECTS (shape filterByPeriod already expects)
     DEMO_PROJECTS = projectEarnings.concat(productEarnings);
 
+    // ── Build payments ledger from Q1 (completed projects — settled) ──
+    var paymentsFromProjects = snap1.docs.map(function(d) {
+      var data = d.data();
+      var ts = data.completedAt || data.paymentConfirmedAt;
+      return {
+        date:        ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date(),
+        type:        'project',
+        description: data.projectTitle || 'Project',
+        amount:      data.netAmount || data.amount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
+        status:      'settled'
+      };
+    });
+
+    // ── Query 1b: funded/in-progress projects (escrow held for freelancer) ──
+    var q1b = fsQ.query(
+      fsQ.collection(window.db, 'projects'),
+      fsQ.where('freelancerUid', '==', uid),
+      fsQ.where('escrowStatus', '==', 'funded')
+    );
+    var snap1b = await fsQ.getDocs(q1b);
+    var paymentsFromProjectsEscrow = snap1b.docs.map(function(d) {
+      var data = d.data();
+      var ts = data.paymentConfirmedAt || data.updatedAt || data.createdAt;
+      // Only include if status isn't already completed (avoid double-counting)
+      if (data.status === 'completed') return null;
+      return {
+        date:        ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date(),
+        type:        'project',
+        description: data.projectTitle || 'Project',
+        amount:      data.netAmount || data.amount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
+        status:      data.status === 'disputed' ? 'disputed' : 'escrow'
+      };
+    }).filter(Boolean);
+
+    // ── Build payments ledger from Q2 (product orders — always settled once paid) ──
+    // Product orders with paymentStatus=paid have already been delivered;
+    // the clearing period only affects when the seller can withdraw, but
+    // the payment itself is real and received — show as settled.
+    var paymentsFromProducts = snap2.docs.map(function(d) {
+      var data = d.data();
+      var ts = data.paymentConfirmedAt || data.createdAt;
+      return {
+        date:        ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date(),
+        type:        'product',
+        description: data.productTitle || data.productName || 'Product sale',
+        amount:      data.sellerAmount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
+        status:      'settled'
+      };
+    });
+
+    // ── Query 4: invoice-orders (seller side) ──
+    var q4 = fsQ.query(
+      fsQ.collection(window.db, 'invoice-orders'),
+      fsQ.where('sellerUid', '==', uid),
+      fsQ.where('paymentStatus', '==', 'paid')
+    );
+    var snap4 = await fsQ.getDocs(q4);
+
+    // Cross-reference parent invoice docs to get live escrow/settled status
+    // invoice-orders only store invoiceId; the live status lives on the invoice doc.
+    // Fields on invoice doc: status ('escrow'|'delivered'|'completed'|'disputed'|'refunded')
+    // Fields on invoice-order doc: invoiceId, sellerUid, clientName, amount, currency,
+    //   sellerAmount, paymentStatus, paymentConfirmedAt, createdAt
+    // description comes from invoice.invoiceNumber (fetched below)
+    var invoiceIds4 = snap4.docs.map(function(d) { return d.data().invoiceId || null; }).filter(Boolean);
+    var invoiceDataMap = {}; // invoiceId -> { status, invoiceNumber }
+    if (invoiceIds4.length) {
+      var chunks4 = [];
+      for (var ci = 0; ci < invoiceIds4.length; ci += 10) chunks4.push(invoiceIds4.slice(ci, ci + 10));
+      for (var ch = 0; ch < chunks4.length; ch++) {
+        try {
+          var invSnap4 = await fsQ.getDocs(fsQ.query(
+            fsQ.collection(window.db, 'invoices'),
+            fsQ.where(fsQ.documentId(), 'in', chunks4[ch])
+          ));
+          invSnap4.docs.forEach(function(d) {
+            var idata = d.data();
+            invoiceDataMap[d.id] = {
+              status:        idata.status || 'escrow',
+              invoiceNumber: idata.invoiceNumber || ''
+            };
+          });
+        } catch(e) { console.warn('[payments] invoice fetch error:', e.message); }
+      }
+    }
+
+    var paymentsFromInvoices = snap4.docs.map(function(d) {
+      var data   = d.data();
+      var ts     = data.paymentConfirmedAt || data.createdAt;
+      var invId  = data.invoiceId || null;
+      var invInfo = invId ? (invoiceDataMap[invId] || {}) : {};
+      var invStatus = invInfo.status || 'escrow';
+      // Map live invoice status → ledger display status
+      // 'completed' = buyer confirmed delivery, funds released → settled
+      // 'escrow' or 'delivered' = funds still held → escrow
+      // 'disputed' → disputed, 'refunded' → refunded
+      var ledgerStatus;
+      if      (invStatus === 'completed')            ledgerStatus = 'settled';
+      else if (invStatus === 'disputed')             ledgerStatus = 'disputed';
+      else if (invStatus === 'refunded')             ledgerStatus = 'refunded';
+      else /* escrow | delivered | anything else */  ledgerStatus = 'escrow';
+      var invNum = invInfo.invoiceNumber || invId || '';
+      return {
+        date:        ts ? (ts.toDate ? ts.toDate() : new Date(ts)) : new Date(),
+        type:        'invoice',
+        description: invNum ? ('Invoice ' + invNum) : 'Invoice payment',
+        amount:      data.sellerAmount || 0,
+        currency:    (data.currency || 'USD').toUpperCase(),
+        status:      ledgerStatus
+      };
+    });
+
+    // Merge all into DEMO_PAYMENTS sorted newest first
+    DEMO_PAYMENTS = paymentsFromProjects
+      .concat(paymentsFromProjectsEscrow)
+      .concat(paymentsFromProducts)
+      .concat(paymentsFromInvoices)
+      .sort(function(a, b) { return b.date - a.date; });
+
     // ── Query 3: payouts ──
     var q3 = fsQ.query(
       fsQ.collection(window.db, 'payouts'),
@@ -1316,6 +1533,7 @@ async function loadEarningsData(uid) {
 
   renderSummaryCards(currentPeriod);
   renderChart(currentPeriod);
+  renderPaymentsLedger();
   renderPayouts();
   renderPremiumSection();
   document.getElementById('loading-overlay').style.display = 'none';

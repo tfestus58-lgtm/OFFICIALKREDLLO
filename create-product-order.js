@@ -200,7 +200,7 @@ async function createStripeCheckout({ orderId, amount, productCurrency, descript
   if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not set.');
 
   const sessionParams = {
-    'payment_method_types[]':                                    'card',
+    'automatic_payment_methods[enabled]':                        'true',
     'mode':                                                      'payment',
     'line_items[0][price_data][currency]':                       productCurrency.toLowerCase(),
     'line_items[0][price_data][product_data][name]':             productTitle,

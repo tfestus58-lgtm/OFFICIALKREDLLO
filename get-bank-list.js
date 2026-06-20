@@ -55,8 +55,10 @@ const CURRENCY_TO_COUNTRY = {
 const STRIPE_FIELD_MAP = {
   USD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Routing number + Account number' },
   CAD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Institution & transit number + Account number' },
-  AUD: { type: 'bsb_account',     fields: ['bsbNumber',     'accountNumber'], label: 'BSB number + Account number' },
-  NZD: { type: 'bsb_account',     fields: ['bsbNumber',     'accountNumber'], label: 'Bank branch number + Account number' },
+  AUD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'BSB number + Account number' },
+  NZD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank branch number + Account number' },
+  SGD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank code + Account number' },
+  HKD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank code + Account number' },
   GBP: { type: 'sort_account',    fields: ['sortCode',      'accountNumber'], label: 'Sort code + Account number' },
   EUR: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
   CHF: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },

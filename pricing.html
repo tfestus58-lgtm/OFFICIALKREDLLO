@@ -330,10 +330,7 @@
   <!-- ══ NAVBAR ══ -->
   <nav class="glass sticky top-0 z-50 mx-4 mt-3 rounded-2xl px-5 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-      <a href="index.html" class="flex-shrink-0">
-        <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120" height="36"
-             onerror="this.outerHTML='<span style=\'font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-      </a>
+      <a href="index.html" class="flex-shrink-0" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
       <div class="hidden md:flex items-center gap-8">
         <a href="index.html#features"    class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">Features</a>
         <a href="index.html#how-it-works" class="text-navy/70 hover:text-navy text-sm font-500 transition-colors">How It Works</a>
@@ -833,10 +830,7 @@
     <div class="max-w-6xl mx-auto">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
         <div class="flex flex-col gap-4">
-          <a href="index.html">
-            <img loading="eager" decoding="async" src="assets/kreddlo-logo.png" alt="Kreddlo" width="120"
-                 onerror="this.outerHTML='<span style=\'font-size:20px;font-weight:800;color:#0d2145;letter-spacing:-0.5px\'>Kredd<span style=\'color:#2d8a5e\'>lo</span></span>'" />
-          </a>
+          <a href="index.html" style="font-size:22px;font-weight:800;color:#0d2145;letter-spacing:-0.5px;text-decoration:none;display:inline-block;">Kreddl<span style="color:#3dbd7a;">o</span></a>
           <p class="text-navy/50 text-[14px] leading-relaxed max-w-xs font-400">The complete freelance operating system for verified professionals in countries locked out of traditional payment networks.</p>
         </div>
         <div class="flex flex-col md:items-center gap-3">
@@ -1288,9 +1282,11 @@ async function submitProUpgrade(gateway) {
   document.querySelectorAll('.pro-gateway-btn').forEach(function(b) { b.disabled = true; b.style.opacity = '0.6'; });
 
   try {
+    var idToken = '';
+    try { idToken = await user.getIdToken(); } catch (_) { /* non-fatal — server will reject if missing */ }
     var res = await fetch('/.netlify/functions/create-subscription', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
       body:    JSON.stringify({
         uid:           user.uid,
         gateway:       gateway,

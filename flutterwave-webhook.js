@@ -70,7 +70,10 @@ async function callFunction(functionName, payload) {
   try {
     const res = await fetch(`${platformUrl}/.netlify/functions/${functionName}`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':     'application/json',
+        'x-internal-secret': process.env.INTERNAL_FUNCTION_SECRET || '',
+      },
       body:    JSON.stringify(payload),
     });
 
@@ -457,7 +460,7 @@ exports.handler = async (event) => {
       paymentMethod:          'flutterwave',
       flutterwaveReference:   reference,
       flutterwaveTxId:        flwTxId,
-      paymentStatus:          'success',
+      paymentStatus:          'paid',
       currency:               confirmedCurrency,
       platformFee:            platformFeeAmt,
       protectionFee:          protectionFeeAmt,
@@ -629,6 +632,21 @@ async function creditAffiliateCommission({ db, order, orderId, sellerAmount, con
       createdAt:          FieldValue.serverTimestamp(),
     });
 
+    // Increment the conversions counter on the affiliate-links record
+    // (non-fatal — a missed count should never block commission crediting)
+    if (order.productId) {
+      try {
+        await db.collection('affiliate-links').doc(`${affiliateRef}_${order.productId}`).set({
+          affiliateUid: affiliateRef,
+          productId:    order.productId,
+          conversions:  FieldValue.increment(1),
+          updatedAt:    FieldValue.serverTimestamp(),
+        }, { merge: true });
+      } catch (err) {
+        console.warn(`[affiliate-links] conversions increment failed for order ${orderId}:`, err.message);
+      }
+    }
+
     await db.collection('product-orders').doc(orderId).update({
       affiliateCommissionPaid:    true,
       affiliateCommissionAmount:  commissionAmount,
@@ -763,25 +781,60 @@ async function handleInvoiceOrderPaid({ db, orderId, invOrderRef, invOrderSnap, 
   const invoiceId = invOrder.invoiceId || null;
   const sellerUid = invOrder.sellerUid || null;
 
+  const clientEmail = (invOrder.clientEmail || '').trim().toLowerCase();
+  const clientName  = invOrder.clientName || invOrder.payerName || 'A client';
+
+  /* ── Place funds in escrow ── */
   if (invoiceId) {
     try {
+      const deliverBy = new Date(Date.now() + 48 * 60 * 60 * 1000);
       await db.collection('invoices').doc(invoiceId).update({
-        status:    'paid',
-        paidAt:    FieldValue.serverTimestamp(),
-        paidOrder: orderId,
-        updatedAt: FieldValue.serverTimestamp(),
+        status:             'escrow',
+        escrowHeldAt:       FieldValue.serverTimestamp(),
+        escrowSellerAmount: sellerAmount,
+        paidAt:             FieldValue.serverTimestamp(),
+        paidOrder:          orderId,
+        deliverBy:          deliverBy,
+        updatedAt:          FieldValue.serverTimestamp(),
       });
-      console.log(`Invoice ${invoiceId} marked as paid.`);
+      console.log(`Invoice ${invoiceId} placed in escrow.`);
     } catch (err) {
-      console.error(`Could not mark invoice ${invoiceId} as paid:`, err.message);
+      console.error(`Could not place invoice ${invoiceId} in escrow:`, err.message);
     }
   }
 
   if (!sellerUid) {
-    console.warn(`No sellerUid on invoice-order ${orderId} — skipping notification.`);
+    console.warn(`No sellerUid on invoice-order ${orderId} — skipping escrow credit.`);
     return;
   }
 
+  /* ── Add to seller's escrowBalance ── */
+  try {
+    await db.collection('users').doc(sellerUid).update({
+      escrowBalance: FieldValue.increment(sellerAmount),
+      updatedAt:     FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error(`Could not update escrowBalance for seller ${sellerUid}:`, err.message);
+  }
+
+  /* ── Write escrow-holds record ── */
+  try {
+    await db.collection('escrow-holds').add({
+      invoiceId,
+      orderId,
+      sellerId:   sellerUid,
+      buyerEmail: clientEmail,
+      amount:     sellerAmount,
+      currency:   confirmedCurrency,
+      status:     'held',
+      createdAt:  FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    console.error(`Could not write escrow-holds for invoice ${invoiceId}:`, err.message);
+  }
+
+  /* ── Fetch seller details for notifications ── */
   let freelancerEmail = null;
   let freelancerName  = 'Freelancer';
   try {
@@ -796,7 +849,6 @@ async function handleInvoiceOrderPaid({ db, orderId, invOrderRef, invOrderSnap, 
 
   const platformUrl   = (process.env.PLATFORM_URL || '').replace(/\/$/, '');
   const invoiceAmount = new Intl.NumberFormat('en', { style: 'currency', currency: confirmedCurrency }).format(confirmedAmount);
-  const clientName    = invOrder.clientName || invOrder.payerName || 'A client';
 
   let invoiceNumber = '';
   if (invoiceId) {
@@ -806,24 +858,39 @@ async function handleInvoiceOrderPaid({ db, orderId, invOrderRef, invOrderSnap, 
     } catch (_) {}
   }
 
+  /* ── Notify seller: payment in escrow ── */
   await callFunction('send-smart-notification', {
     userUid:    sellerUid,
     to:         freelancerEmail || null,
-    title:      'Invoice Paid',
-    body:       `${clientName} has paid your invoice for ${invoiceAmount}.`,
+    title:      'Payment Held in Escrow',
+    body:       `Payment received for invoice ${invoiceNumber || invoiceId}. Deliver your work and mark complete to release funds.`,
     url:        `${platformUrl}/dashboard-invoices.html`,
-    templateId: 'invoice-paid',
+    templateId: 'invoice-escrow-held-seller',
     emailMode:  'always',
     data: {
       name:          freelancerName,
-      clientName,
+      invoiceNumber: invoiceNumber || invoiceId,
       amount:        invoiceAmount,
-      invoiceNumber,
       dashboardUrl:  `${platformUrl}/dashboard-invoices.html`,
     },
   });
 
-  console.log(`Invoice order ${orderId} handled successfully — freelancer ${sellerUid} notified.`);
+  /* ── Email buyer: payment secured in escrow ── */
+  if (clientEmail) {
+    await callFunction('send-email', {
+      to:     clientEmail,
+      toName: clientName,
+      type:   'invoice-escrow-held-buyer',
+      data: {
+        name:           clientName,
+        freelancerName,
+        invoiceNumber:  invoiceNumber || invoiceId,
+        amount:         invoiceAmount,
+      },
+    });
+  }
+
+  console.log(`Invoice order ${orderId} handled successfully — funds in escrow for seller ${sellerUid}.`);
 }
 
 /* ── Utility: build a Netlify function response ── */

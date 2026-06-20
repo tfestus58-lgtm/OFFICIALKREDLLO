@@ -636,6 +636,93 @@ function templateNewReview({ name = 'there', reviewerName = 'Someone', productTi
   return { subject: 'New review on your profile', preheader, body };
 }
 
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-escrow-held-seller
+// Sent to the freelancer when their invoice payment is held in escrow.
+// ---------------------------------------------------------------------------
+function templateInvoiceEscrowHeldSeller({ name = 'there', invoiceNumber = '', amount = '', dashboardUrl = PLATFORM_URL }) {
+  const preheader = `Payment for invoice ${invoiceNumber} is held in escrow — deliver your work to release funds.`;
+  const body = `
+    ${badge('Payment in Escrow', BRAND.green, BRAND.greenPale)}
+    ${heading('Your invoice payment is secured.')}
+    ${bodyText(`Hi ${name}, payment for invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} has been received and is safely held in escrow.`)}
+    ${highlightBox(`
+      ${infoRow('Invoice', invoiceNumber || '—')}
+      ${infoRow('Amount Held', amount, true)}
+    `)}
+    ${bodyText('Deliver your work and click "Mark as Delivered" on your dashboard. Once your client confirms receipt, funds will be released to your available balance.')}
+    ${btn('Go to Invoices', dashboardUrl, BRAND.navy)}
+  `;
+  return { subject: `Payment in escrow — Invoice ${invoiceNumber || ''}`, preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-escrow-held-buyer
+// Sent to the buyer after their payment is placed in escrow.
+// ---------------------------------------------------------------------------
+function templateInvoiceEscrowHeldBuyer({ name = 'there', freelancerName = 'The freelancer', invoiceNumber = '', amount = '' }) {
+  const preheader = `Your payment of ${amount} is secured in escrow for invoice ${invoiceNumber}.`;
+  const body = `
+    ${badge('Payment Secured', BRAND.green, BRAND.greenPale)}
+    ${heading('Your payment is held safely in escrow.')}
+    ${bodyText(`Hi ${name}, your payment for invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} has been received and is being held in escrow by Kreddlo.`)}
+    ${highlightBox(`
+      ${infoRow('Invoice', invoiceNumber || '—')}
+      ${infoRow('Paid To (Escrow)', freelancerName)}
+      ${infoRow('Amount', amount, true)}
+    `)}
+    ${bodyText(`${freelancerName} will deliver your work shortly. You will receive a confirmation link by email — clicking it releases payment to the freelancer. If you have any concerns, you can raise a dispute directly from the invoice page.`)}
+  `;
+  return { subject: `Payment secured in escrow — Invoice ${invoiceNumber || ''}`, preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-delivered-buyer
+// Sent to the buyer when the freelancer marks the invoice as delivered.
+// ---------------------------------------------------------------------------
+function templateInvoiceDeliveredBuyer({ name = 'there', freelancerName = 'The freelancer', invoiceNumber = '', confirmUrl = PLATFORM_URL }) {
+  const preheader = `${freelancerName} has delivered invoice ${invoiceNumber}. Confirm to release payment.`;
+  const body = `
+    ${badge('Work Delivered', BRAND.green, BRAND.greenPale)}
+    ${heading(`${freelancerName} has marked your order as delivered.`)}
+    ${bodyText(`Hi ${name}, ${freelancerName} has marked invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} as delivered. Please review the work and confirm receipt to release payment.`)}
+    ${btn('Confirm Delivery & Release Payment', confirmUrl, BRAND.green)}
+    ${mutedText('If you did not receive the work or have concerns, you can raise a dispute from the invoice page instead of confirming.')}
+  `;
+  return { subject: `Delivery confirmation needed — Invoice ${invoiceNumber || ''}`, preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-delivered-seller
+// Sent to the freelancer confirming they have marked delivery.
+// ---------------------------------------------------------------------------
+function templateInvoiceDeliveredSeller({ name = 'there', invoiceNumber = '', clientName = 'Your client', dashboardUrl = PLATFORM_URL }) {
+  const preheader = `Delivery submitted for invoice ${invoiceNumber}. Waiting for client confirmation.`;
+  const body = `
+    ${badge('Delivery Submitted', BRAND.navy, '#e8edf5')}
+    ${heading('Delivery marked — waiting for client.')}
+    ${bodyText(`Hi ${name}, you have successfully marked invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} as delivered. ${clientName} has been sent a confirmation link.`)}
+    ${bodyText('Once they confirm receipt, your funds will be released to your available balance. If they do not confirm within the escrow window, funds will be released automatically.')}
+    ${btn('View Invoices', dashboardUrl, BRAND.navy)}
+  `;
+  return { subject: `Delivery submitted — Invoice ${invoiceNumber || ''}`, preheader, body };
+}
+
+// ---------------------------------------------------------------------------
+// TEMPLATE: invoice-escrow-released
+// Sent to the freelancer when funds are released from escrow.
+// ---------------------------------------------------------------------------
+function templateInvoiceEscrowReleased({ name = 'there', invoiceNumber = '', amount = '', dashboardUrl = PLATFORM_URL }) {
+  const preheader = `${amount} released to your balance for invoice ${invoiceNumber}.`;
+  const body = `
+    ${badge('Funds Released', BRAND.green, BRAND.greenPale)}
+    ${heading('Your payment has been released!')}
+    ${bodyText(`Hi ${name}, the escrow hold for invoice${invoiceNumber ? ` ${invoiceNumber}` : ''} has been cleared and ${amount} is now available in your balance.`)}
+    ${btn('View Earnings', dashboardUrl, BRAND.green)}
+  `;
+  return { subject: `Payment released — Invoice ${invoiceNumber || ''}`, preheader, body };
+}
+
 // Maps the templateId / type string from the POST body to a template function.
 // ---------------------------------------------------------------------------
 function buildEmail(type, data) {
@@ -686,6 +773,16 @@ function buildEmail(type, data) {
       return templateInvoiceSent(data);
     case 'invoice-paid':
       return templateInvoicePaid(data);
+    case 'invoice-escrow-held-seller':
+      return templateInvoiceEscrowHeldSeller(data);
+    case 'invoice-escrow-held-buyer':
+      return templateInvoiceEscrowHeldBuyer(data);
+    case 'invoice-delivered-buyer':
+      return templateInvoiceDeliveredBuyer(data);
+    case 'invoice-delivered-seller':
+      return templateInvoiceDeliveredSeller(data);
+    case 'invoice-escrow-released':
+      return templateInvoiceEscrowReleased(data);
     default:
       return null;
   }
