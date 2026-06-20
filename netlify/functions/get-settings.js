@@ -29,6 +29,9 @@ const DEFAULTS = {
   twitterUrl:                '',
   linkedinUrl:               '',
   instagramUrl:              '',
+  supportEmail:              'support@kreddlo.com',
+  privacyEmail:              'privacy@kreddlo.com',
+  legalEmail:                'legal@kreddlo.com',
 };
 
 /**

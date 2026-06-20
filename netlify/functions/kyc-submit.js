@@ -109,7 +109,9 @@ async function notifyAdmin({ uid, adminEmail, platformUrl }) {
 
   const senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@kreddlo.com';
   const senderName  = process.env.BREVO_SENDER_NAME  || 'Kreddlo';
-  const reviewUrl   = (platformUrl || 'https://kreddlo.com') + '/admin.html';
+  // platformUrl is passed in by the caller (sourced from process.env.PLATFORM_URL);
+  // the literal string below is only a last-resort fallback if that env var is unset.
+  const reviewUrl   = (platformUrl || process.env.PLATFORM_URL || 'https://kreddlo.com') + '/admin.html';
 
   try {
     await fetch('https://api.brevo.com/v3/smtp/email', {

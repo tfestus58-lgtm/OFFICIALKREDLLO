@@ -7,8 +7,12 @@
  * searchable "Bank" dropdown — same pattern as the freelancer bank
  * payout flow in create-bank-payout.js.
  *
+ * For Stripe-supported international currencies (USD, EUR, GBP, etc.)
+ * no bank list is returned — instead a `stripeFields` descriptor tells
+ * the frontend which input fields to render (routing+account, IBAN, etc.)
+ *
  * Query params:
- *   currency  — fiat currency code (NGN, GHS, KES, etc.) — required
+ *   currency  — fiat currency code (NGN, GHS, KES, USD, EUR, GBP …) — required
  *
  * Environment variables required:
  *   FLW_SECRET_KEY — Flutterwave secret key (FLWSECK_TEST-... or FLWSECK-...)
@@ -38,6 +42,33 @@ const CURRENCY_TO_COUNTRY = {
   ZMW: 'ZM',
 };
 
+/**
+ * Stripe-supported international currencies.
+ * For these we return stripeFields instead of a bank list —
+ * Stripe does not expose a public bank directory like Flutterwave.
+ *
+ * Each entry describes:
+ *   type   — input pattern the frontend should render
+ *   fields — ordered list of field IDs the frontend must collect
+ *   label  — human-readable description shown to the user
+ */
+const STRIPE_FIELD_MAP = {
+  USD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Routing number + Account number' },
+  CAD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Institution & transit number + Account number' },
+  AUD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'BSB number + Account number' },
+  NZD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank branch number + Account number' },
+  SGD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank code + Account number' },
+  HKD: { type: 'routing_account', fields: ['routingNumber', 'accountNumber'], label: 'Bank code + Account number' },
+  GBP: { type: 'sort_account',    fields: ['sortCode',      'accountNumber'], label: 'Sort code + Account number' },
+  EUR: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
+  CHF: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
+  DKK: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
+  NOK: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
+  SEK: { type: 'iban',            fields: ['iban'],                           label: 'IBAN' },
+};
+
+const STRIPE_CURRENCIES = Object.keys(STRIPE_FIELD_MAP);
+
 exports.handler = async function (event) {
   const CORS = {
     'Access-Control-Allow-Origin':  '*',
@@ -62,6 +93,21 @@ exports.handler = async function (event) {
     .toUpperCase()
     .trim();
 
+  /* ── Stripe international currencies — return field descriptor, no bank list ── */
+  if (STRIPE_CURRENCIES.includes(currency)) {
+    const stripeFields = STRIPE_FIELD_MAP[currency];
+    return {
+      statusCode: 200,
+      headers: { ...CORS, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        banks:        [],
+        currency,
+        stripeFields,
+      }),
+    };
+  }
+
+  /* ── Flutterwave-supported currencies — fetch bank list from FLW ── */
   const countryCode = CURRENCY_TO_COUNTRY[currency];
   if (!countryCode) {
     return {

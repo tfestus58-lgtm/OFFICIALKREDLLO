@@ -138,6 +138,14 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
   #inv-cards-wrap:not(.inv-hidden){display:none}
   #inv-table-wrap:not(.inv-hidden){display:block}
 }
+/* Invoice form action buttons: full-width stacked on mobile so long labels
+   like "Save & Send to Client" never get squeezed into a cramped pill. */
+.inv-actions{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.inv-actions .btn-ghost,.inv-actions .btn-green{width:100%}
+@media(min-width:480px){
+  .inv-actions{flex-direction:row}
+  .inv-actions .btn-ghost,.inv-actions .btn-green{width:auto;flex:1}
+}
 </style>
 </head>
 <body>
@@ -328,9 +336,9 @@ tr:last-child td{border-bottom:1px solid #f0f2f6}
       <textarea id="f-notes" class="inp" placeholder="Payment terms, thank-you note, etc."></textarea>
     </div>
 
-    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
-      <button class="btn-ghost" style="flex:1;min-width:120px;" onclick="saveInvoice('draft')" id="save-draft-btn">Save as Draft</button>
-      <button class="btn-green" style="flex:1;min-width:120px;" onclick="saveInvoice('sent')" id="send-btn">Save &amp; Send to Client</button>
+    <div class="inv-actions">
+      <button class="btn-ghost" onclick="saveInvoice('draft')" id="save-draft-btn">Save as Draft</button>
+      <button class="btn-green" onclick="saveInvoice('sent')" id="send-btn">Save &amp; Send to Client</button>
     </div>
   </div>
 </div>

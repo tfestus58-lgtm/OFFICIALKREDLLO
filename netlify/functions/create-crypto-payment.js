@@ -190,7 +190,8 @@ exports.handler = async (event) => {
   console.log(`Invoice created — orderId: ${orderId}, amount: $${amount} USD, invoiceId: ${nowData.id}`);
 
   return respond(200, {
-    invoiceUrl,
+    checkoutUrl: invoiceUrl, // frontend pages (buyer-dashboard, buyer-projects) expect checkoutUrl
+    invoiceUrl,              // kept for backward-compatibility with any other callers
     invoiceId: nowData.id,   // useful if the frontend wants to store it in Firestore
   });
 };

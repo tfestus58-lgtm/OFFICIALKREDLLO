@@ -1197,12 +1197,22 @@ function renderStripeFields(fields) {
   if (!sf || !fields) return;
 
   if (fields.type === 'routing_account') {
-    // USD: inject Routing Number; keep generic Account Number field
+    // Field id/shape is identical across USD/CAD/AUD/NZD/SGD/HKD (routingNumber + accountNumber);
+    // only the label/placeholder differ so the right local terminology shows per currency.
+    var routingCopy = {
+      USD: { label: 'Routing Number',           placeholder: '9-digit routing number',          maxlen: 9  },
+      CAD: { label: 'Institution & Transit Number', placeholder: 'e.g. 12345-678',               maxlen: 9  },
+      AUD: { label: 'BSB Number',                placeholder: '6-digit BSB number',               maxlen: 6  },
+      NZD: { label: 'Bank Branch Number',        placeholder: 'Bank & branch number',             maxlen: 8  },
+      SGD: { label: 'Bank Code',                 placeholder: 'Bank & branch code',               maxlen: 10 },
+      HKD: { label: 'Bank Code',                 placeholder: 'Bank & branch code',               maxlen: 10 },
+    };
+    var rc = routingCopy[selectedWithdrawalCurrency] || routingCopy.USD;
     if (anw) anw.style.display = '';
     sf.innerHTML =
       '<div style="margin-bottom:16px;">' +
-        '<label for="input-stripe-routing" class="lbl" style="display:block;margin-bottom:8px;">Routing Number</label>' +
-        '<input type="text" id="input-stripe-routing" class="inp" placeholder="9-digit routing number" inputmode="numeric" maxlength="9" autocomplete="off" onblur="resolveBankAccount()">' +
+        '<label for="input-stripe-routing" class="lbl" style="display:block;margin-bottom:8px;">' + rc.label + '</label>' +
+        '<input type="text" id="input-stripe-routing" class="inp" placeholder="' + rc.placeholder + '" inputmode="numeric" maxlength="' + rc.maxlen + '" autocomplete="off" onblur="resolveBankAccount()">' +
       '</div>';
 
   } else if (fields.type === 'iban') {
@@ -1262,7 +1272,7 @@ function formatSortCode(el) {
 }
 // ──────────────────────────────────────────────────────────
 // Currencies handled by Stripe — no FLW bank list; backend returns stripeFields descriptor instead.
-const STRIPE_CURRENCIES = ['USD','EUR','GBP','CAD','AUD','NZD','CHF','DKK','NOK','SEK'];
+const STRIPE_CURRENCIES = ['USD','EUR','GBP','CAD','AUD','NZD','CHF','DKK','NOK','SEK','SGD','HKD'];
 let currentStripeFields = null; // populated when a Stripe currency is active; null for FLW currencies
 
 async function fetchBankList() {
@@ -1687,7 +1697,8 @@ async function handleBankWithdraw() {
     // ── International (Stripe) currency — validate whichever fields apply ──
     if (fields.stripeType === 'routing_account') {
       if (!fields.routingNumber) {
-        errEl.textContent = 'Please enter your routing number.';
+        var _routingErrLabel = { AUD: 'BSB number', NZD: 'bank branch number', SGD: 'bank code', HKD: 'bank code' }[selectedWithdrawalCurrency] || 'routing number';
+        errEl.textContent = 'Please enter your ' + _routingErrLabel + '.';
         errEl.style.display = 'block';
         return;
       }
